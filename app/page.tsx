@@ -77,14 +77,14 @@ export default function BestSellersPage() {
       <div
         className="fixed inset-0 z-0"
         style={{
-          backgroundImage: "url('/wooden-background.png')",
+          backgroundImage: "url('/wooden-background.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
         }}
       />
       {/* Semi-transparent overlay for content readability */}
-      <div className="fixed inset-0 z-10 bg-white/85 backdrop-blur-sm" />
+      <div className="fixed inset-0 z-10 bg-white/40 backdrop-blur-sm" />
 
       {/* Content wrapper with higher z-index */}
       <div className="relative z-20">
@@ -94,7 +94,7 @@ export default function BestSellersPage() {
             <div className="flex items-center justify-between h-16">
               {/* Logo */}
               <div className="flex-shrink-0">
-                <div className="text-xl font-serif tracking-wider text-gray-900">WESTMOUNT</div>
+                <div className="text-xl font-serif tracking-wider text-gray-900">Flower</div>
                 <div className="text-xs text-gray-500 tracking-widest">FLORIST</div>
               </div>
 
@@ -128,6 +128,28 @@ export default function BestSellersPage() {
             </div>
           </div>
         </header>
+
+        {/* Hero Section */}
+        <section className="relative w-full h-96 md:h-[500px] lg:h-[600px] overflow-hidden">
+          <img
+            src="/flowerstore-hero.jpg"
+            alt="Beautiful flower arrangements and bouquets"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+            <div className="text-center text-white max-w-4xl px-4">
+              <h1 className="text-4xl md:text-6xl font-light mb-4">
+                Welcome to FLORIST
+              </h1>
+              <p className="text-xl md:text-2xl font-light mb-8">
+                Discover our beautiful collection of fresh flowers and arrangements
+              </p>
+              <Button size="lg" className="bg-white text-gray-900 hover:bg-gray-100">
+                Shop Now
+              </Button>
+            </div>
+          </div>
+        </section>
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
