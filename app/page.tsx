@@ -118,11 +118,21 @@ export default function BestSellersPage() {
                 </a>
               </nav>
 
-              {/* Right side icons */}
+              {/* Right side icons and auth */}
               <div className="flex items-center space-x-4">
                 <Search className="h-5 w-5 text-gray-600 cursor-pointer" />
-                <User className="h-5 w-5 text-gray-600 cursor-pointer" />
                 <ShoppingCart className="h-5 w-5 text-gray-600 cursor-pointer" />
+                
+                {/* Authentication Links */}
+                <div className="flex items-center space-x-3">
+                  <a href="/auth/signin" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                    Sign In
+                  </a>
+                  <a href="/auth/signup" className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                    Sign Up
+                  </a>
+                </div>
+                
                 <span className="text-sm text-gray-600">EN</span>
               </div>
             </div>
