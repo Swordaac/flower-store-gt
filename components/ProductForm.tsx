@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { XMarkIcon, PlusIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { useUser } from '@/contexts/UserContext';
 
 interface ProductFormData {
   name: string;
@@ -21,9 +22,10 @@ interface ProductFormData {
 
 interface ProductFormProps {
   product?: any;
-  onSubmit: (data: ProductFormData) => void;
+  onSubmit: (data: ProductFormData) => Promise<any> | void;
   onCancel: () => void;
   isEditing?: boolean;
+  shopId?: string; // Required for image uploads
 }
 
 const categories = [
@@ -43,7 +45,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   product,
   onSubmit,
   onCancel,
-  isEditing = false
+  isEditing = false,
+  shopId
 }) => {
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
@@ -60,6 +63,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [newTag, setNewTag] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newImageAlt, setNewImageAlt] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { session } = useUser();
 
   useEffect(() => {
     if (product) {
@@ -104,6 +112,81 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }));
   };
 
+  const handleFileSelect = (files: FileList) => {
+    if (files.length === 0) return;
+
+    // Convert FileList to Array and add to pending files
+    const newFiles = Array.from(files);
+    setPendingFiles(prev => [...prev, ...newFiles]);
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadImages = async (productId: string): Promise<any[]> => {
+    if (pendingFiles.length === 0) return [];
+
+    if (!session?.access_token) {
+      throw new Error('Authentication required');
+    }
+
+    if (!shopId) {
+      throw new Error('Shop ID is required for image uploads');
+    }
+
+    console.log('Starting image upload:', { productId, shopId, fileCount: pendingFiles.length });
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      
+      // Add all pending files
+      pendingFiles.forEach((file, index) => {
+        console.log(`Adding file ${index}:`, file.name, file.size, file.type);
+        formData.append('images', file);
+      });
+      formData.append('productId', productId);
+
+      console.log('Sending upload request to:', 'http://localhost:5001/api/images/upload/multiple');
+
+      const response = await fetch('http://localhost:5001/api/images/upload/multiple', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: formData
+      });
+
+      console.log('Upload response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Upload failed:', errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Image upload response:', data);
+
+      if (data.success) {
+        // Clear pending files after successful upload
+        setPendingFiles([]);
+        alert(`Successfully uploaded ${data.data.images.length} images!`);
+        return data.data.images;
+      } else {
+        throw new Error(data.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Image upload failed: ${errorMessage}`);
+      throw error;
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const addImage = () => {
     if (newImageUrl.trim()) {
       const newImage = {
@@ -139,19 +222,64 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    
+    if (e.dataTransfer.files) {
+      handleFileSelect(e.dataTransfer.files);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const openFileDialog = () => {
+    fileInputRef.current?.click();
+  };
+
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Convert price to cents
-    const priceInCents = Math.round(parseFloat(formData.price) * 100);
-    
-    const submitData = {
-      ...formData,
-      price: priceInCents.toString(),
-      quantity: parseInt(formData.quantity).toString()
-    };
-    
-    onSubmit(submitData);
+    try {
+      // Convert price to cents
+      const priceInCents = Math.round(parseFloat(formData.price) * 100);
+      
+      const submitData = {
+        ...formData,
+        price: priceInCents.toString(),
+        quantity: parseInt(formData.quantity).toString()
+      };
+      
+      console.log('Submitting product data:', submitData);
+      console.log('Pending files:', pendingFiles.length);
+      
+      // Submit the product first
+      const createdProduct = await onSubmit(submitData);
+      console.log('Product created:', createdProduct);
+      
+      // If there are pending files and we have a product ID, upload images
+      if (pendingFiles.length > 0 && createdProduct && createdProduct._id) {
+        console.log('Starting image upload for product:', createdProduct._id);
+        await uploadImages(createdProduct._id);
+      } else {
+        console.log('No image upload needed:', { 
+          pendingFiles: pendingFiles.length, 
+          hasProduct: !!createdProduct, 
+          hasId: !!(createdProduct && createdProduct._id) 
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting product:', error);
+      alert('Failed to create product. Please try again.');
+    }
   };
 
   return (
@@ -311,74 +439,151 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <label className="block text-sm font-medium text-gray-700">
               Product Images
             </label>
-            <div className="mt-1 space-y-3">
+            
+            {!shopId && (
+              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  ⚠️ Image upload requires a shop. Please ensure you have a shop and are logged in.
+                </p>
+              </div>
+            )}
+            
+            {/* Upload Area */}
+            <div className="mt-1">
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  !shopId
+                    ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
+                    : dragOver
+                    ? 'border-indigo-500 bg-indigo-50 cursor-pointer'
+                    : 'border-gray-300 hover:border-gray-400 cursor-pointer'
+                } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onDrop={shopId ? handleDrop : undefined}
+                onDragOver={shopId ? handleDragOver : undefined}
+                onDragLeave={shopId ? handleDragLeave : undefined}
+                onClick={shopId ? openFileDialog : undefined}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
+                  className="hidden"
+                  disabled={uploading}
+                />
+
+                {uploading ? (
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    <p className="mt-2 text-sm text-gray-600">Uploading...</p>
+                  </div>
+                ) : !shopId ? (
+                  <div className="flex flex-col items-center">
+                    <PhotoIcon className="mx-auto h-12 w-12 text-gray-300" />
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-400">
+                        Image upload disabled
+                      </p>
+                      <p className="text-xs text-gray-400">Shop ID required</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium text-indigo-600 hover:text-indigo-500">
+                          Click to select
+                        </span>{' '}
+                        or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB each</p>
+                      <p className="text-xs text-gray-400 mt-1">Images will be uploaded when you create the product</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Image Gallery */}
+            {(formData.images.length > 0 || pendingFiles.length > 0) && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Selected Images</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {/* Show uploaded images */}
               {formData.images.map((image, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-md">
+                    <div key={`uploaded-${index}`} className="relative group">
                   <img
                     src={image.url}
                     alt={image.alt}
-                    className="h-16 w-16 object-cover rounded-md"
-                  />
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={image.alt}
-                      onChange={(e) => {
-                        const newImages = [...formData.images];
-                        newImages[index].alt = e.target.value;
-                        setFormData(prev => ({ ...prev, images: newImages }));
-                      }}
-                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="Image alt text"
-                    />
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                      
+                      {image.isPrimary && (
+                        <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                          Primary
                   </div>
+                      )}
+
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
                   <div className="flex space-x-2">
+                          {!image.isPrimary && (
                     <button
                       type="button"
                       onClick={() => setPrimaryImage(index)}
-                      className={`px-2 py-1 text-xs rounded ${
-                        image.isPrimary
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {image.isPrimary ? 'Primary' : 'Set Primary'}
+                              className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
+                            >
+                              Set Primary
                     </button>
+                          )}
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
-                      className="text-red-600 hover:text-red-800"
+                            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
                     >
-                      <XMarkIcon className="h-4 w-4" />
+                            Delete
                     </button>
+                        </div>
                   </div>
                 </div>
               ))}
               
-              <div className="flex items-center space-x-3">
-                <input
-                  type="url"
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  className="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="Image URL"
-                />
-                <input
-                  type="text"
-                  value={newImageAlt}
-                  onChange={(e) => setNewImageAlt(e.target.value)}
-                  className="flex-1 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="Alt text"
-                />
+                  {/* Show pending files */}
+                  {pendingFiles.map((file, index) => (
+                    <div key={`pending-${index}`} className="relative group">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={file.name}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                      
+                      <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded">
+                        Pending
+                      </div>
+
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <div className="flex space-x-2">
                 <button
                   type="button"
-                  onClick={addImage}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            onClick={() => removePendingFile(index)}
+                            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
                 >
-                  <PlusIcon className="h-4 w-4" />
+                            Remove
                 </button>
               </div>
             </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {pendingFiles.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Images will be uploaded when you create the product
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Status Options */}

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ChevronDown, Filter, Search, ShoppingCart, User } from "lucide-react"
+import { CartIcon } from "@/components/CartIcon"
 
 // Reusable theme object
 const theme = {
@@ -145,7 +146,7 @@ export default function BestSellersPage() {
 
   // Helper function to format price
   const formatPrice = (priceInCents: number) => {
-    return `$${(priceInCents / 100).toFixed(2)} CAD`
+    return `From $${(priceInCents / 100).toFixed(2)}`
   }
 
   // Helper function to get primary image
@@ -316,7 +317,7 @@ export default function BestSellersPage() {
               {/* Right side icons and auth */}
               <div className="flex items-center space-x-4">
                 <Search className="h-5 w-5 cursor-pointer" style={{ color: theme.colors.text.primary }} />
-                <ShoppingCart className="h-5 w-5 cursor-pointer" style={{ color: theme.colors.text.primary }} />
+                <CartIcon style={{ color: theme.colors.text.primary }} />
                 
                 {/* Authentication Links */}
                 <div className="flex items-center space-x-3">
@@ -428,28 +429,22 @@ export default function BestSellersPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
               {products.map((product) => (
-                <Card key={product._id} className="border-0 shadow-sm hover:shadow-md transition-shadow" style={{ backgroundColor: theme.colors.primary }}>
-                  <CardContent className="p-0">
-                    <div className="aspect-square overflow-hidden rounded-t-lg">
+                <a key={product._id} href={`/products/${product._id}`} className="block">
+                  <div className="cursor-pointer hover:opacity-90 transition-opacity">
+                    <div className="w-full overflow-hidden rounded-lg">
                       <img
                         src={getPrimaryImage(product.images)}
                         alt={product.name}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        className="w-full h-auto object-cover hover:scale-105 transition-transform duration-300"
+                        style={{ width: '463.992px', height: '463.992px' }}
                       />
                     </div>
-                    <div className="p-4">
-                      <h3 className="text-sm mb-2 line-clamp-2" style={{ color: theme.colors.text.white }}>{product.name}</h3>
-                      <p className="text-sm mb-1" style={{ color: theme.colors.text.white }}>{formatPrice(product.price)}</p>
-                      {product.quantity > 0 ? (
-                        <p className="text-xs opacity-75" style={{ color: theme.colors.text.white }}>
-                          {product.quantity} in stock
-                        </p>
-                      ) : (
-                        <p className="text-xs opacity-75 text-red-300">Out of stock</p>
-                      )}
+                    <div className="mt-4">
+                      <h3 className="text-sm mb-1 line-clamp-2" style={{ color: theme.colors.text.secondary }}>{product.name}</h3>
+                      <p className="text-sm" style={{ color: theme.colors.text.secondary }}>{formatPrice(product.price)}</p>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </a>
               ))}
             </div>
           )}
