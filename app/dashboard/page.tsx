@@ -213,15 +213,20 @@ export default function DashboardPage() {
         
         // Show success message
         alert(editingProduct ? 'Product updated successfully!' : 'Product created successfully!');
+        
+        // Return the product data so ProductForm can use the ID for image uploads
+        return responseData.data;
       } else {
         // Show specific error message from backend
         const errorMessage = responseData.error || responseData.details || 'Unknown error occurred';
         console.error('Error saving product:', responseData);
         alert(`Error saving product: ${errorMessage}`);
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error saving product:', error);
       alert('Network error: Please check your connection and try again.');
+      throw error;
     }
   };
 
@@ -378,6 +383,7 @@ export default function DashboardPage() {
               setEditingProduct(null);
             }}
             isEditing={!!editingProduct}
+            shopId={userShop?._id}
           />
         )}
 

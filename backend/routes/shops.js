@@ -417,6 +417,100 @@ router.post('/create-for-user', authenticateToken, requireRole(['admin']), async
 });
 
 /**
+ * POST /api/shops/admin/create-by-email - Create shop for user by email (Admin only)
+ * Allows admins to create shops by providing user email instead of user ID
+ */
+router.post('/admin/create-by-email', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      phone,
+      email,
+      address,
+      location,
+      currency,
+      taxRate,
+      deliveryOptions,
+      businessHours,
+      userEmail // Required: the email of the user who will own this shop
+    } = req.body;
+    
+    // Validate required fields
+    if (!name || !userEmail || !address) {
+      return res.status(400).json({
+        success: false,
+        error: 'Name, user email, and address are required'
+      });
+    }
+    
+    // Find the user by email
+    const User = require('../models/User');
+    const ownerUser = await User.findOne({ email: userEmail });
+    if (!ownerUser) {
+      return res.status(400).json({
+        success: false,
+        error: 'User with the provided email not found'
+      });
+    }
+    
+    // Check if user already owns a shop
+    const existingShop = await Shop.findOne({ ownerId: ownerUser._id });
+    if (existingShop) {
+      return res.status(400).json({
+        success: false,
+        error: 'User already owns a shop'
+      });
+    }
+    
+    const shop = new Shop({
+      name,
+      description,
+      phone,
+      email,
+      address,
+      location,
+      currency,
+      taxRate,
+      deliveryOptions,
+      businessHours,
+      ownerId: ownerUser._id
+    });
+    
+    const savedShop = await shop.save();
+    
+    // Update the user's role to shop_owner ONLY if they were a customer
+    if (ownerUser.role === 'customer') {
+      await User.findByIdAndUpdate(ownerUser._id, { role: 'shop_owner' });
+    }
+    
+    res.status(201).json({
+      success: true,
+      message: ownerUser.role === 'customer' 
+        ? 'Shop created successfully and user role updated to shop_owner'
+        : 'Shop created successfully',
+      data: savedShop
+    });
+  } catch (error) {
+    console.error('Error creating shop by email:', error);
+    
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: messages
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create shop by email'
+    });
+  }
+});
+
+/**
  * PUT /api/shops/:id - Update shop
  * Requires shop ownership or admin role
  */

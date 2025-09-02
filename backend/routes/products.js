@@ -175,7 +175,7 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       shopId,
       name,
       description,
-      price: Math.round(price * 100), // Convert to cents
+      price: parseInt(price), // Price is already in cents from frontend
       quantity,
       category,
       tags,
@@ -221,20 +221,25 @@ router.put('/:id', authenticateToken, requireRole(['shop_owner', 'admin']), asyn
     // Check ownership (unless admin)
     if (req.user.role !== 'admin') {
       const product = await Product.findById(productId).populate('shopId');
-      if (!product || product.shopId.ownerId !== req.user._id) {
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          error: 'Product not found'
+        });
+      }
+      
+      // Check if the user owns the shop that owns this product
+      if (!product.shopId || product.shopId.ownerId.toString() !== req.user._id.toString()) {
         return res.status(403).json({
           success: false,
-          error: 'Access denied: Product not found or not owned by user'
+          error: 'Access denied: Product not owned by user'
         });
       }
     }
     
     const updateData = { ...req.body };
     
-    // Convert price to cents if provided
-    if (updateData.price !== undefined) {
-      updateData.price = Math.round(updateData.price * 100);
-    }
+    // Price is already in cents from frontend, no conversion needed
     
     // Prevent changing shop ownership
     delete updateData.shopId;
@@ -287,10 +292,18 @@ router.delete('/:id', authenticateToken, requireRole(['shop_owner', 'admin']), a
     // Check ownership (unless admin)
     if (req.user.role !== 'admin') {
       const product = await Product.findById(productId).populate('shopId');
-      if (!product || product.shopId.ownerId !== req.user._id) {
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          error: 'Product not found'
+        });
+      }
+      
+      // Check if the user owns the shop that owns this product
+      if (!product.shopId || product.shopId.ownerId.toString() !== req.user._id.toString()) {
         return res.status(403).json({
           success: false,
-          error: 'Access denied: Product not found or not owned by user'
+          error: 'Access denied: Product not owned by user'
         });
       }
     }
@@ -341,10 +354,18 @@ router.patch('/:id/stock', authenticateToken, requireRole(['shop_owner', 'admin'
     // Check ownership (unless admin)
     if (req.user.role !== 'admin') {
       const product = await Product.findById(productId).populate('shopId');
-      if (!product || product.shopId.ownerId !== req.user._id) {
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          error: 'Product not found'
+        });
+      }
+      
+      // Check if the user owns the shop that owns this product
+      if (!product.shopId || product.shopId.ownerId.toString() !== req.user._id.toString()) {
         return res.status(403).json({
           success: false,
-          error: 'Access denied: Product not found or not owned by user'
+          error: 'Access denied: Product not owned by user'
         });
       }
     }

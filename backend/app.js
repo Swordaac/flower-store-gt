@@ -40,12 +40,14 @@ const productRoutes = require('./routes/products');
 const authRoutes = require('./routes/auth');
 const shopRoutes = require('./routes/shops');
 const orderRoutes = require('./routes/orders');
+const imageRoutes = require('./routes/images');
 
 // Use Routes
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/shops', shopRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/images', imageRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -57,7 +59,8 @@ app.get('/', (req, res) => {
       products: '/api/products',
       auth: '/api/auth',
       shops: '/api/shops',
-      orders: '/api/orders'
+      orders: '/api/orders',
+      images: '/api/images'
     }
   });
 });
