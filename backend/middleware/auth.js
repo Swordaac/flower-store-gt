@@ -36,17 +36,17 @@ const authenticateToken = async (req, res, next) => {
     
     if (!dbUser) {
       console.log('Creating new user in MongoDB:', user.email);
-      // Create user if they don't exist
+      // Create user if they don't exist - ALWAYS as customer
       dbUser = new User({
         supabaseUserId: user.id,
         email: user.email,
         name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-        role: 'customer' // Default role
+        role: 'customer' // ALWAYS default to customer role
       });
       await dbUser.save();
-      console.log('User created successfully in MongoDB:', dbUser._id);
+      console.log('User created successfully in MongoDB as customer:', dbUser._id);
     } else {
-      console.log('User found in MongoDB:', dbUser.email);
+      console.log('User found in MongoDB:', dbUser.email, 'Role:', dbUser.role);
     }
 
     // Attach user to request
@@ -132,8 +132,22 @@ const requireShopOwnership = async (req, res, next) => {
   }
 };
 
+/**
+ * Helper function to check if user owns a shop
+ */
+const getUserShop = async (userId) => {
+  try {
+    const Shop = require('../models/Shop');
+    return await Shop.findOne({ ownerId: userId, isActive: true });
+  } catch (error) {
+    console.error('Error getting user shop:', error);
+    return null;
+  }
+};
+
 module.exports = {
   authenticateToken,
   requireRole,
-  requireShopOwnership
+  requireShopOwnership,
+  getUserShop
 };

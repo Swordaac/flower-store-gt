@@ -86,10 +86,10 @@ router.get('/:id', async (req, res) => {
 });
 
 /**
- * POST /api/shops - Create new shop
- * Requires shop_owner or admin role
+ * POST /api/shops - Create new shop (Admin only)
+ * Only admins can create shops for users
  */
-router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async (req, res) => {
+router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
     const {
       name,
@@ -101,15 +101,34 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       currency,
       taxRate,
       deliveryOptions,
-      businessHours
+      businessHours,
+      ownerId // Required: the user ID who will own this shop
     } = req.body;
     
-    // Check if user already owns a shop
-    const existingShop = await Shop.findOne({ ownerId: req.user.supabaseUserId });
-    if (existingShop && req.user.role !== 'admin') {
+    // Validate required fields
+    if (!name || !ownerId || !address) {
       return res.status(400).json({
         success: false,
-        error: 'You already own a shop'
+        error: 'Name, owner ID, and address are required'
+      });
+    }
+    
+    // Check if the owner user exists
+    const User = require('../models/User');
+    const ownerUser = await User.findById(ownerId);
+    if (!ownerUser) {
+      return res.status(400).json({
+        success: false,
+        error: 'Owner user not found'
+      });
+    }
+    
+    // Check if user already owns a shop
+    const existingShop = await Shop.findOne({ ownerId });
+    if (existingShop) {
+      return res.status(400).json({
+        success: false,
+        error: 'User already owns a shop'
       });
     }
     
@@ -124,14 +143,21 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       taxRate,
       deliveryOptions,
       businessHours,
-      ownerId: req.user.supabaseUserId
+      ownerId
     });
     
     const savedShop = await shop.save();
     
+    // Update the user's role to shop_owner ONLY if they were a customer
+    if (ownerUser.role === 'customer') {
+      await User.findByIdAndUpdate(ownerId, { role: 'shop_owner' });
+    }
+    
     res.status(201).json({
       success: true,
-      message: 'Shop created successfully',
+      message: ownerUser.role === 'customer' 
+        ? 'Shop created successfully and user role updated to shop_owner'
+        : 'Shop created successfully',
       data: savedShop
     });
   } catch (error) {
@@ -149,6 +175,102 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
     res.status(500).json({
       success: false,
       error: 'Failed to create shop'
+    });
+  }
+});
+
+/**
+ * POST /api/shops/create-for-user - Create shop for current user (Admin only)
+ * Allows admins to create shops for themselves or other users
+ */
+router.post('/create-for-user', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      phone,
+      email,
+      address,
+      location,
+      currency,
+      taxRate,
+      deliveryOptions,
+      businessHours,
+      targetUserId // Optional: if not provided, creates for the admin user
+    } = req.body;
+    
+    const ownerId = targetUserId || req.user._id;
+    
+    // Validate required fields
+    if (!name || !address) {
+      return res.status(400).json({
+        success: false,
+        error: 'Name and address are required'
+      });
+    }
+    
+    // Check if the owner user exists
+    const User = require('../models/User');
+    const ownerUser = await User.findById(ownerId);
+    if (!ownerUser) {
+      return res.status(400).json({
+        success: false,
+        error: 'Owner user not found'
+      });
+    }
+    
+    // Check if user already owns a shop
+    const existingShop = await Shop.findOne({ ownerId });
+    if (existingShop) {
+      return res.status(400).json({
+        success: false,
+        error: 'User already owns a shop'
+      });
+    }
+    
+    const shop = new Shop({
+      name,
+      description,
+      phone,
+      email,
+      address,
+      location,
+      currency,
+      taxRate,
+      deliveryOptions,
+      businessHours,
+      ownerId
+    });
+    
+    const savedShop = await shop.save();
+    
+    // Update the user's role to shop_owner ONLY if they were a customer
+    if (ownerUser.role === 'customer') {
+      await User.findByIdAndUpdate(ownerId, { role: 'shop_owner' });
+    }
+    
+    res.status(201).json({
+      success: true,
+      message: ownerUser.role === 'customer'
+        ? 'Shop created successfully and user role updated to shop_owner'
+        : 'Shop created successfully',
+      data: savedShop
+    });
+  } catch (error) {
+    console.error('Error creating shop for user:', error);
+    
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: messages
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create shop for user'
     });
   }
 });
@@ -277,6 +399,33 @@ router.get('/my/shops', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch user shops'
+    });
+  }
+});
+
+/**
+ * GET /api/shops/my-shop - Get current user's shop (Shop owners only)
+ */
+router.get('/my-shop', authenticateToken, requireRole(['shop_owner', 'admin']), async (req, res) => {
+  try {
+    const shop = await Shop.findOne({ ownerId: req.user._id, isActive: true });
+    
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        error: 'No active shop found for this user'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: shop
+    });
+  } catch (error) {
+    console.error('Error fetching user shop:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch shop information'
     });
   }
 });

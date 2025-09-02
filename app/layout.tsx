@@ -1,36 +1,38 @@
-import type { Metadata } from 'next'
-import { AuthProvider } from '@/contexts/AuthContext'
-import { GeistSans } from 'geist/font/sans'
-import { GeistMono } from 'geist/font/mono'
-import './globals.css'
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { UserProvider } from '@/contexts/UserContext';
+import { ThemeProvider } from '@/components/theme-provider';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
-}
+  title: 'Flower Store',
+  description: 'Beautiful flowers for every occasion',
+};
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <head>
-        <style>{`
-html {
-  font-family: ${GeistSans.style.fontFamily};
-  --font-sans: ${GeistSans.variable};
-  --font-mono: ${GeistMono.variable};
-}
-        `}</style>
-      </head>
-      <body>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+      <body className={inter.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <UserProvider>
+              {children}
+            </UserProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }

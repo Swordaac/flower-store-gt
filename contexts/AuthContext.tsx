@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, type AuthUser, type AuthSession } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
+import { User, AuthResponse, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error }: AuthResponse = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signUp = async (email: string, password: string, fullName?: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error }: AuthResponse = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -187,7 +187,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const createUserInBackend = async (token: string, userData: { email: string; fullName?: string }) => {
     try {
       // Call the backend server directly
-      const response = await fetch('http://localhost:5001/api/auth/create-user', {
+      const response: Response = await fetch('http://localhost:5001/api/auth/create-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
