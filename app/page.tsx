@@ -27,6 +27,27 @@ const theme = {
   }
 }
 
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  category: string;
+  tags: string[];
+  images: Array<{
+    publicId: string;
+    url: string;
+    alt: string;
+    isPrimary: boolean;
+  }>;
+  isActive: boolean;
+  isFeatured: boolean;
+  shopId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function BestSellersPage() {
   const [timeLeft, setTimeLeft] = useState({
     hours: 8,
@@ -35,6 +56,41 @@ export default function BestSellersPage() {
   })
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const shopId = '68b742b5a770a392af60c925'
+        const response = await fetch(`http://localhost:5001/api/products/shop/${shopId}`)
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch products: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        
+        if (data.success) {
+          setProducts(data.data || [])
+        } else {
+          throw new Error(data.error || 'Failed to fetch products')
+        }
+      } catch (err) {
+        console.error('Error fetching products:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch products')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -87,47 +143,16 @@ export default function BestSellersPage() {
     }
   }, [isShopDropdownOpen])
 
-  const products = [
-    {
-      id: 1,
-      name: "White and Green Happiness Create Your Arrangement",
-      price: "From $130.00 CAD",
-      image: "/white-green-roses.png",
-    },
-    {
-      id: 2,
-      name: "Designer's Choice Vase Arrangement",
-      price: "From $130.00 CAD",
-      image: "/pink-purple-flowers-vase.png",
-    },
-    {
-      id: 3,
-      name: "Designer's Choice Vase Arrangement",
-      price: "From $130.00 CAD",
-      image: "/9552a6e2198342c00675c026a4b94383.jpg",
-    },
-  ]
+  // Helper function to format price
+  const formatPrice = (priceInCents: number) => {
+    return `$${(priceInCents / 100).toFixed(2)} CAD`
+  }
 
-  const bottomProducts = [
-    {
-      id: 4,
-      name: "Harvest Bouquet",
-      price: "$130.00 CAD",
-      image: "/autumn-harvest-bouquet.png",
-    },
-    {
-      id: 5,
-      name: "Sunny",
-      price: "$130.00 CAD",
-      image: "/bright-sunflower-bouquet.png",
-    },
-    {
-      id: 6,
-      name: "Lily",
-      price: "$130.00 CAD",
-      image: "/placeholder-fpyhg.png",
-    },
-  ]
+  // Helper function to get primary image
+  const getPrimaryImage = (images: Product['images']) => {
+    const primaryImage = images.find(img => img.isPrimary)
+    return primaryImage?.url || images[0]?.url || "/placeholder.svg"
+  }
 
   return (
     <div className="min-h-screen relative" style={{ backgroundColor: theme.colors.background }}>
@@ -381,25 +406,53 @@ export default function BestSellersPage() {
           </div>
 
           {/* Product Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            {products.map((product) => (
-              <Card key={product.id} className="border-0 shadow-sm hover:shadow-md transition-shadow" style={{ backgroundColor: theme.colors.primary }}>
-                <CardContent className="p-0">
-                  <div className="aspect-square overflow-hidden rounded-t-lg">
-                    <img
-                      src={product.image || "/placeholder.svg"}
-                      alt={product.name}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-sm mb-2 line-clamp-2" style={{ color: theme.colors.text.white }}>{product.name}</h3>
-                    <p className="text-sm" style={{ color: theme.colors.text.white }}>{product.price}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: theme.colors.primary }}></div>
+              <span className="ml-3" style={{ color: theme.colors.text.primary }}>Loading products...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-600 mb-4">Error: {error}</p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}
+              >
+                Retry
+              </Button>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-12">
+              <p style={{ color: theme.colors.text.primary }}>No products found for this shop.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              {products.map((product) => (
+                <Card key={product._id} className="border-0 shadow-sm hover:shadow-md transition-shadow" style={{ backgroundColor: theme.colors.primary }}>
+                  <CardContent className="p-0">
+                    <div className="aspect-square overflow-hidden rounded-t-lg">
+                      <img
+                        src={getPrimaryImage(product.images)}
+                        alt={product.name}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-sm mb-2 line-clamp-2" style={{ color: theme.colors.text.white }}>{product.name}</h3>
+                      <p className="text-sm mb-1" style={{ color: theme.colors.text.white }}>{formatPrice(product.price)}</p>
+                      {product.quantity > 0 ? (
+                        <p className="text-xs opacity-75" style={{ color: theme.colors.text.white }}>
+                          {product.quantity} in stock
+                        </p>
+                      ) : (
+                        <p className="text-xs opacity-75 text-red-300">Out of stock</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {/* Featured Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
@@ -422,26 +475,7 @@ export default function BestSellersPage() {
             </div>
           </div>
 
-          {/* Bottom Product Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {bottomProducts.map((product) => (
-              <Card key={product.id} className="border-0 shadow-sm hover:shadow-md transition-shadow" style={{ backgroundColor: theme.colors.primary }}>
-                <CardContent className="p-0">
-                  <div className="aspect-square overflow-hidden rounded-t-lg bg-gray-100">
-                    <img
-                      src={product.image || "/placeholder.svg"}
-                      alt={product.name}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-sm font-medium mb-1" style={{ color: theme.colors.text.white }}>{product.name}</h3>
-                    <p className="text-sm" style={{ color: theme.colors.text.white }}>{product.price}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+
         </main>
       </div>
     </div>
