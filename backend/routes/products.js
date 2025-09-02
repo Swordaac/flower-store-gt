@@ -150,7 +150,7 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
     // Check if user owns a shop (unless admin)
     let shopId = req.body.shopId;
     if (req.user.role !== 'admin') {
-      const shop = await Shop.findOne({ ownerId: req.user.supabaseUserId, isActive: true });
+      const shop = await Shop.findOne({ ownerId: req.user._id, isActive: true });
       if (!shop) {
         return res.status(400).json({
           success: false,
@@ -221,7 +221,7 @@ router.put('/:id', authenticateToken, requireRole(['shop_owner', 'admin']), asyn
     // Check ownership (unless admin)
     if (req.user.role !== 'admin') {
       const product = await Product.findById(productId).populate('shopId');
-      if (!product || product.shopId.ownerId !== req.user.supabaseUserId) {
+      if (!product || product.shopId.ownerId !== req.user._id) {
         return res.status(403).json({
           success: false,
           error: 'Access denied: Product not found or not owned by user'
@@ -287,7 +287,7 @@ router.delete('/:id', authenticateToken, requireRole(['shop_owner', 'admin']), a
     // Check ownership (unless admin)
     if (req.user.role !== 'admin') {
       const product = await Product.findById(productId).populate('shopId');
-      if (!product || product.shopId.ownerId !== req.user.supabaseUserId) {
+      if (!product || product.shopId.ownerId !== req.user._id) {
         return res.status(403).json({
           success: false,
           error: 'Access denied: Product not found or not owned by user'
@@ -341,7 +341,7 @@ router.patch('/:id/stock', authenticateToken, requireRole(['shop_owner', 'admin'
     // Check ownership (unless admin)
     if (req.user.role !== 'admin') {
       const product = await Product.findById(productId).populate('shopId');
-      if (!product || product.shopId.ownerId !== req.user.supabaseUserId) {
+      if (!product || product.shopId.ownerId !== req.user._id) {
         return res.status(403).json({
           success: false,
           error: 'Access denied: Product not found or not owned by user'

@@ -49,6 +49,147 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * GET /api/shops/my/shops - Get user's shops
+ * Requires authentication
+ */
+router.get('/my/shops', authenticateToken, async (req, res) => {
+  try {
+    const shops = await Shop.find({ ownerId: req.user._id })
+      .select('-__v')
+      .sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      data: shops
+    });
+  } catch (error) {
+    console.error('Error fetching user shops:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user shops'
+    });
+  }
+});
+
+/**
+ * GET /api/shops/my-shop - Get current user's shop (Shop owners only)
+ */
+router.get('/my-shop', authenticateToken, requireRole(['shop_owner', 'admin']), async (req, res) => {
+  try {
+    const shop = await Shop.findOne({ ownerId: req.user._id, isActive: true });
+    
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        error: 'No active shop found for this user'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: shop
+    });
+  } catch (error) {
+    console.error('Error fetching user shop:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch shop information'
+    });
+  }
+});
+
+/**
+ * GET /api/shops/admin/all - Get all shops (Admin only)
+ */
+router.get('/admin/all', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { page = 1, limit = 50, includeInactive = false } = req.query;
+    
+    // Build filter
+    let filter = {};
+    if (includeInactive !== 'true') {
+      filter.isActive = true;
+    }
+    
+    const shops = await Shop.find(filter)
+      .select('-__v')
+      .populate('ownerId', 'name email role')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    const total = await Shop.countDocuments(filter);
+    
+    res.json({
+      success: true,
+      data: shops,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching all shops:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch shops'
+    });
+  }
+});
+
+/**
+ * GET /api/shops/admin/shop-owners - Get all shop owners (Admin only)
+ */
+router.get('/admin/shop-owners', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    
+    const User = require('../models/User');
+    
+    // Get all shop owners with their shop information
+    const shopOwners = await User.find({ role: { $in: ['shop_owner', 'admin'] } })
+      .select('-__v')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    // Get shop information for each shop owner
+    const shopOwnersWithShops = await Promise.all(
+      shopOwners.map(async (owner) => {
+        const shop = await Shop.findOne({ ownerId: owner._id, isActive: true })
+          .select('name isActive createdAt');
+        
+        return {
+          ...owner.toObject(),
+          shop: shop || null
+        };
+      })
+    );
+    
+    const total = await User.countDocuments({ role: { $in: ['shop_owner', 'admin'] } });
+    
+    res.json({
+      success: true,
+      data: shopOwnersWithShops,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching shop owners:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch shop owners'
+    });
+  }
+});
+
+/**
  * GET /api/shops/:id - Get shop by ID (public)
  */
 router.get('/:id', async (req, res) => {
@@ -285,7 +426,7 @@ router.put('/:id', authenticateToken, requireRole(['shop_owner', 'admin']), asyn
     
     // Check ownership (unless admin)
     if (req.user.role !== 'admin') {
-      const shop = await Shop.findOne({ _id: shopId, ownerId: req.user.supabaseUserId });
+      const shop = await Shop.findOne({ _id: shopId, ownerId: req.user._id });
       if (!shop) {
         return res.status(403).json({
           success: false,
@@ -344,7 +485,7 @@ router.delete('/:id', authenticateToken, requireRole(['shop_owner', 'admin']), a
     
     // Check ownership (unless admin)
     if (req.user.role !== 'admin') {
-      const shop = await Shop.findOne({ _id: shopId, ownerId: req.user.supabaseUserId });
+      const shop = await Shop.findOne({ _id: shopId, ownerId: req.user._id });
       if (!shop) {
         return res.status(403).json({
           success: false,
@@ -376,56 +517,6 @@ router.delete('/:id', authenticateToken, requireRole(['shop_owner', 'admin']), a
     res.status(500).json({
       success: false,
       error: 'Failed to deactivate shop'
-    });
-  }
-});
-
-/**
- * GET /api/shops/my/shops - Get user's shops
- * Requires authentication
- */
-router.get('/my/shops', authenticateToken, async (req, res) => {
-  try {
-    const shops = await Shop.find({ ownerId: req.user.supabaseUserId })
-      .select('-__v')
-      .sort({ createdAt: -1 });
-    
-    res.json({
-      success: true,
-      data: shops
-    });
-  } catch (error) {
-    console.error('Error fetching user shops:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch user shops'
-    });
-  }
-});
-
-/**
- * GET /api/shops/my-shop - Get current user's shop (Shop owners only)
- */
-router.get('/my-shop', authenticateToken, requireRole(['shop_owner', 'admin']), async (req, res) => {
-  try {
-    const shop = await Shop.findOne({ ownerId: req.user._id, isActive: true });
-    
-    if (!shop) {
-      return res.status(404).json({
-        success: false,
-        error: 'No active shop found for this user'
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: shop
-    });
-  } catch (error) {
-    console.error('Error fetching user shop:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch shop information'
     });
   }
 });

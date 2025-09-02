@@ -27,10 +27,10 @@ router.get('/', authenticateToken, async (req, res) => {
     
     if (req.user.role === 'customer') {
       // Customers can only see their own orders
-      filter.customerId = req.user.supabaseUserId;
+      filter.customerId = req.user._id;
     } else if (req.user.role === 'shop_owner') {
       // Shop owners can only see orders from their shops
-      const userShops = await Shop.find({ ownerId: req.user.supabaseUserId }).select('_id');
+      const userShops = await Shop.find({ ownerId: req.user._id }).select('_id');
       const shopIds = userShops.map(shop => shop._id);
       filter.shopId = { $in: shopIds };
     }
@@ -97,7 +97,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
     
     // Check access permissions
-    if (req.user.role === 'customer' && order.customerId !== req.user.supabaseUserId) {
+    if (req.user.role === 'customer' && order.customerId !== req.user._id) {
       return res.status(403).json({
         success: false,
         error: 'Access denied: You can only view your own orders'
@@ -105,7 +105,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
     
     if (req.user.role === 'shop_owner') {
-      const shop = await Shop.findOne({ _id: order.shopId, ownerId: req.user.supabaseUserId });
+      const shop = await Shop.findOne({ _id: order.shopId, ownerId: req.user._id });
       if (!shop) {
         return res.status(403).json({
           success: false,
@@ -204,7 +204,7 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
     
     // Create order
     const order = new Order({
-      customerId: req.user.supabaseUserId,
+      customerId: req.user._id,
       shopId,
       items: processedItems,
       subtotal,
@@ -279,7 +279,7 @@ router.put('/:id/status', authenticateToken, requireRole(['shop_owner', 'admin']
         });
       }
       
-      const shop = await Shop.findOne({ _id: order.shopId, ownerId: req.user.supabaseUserId });
+      const shop = await Shop.findOne({ _id: order.shopId, ownerId: req.user._id });
       if (!shop) {
         return res.status(403).json({
           success: false,
@@ -339,7 +339,7 @@ router.put('/:id/payment', authenticateToken, requireRole(['shop_owner', 'admin'
         });
       }
       
-      const shop = await Shop.findOne({ _id: order.shopId, ownerId: req.user.supabaseUserId });
+      const shop = await Shop.findOne({ _id: order.shopId, ownerId: req.user._id });
       if (!shop) {
         return res.status(403).json({
           success: false,
@@ -391,7 +391,7 @@ router.get('/shop/:shopId', authenticateToken, requireRole(['shop_owner', 'admin
     
     // Check access permissions
     if (req.user.role === 'shop_owner') {
-      const shop = await Shop.findOne({ _id: shopId, ownerId: req.user.supabaseUserId });
+      const shop = await Shop.findOne({ _id: shopId, ownerId: req.user._id });
       if (!shop) {
         return res.status(403).json({
           success: false,

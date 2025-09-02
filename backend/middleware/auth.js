@@ -111,7 +111,7 @@ const requireShopOwnership = async (req, res, next) => {
 
     // Check if user owns the shop
     const Shop = require('../models/Shop');
-    const shop = await Shop.findOne({ _id: shopId, ownerId: req.user.supabaseUserId });
+    const shop = await Shop.findOne({ _id: shopId, ownerId: req.user._id });
 
     if (!shop) {
       return res.status(403).json({

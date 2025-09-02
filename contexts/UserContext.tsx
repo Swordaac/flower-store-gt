@@ -72,6 +72,9 @@ interface UserContextType {
   // Admin functions
   fetchAllUsers: () => Promise<User[]>;
   fetchUserById: (userId: string) => Promise<User | null>;
+  fetchAllShops: (includeInactive?: boolean) => Promise<Shop[]>;
+  fetchAllShopOwners: () => Promise<User[]>;
+  createShopByEmail: (shopData: any, userEmail: string) => Promise<boolean>;
   
   // Utility functions
   isAdmin: boolean;
@@ -297,6 +300,85 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
+  // Fetch all shops (admin only)
+  const fetchAllShops = async (includeInactive: boolean = false): Promise<Shop[]> => {
+    if (!session?.access_token || !isAdmin) return [];
+    
+    try {
+      const params = new URLSearchParams();
+      if (includeInactive) {
+        params.append('includeInactive', 'true');
+      }
+      
+      const response = await fetch(`http://localhost:5001/api/shops/admin/all?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.data || [];
+      } else {
+        console.error('Failed to fetch shops');
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching shops:', error);
+      return [];
+    }
+  };
+
+  // Fetch all shop owners (admin only)
+  const fetchAllShopOwners = async (): Promise<User[]> => {
+    if (!session?.access_token || !isAdmin) return [];
+    
+    try {
+      const response = await fetch('http://localhost:5001/api/shops/admin/shop-owners', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.data || [];
+      } else {
+        console.error('Failed to fetch shop owners');
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching shop owners:', error);
+      return [];
+    }
+  };
+
+  // Create shop for user by email (admin only)
+  const createShopByEmail = async (shopData: any, userEmail: string): Promise<boolean> => {
+    if (!session?.access_token || !isAdmin) return false;
+    
+    try {
+      const response = await fetch('http://localhost:5001/api/shops/admin/create-by-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ ...shopData, userEmail })
+      });
+
+      if (response.ok) {
+        return true;
+      } else {
+        console.error('Failed to create shop by email');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error creating shop by email:', error);
+      return false;
+    }
+  };
+
   // Initialize user data when auth changes
   useEffect(() => {
     if (session?.access_token) {
@@ -330,6 +412,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     createShopForUser,
     fetchAllUsers,
     fetchUserById,
+    fetchAllShops,
+    fetchAllShopOwners,
+    createShopByEmail,
     isAdmin,
     isShopOwner,
     hasShop

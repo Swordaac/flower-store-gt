@@ -58,7 +58,7 @@ export const AdminShopCreation: React.FC<AdminShopCreationProps> = ({
   onClose,
   onShopCreated
 }) => {
-  const { createShopForUser, fetchAllUsers } = useUser();
+  const { createShopForUser, fetchAllUsers, createShopByEmail } = useUser();
   
   const [formData, setFormData] = useState<ShopFormData>({
     name: '',
@@ -97,7 +97,9 @@ export const AdminShopCreation: React.FC<AdminShopCreationProps> = ({
 
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [userEmail, setUserEmail] = useState<string>('');
   const [isCreatingForOtherUser, setIsCreatingForOtherUser] = useState(false);
+  const [useEmailSelection, setUseEmailSelection] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -169,7 +171,30 @@ export const AdminShopCreation: React.FC<AdminShopCreationProps> = ({
     setLoading(true);
 
     try {
-      const success = await createShopForUser(formData, selectedUserId || undefined);
+      let success = false;
+      
+      if (isCreatingForOtherUser) {
+        if (useEmailSelection) {
+          // Create shop by email
+          if (!userEmail.trim()) {
+            alert('Please enter a user email address.');
+            setLoading(false);
+            return;
+          }
+          success = await createShopByEmail(formData, userEmail.trim());
+        } else {
+          // Create shop by user ID selection
+          if (!selectedUserId) {
+            alert('Please select a user.');
+            setLoading(false);
+            return;
+          }
+          success = await createShopForUser(formData, selectedUserId);
+        }
+      } else {
+        // Create shop for current admin user
+        success = await createShopForUser(formData);
+      }
       
       if (success) {
         alert('Shop created successfully!');
@@ -222,26 +247,80 @@ export const AdminShopCreation: React.FC<AdminShopCreationProps> = ({
             </div>
             
             {isCreatingForOtherUser && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select User
-                </label>
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  required
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                >
-                  <option value="">Select a user</option>
-                  {users.map(user => (
-                    <option key={user._id} value={user._id}>
-                      {user.name} ({user.email})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Only users with 'customer' role are shown
-                </p>
+              <div className="space-y-4">
+                {/* Selection Method */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    User Selection Method
+                  </label>
+                  <div className="flex space-x-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="selectionMethod"
+                        checked={!useEmailSelection}
+                        onChange={() => setUseEmailSelection(false)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Select from list</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="selectionMethod"
+                        checked={useEmailSelection}
+                        onChange={() => setUseEmailSelection(true)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Enter email address</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* User Selection by Dropdown */}
+                {!useEmailSelection && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select User
+                    </label>
+                    <select
+                      value={selectedUserId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      required
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    >
+                      <option value="">Select a user</option>
+                      {users.map(user => (
+                        <option key={user._id} value={user._id}>
+                          {user.name} ({user.email})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Only users with 'customer' role are shown
+                    </p>
+                  </div>
+                )}
+
+                {/* User Selection by Email */}
+                {useEmailSelection && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      User Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={userEmail}
+                      onChange={(e) => setUserEmail(e.target.value)}
+                      required
+                      className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                      placeholder="Enter user's email address"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      The user will be automatically upgraded to shop_owner if they are currently a customer
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
