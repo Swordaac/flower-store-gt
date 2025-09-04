@@ -176,3 +176,5 @@ Cloudinary's free tier includes:
 - 25,000 transformations per month
 
 For production use, consider upgrading to a paid plan based on your needs.
+
+

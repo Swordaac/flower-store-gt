@@ -32,16 +32,30 @@ interface DashboardStats {
 interface Product {
   _id: string;
   name: string;
+  color: string;
   description: string;
-  price: number;
-  quantity: number;
-  category: string;
+  price: {
+    standard: number;
+    deluxe: number;
+    premium: number;
+  };
+  stock: number;
+  category: string[];
   tags: string[];
   images: Array<{
+    size: string;
     url: string;
     alt: string;
     isPrimary: boolean;
   }>;
+  deluxeImage?: {
+    url: string;
+    alt: string;
+  };
+  premiumImage?: {
+    url: string;
+    alt: string;
+  };
   isActive: boolean;
   isFeatured: boolean;
   createdAt: string;
@@ -633,6 +647,9 @@ function ProductsTab({
                   Stock
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Images
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -643,13 +660,13 @@ function ProductsTab({
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     Loading products...
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     No products found. Add your first product to get started!
                   </td>
                 </tr>
@@ -658,12 +675,17 @@ function ProductsTab({
                   <tr key={product._id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0">
+                        <div className="h-10 w-10 flex-shrink-0 relative">
                           <img 
                             className="h-10 w-10 rounded-full object-cover" 
                             src={product.images?.[0]?.url || '/placeholder.jpg'} 
                             alt={product.name} 
                           />
+                          {product.images?.[0]?.size && (
+                            <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs px-1 py-0.5 rounded-full">
+                              {product.images[0].size.charAt(0).toUpperCase()}
+                            </div>
+                          )}
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{product.name}</div>
@@ -671,9 +693,45 @@ function ProductsTab({
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(product.price / 100).toFixed(2)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.quantity}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div className="flex flex-wrap gap-1">
+                        {product.category?.map((cat, index) => (
+                          <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div className="space-y-1">
+                        <div className="text-xs text-gray-500">Standard: ${(product.price?.standard / 100).toFixed(2)}</div>
+                        <div className="text-xs text-gray-500">Deluxe: ${(product.price?.deluxe / 100).toFixed(2)}</div>
+                        <div className="text-xs text-gray-500">Premium: ${(product.price?.premium / 100).toFixed(2)}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div className="flex items-center">
+                        <span className="mr-2">{product.stock}</span>
+                        <span className="text-xs text-gray-500">({product.color})</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div className="flex flex-col">
+                        <span className="font-medium">{product.images?.length || 0} images</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {product.images?.slice(0, 3).map((img, index) => (
+                            <span key={index} className="px-1 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
+                              {img.size?.toUpperCase() || 'N/A'}
+                            </span>
+                          ))}
+                          {(product.images?.length || 0) > 3 && (
+                            <span className="px-1 py-0.5 bg-gray-200 text-gray-600 text-xs rounded">
+                              +{(product.images?.length || 0) - 3}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         product.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'

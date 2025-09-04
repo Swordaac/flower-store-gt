@@ -217,3 +217,5 @@ If you were previously using URL-based image input:
 4. **Optimize images**: Use appropriate image sizes for your use case
 5. **Test with different file types**: Ensure all supported formats work
 6. **Monitor upload limits**: Be aware of Cloudinary free tier limits
+
+

@@ -14,6 +14,7 @@ router.get('/', async (req, res) => {
       limit = 20, 
       shopId, 
       category, 
+      color,
       tags, 
       minPrice, 
       maxPrice, 
@@ -27,21 +28,39 @@ router.get('/', async (req, res) => {
     let filter = { isActive: true };
     
     if (shopId) filter.shopId = shopId;
-    if (category) filter.category = category;
+    if (category) {
+      const categoryArray = Array.isArray(category) ? category : [category];
+      filter.category = { $in: categoryArray };
+    }
+    if (color) {
+      const colorArray = Array.isArray(color) ? color : [color];
+      filter.color = { $in: colorArray };
+    }
     if (tags) {
       const tagArray = Array.isArray(tags) ? tags : [tags];
       filter.tags = { $in: tagArray };
     }
     if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = parseInt(minPrice);
-      if (maxPrice) filter.price.$lte = parseInt(maxPrice);
+      const priceFilter = {};
+      if (minPrice) priceFilter.$gte = parseInt(minPrice);
+      if (maxPrice) priceFilter.$lte = parseInt(maxPrice);
+      
+      // Check against all price tiers
+      filter.$or = [
+        { 'price.standard': priceFilter },
+        { 'price.deluxe': priceFilter },
+        { 'price.premium': priceFilter }
+      ];
     }
     if (inStock !== undefined) {
-      filter.quantity = inStock === 'true' ? { $gt: 0 } : { $lte: 0 };
+      filter.stock = inStock === 'true' ? { $gt: 0 } : { $lte: 0 };
     }
     if (search) {
-      filter.$text = { $search: search };
+      // Use regex search instead of text index temporarily
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
     }
     
     // Build sort
@@ -127,23 +146,56 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async (req, res) => {
   try {
+    console.log('Creating product with data:', JSON.stringify(req.body, null, 2));
+    
     const {
       name,
+      color,
       description,
       price,
-      quantity,
+      stock,
       category,
       tags,
       images,
+      deluxeImage,
+      premiumImage,
       metadata,
       sortOrder
     } = req.body;
+
+    console.log('Extracted fields:');
+    console.log('- name:', name);
+    console.log('- color:', color);
+    console.log('- description:', description);
+    console.log('- price:', price);
+    console.log('- stock:', stock);
+    console.log('- category:', category);
+    console.log('- tags:', tags);
+    console.log('- images:', images);
+    console.log('- deluxeImage:', deluxeImage);
+    console.log('- premiumImage:', premiumImage);
     
     // Validate required fields
-    if (!name || !price || !category) {
+    if (!name || !color || !description || !price || !category) {
       return res.status(400).json({
         success: false,
-        error: 'Name, price, and category are required'
+        error: 'Name, color, description, price, and category are required'
+      });
+    }
+    
+    // Validate price structure
+    if (!price.standard || !price.deluxe || !price.premium) {
+      return res.status(400).json({
+        success: false,
+        error: 'All price tiers (standard, deluxe, premium) are required'
+      });
+    }
+    
+    // Validate category is array
+    if (!Array.isArray(category) || category.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'At least one category is required'
       });
     }
     
@@ -171,18 +223,34 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       }
     }
     
-    const product = new Product({
+    const productData = {
       shopId,
       name,
+      color,
       description,
-      price: parseInt(price), // Price is already in cents from frontend
-      quantity,
+      price: {
+        standard: parseInt(price.standard),
+        deluxe: parseInt(price.deluxe),
+        premium: parseInt(price.premium)
+      },
+      stock: parseInt(stock) || 0,
       category,
       tags,
       images,
+      deluxeImage,
+      premiumImage,
       metadata,
       sortOrder
+    };
+
+    console.log('Creating Product with data:', JSON.stringify(productData, null, 2));
+    console.log('Price values:', {
+      standard: parseInt(price.standard),
+      deluxe: parseInt(price.deluxe),
+      premium: parseInt(price.premium)
     });
+
+    const product = new Product(productData);
     
     const savedProduct = await product.save();
     
@@ -193,9 +261,12 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
     });
   } catch (error) {
     console.error('Error creating product:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(err => err.message);
+      console.error('Validation errors:', messages);
       return res.status(400).json({
         success: false,
         error: 'Validation failed',
@@ -203,9 +274,21 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       });
     }
     
+    // Handle text index array conflict
+    if (error.name === 'TextIndexConflict' || (error.message && error.message.includes('Field \'category\' of text index contains an array'))) {
+      console.error('Text index conflict detected. This is a database index issue.');
+      return res.status(500).json({
+        success: false,
+        error: 'Database index conflict detected',
+        details: 'The database has a text index that conflicts with array fields. Please run the database fix script: node backend/scripts/fix-database-indexes.js',
+        fixInstructions: 'Run this command to fix the issue: cd backend && node scripts/fix-database-indexes.js'
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      error: 'Failed to create product'
+      error: 'Failed to create product',
+      details: error.message
     });
   }
 });
@@ -341,13 +424,13 @@ router.delete('/:id', authenticateToken, requireRole(['shop_owner', 'admin']), a
  */
 router.patch('/:id/stock', authenticateToken, requireRole(['shop_owner', 'admin']), async (req, res) => {
   try {
-    const { quantity } = req.body;
+    const { stock } = req.body;
     const productId = req.params.id;
     
-    if (quantity === undefined || quantity < 0) {
+    if (stock === undefined || stock < 0) {
       return res.status(400).json({
         success: false,
-        error: 'Valid quantity is required'
+        error: 'Valid stock quantity is required'
       });
     }
     
@@ -372,7 +455,7 @@ router.patch('/:id/stock', authenticateToken, requireRole(['shop_owner', 'admin'
     
     const product = await Product.findByIdAndUpdate(
       productId,
-      { quantity },
+      { stock },
       { new: true, runValidators: true }
     ).select('-__v');
     
@@ -403,7 +486,7 @@ router.patch('/:id/stock', authenticateToken, requireRole(['shop_owner', 'admin'
 router.get('/shop/:shopId', async (req, res) => {
   try {
     const { shopId } = req.params;
-    const { page = 1, limit = 20, category, inStock } = req.query;
+    const { page = 1, limit = 20, category, color, inStock } = req.query;
     
     // Verify shop exists and is active
     const shop = await Shop.findById(shopId);
@@ -416,9 +499,16 @@ router.get('/shop/:shopId', async (req, res) => {
     
     // Build filter
     let filter = { shopId, isActive: true };
-    if (category) filter.category = category;
+    if (category) {
+      const categoryArray = Array.isArray(category) ? category : [category];
+      filter.category = { $in: categoryArray };
+    }
+    if (color) {
+      const colorArray = Array.isArray(color) ? color : [color];
+      filter.color = { $in: colorArray };
+    }
     if (inStock !== undefined) {
-      filter.quantity = inStock === 'true' ? { $gt: 0 } : { $lte: 0 };
+      filter.stock = inStock === 'true' ? { $gt: 0 } : { $lte: 0 };
     }
     
     const products = await Product.find(filter)

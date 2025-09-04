@@ -12,7 +12,7 @@ const Shop = require('../models/Shop');
  */
 router.post('/upload/single', authenticateToken, requireRole(['shop_owner', 'admin']), uploadSingle, handleUploadError, async (req, res) => {
   try {
-    const { productId, alt } = req.body;
+    const { productId, alt, size = 'medium' } = req.body;
     
     if (!req.file) {
       return res.status(400).json({
@@ -71,6 +71,7 @@ router.post('/upload/single', authenticateToken, requireRole(['shop_owner', 'adm
     
     // Create image object
     const imageData = {
+      size: size,
       publicId: result.public_id,
       url: result.secure_url,
       alt: alt || (product ? product.name : 'Product image'),
@@ -115,7 +116,7 @@ router.post('/upload/single', authenticateToken, requireRole(['shop_owner', 'adm
  */
 router.post('/upload/multiple', authenticateToken, requireRole(['shop_owner', 'admin']), uploadMultiple, handleUploadError, async (req, res) => {
   try {
-    const { productId } = req.body;
+    const { productId, imageSizes } = req.body;
     
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -129,6 +130,18 @@ router.post('/upload/multiple', authenticateToken, requireRole(['shop_owner', 'a
         success: false,
         error: 'Product ID is required'
       });
+    }
+
+    // Parse image sizes if provided
+    let sizes = [];
+    console.log('Received imageSizes:', imageSizes, 'Type:', typeof imageSizes);
+    if (imageSizes) {
+      try {
+        sizes = Array.isArray(imageSizes) ? imageSizes : JSON.parse(imageSizes);
+        console.log('Parsed sizes:', sizes);
+      } catch (e) {
+        console.warn('Invalid imageSizes format, using default sizes:', e.message);
+      }
     }
 
     // Handle temporary product ID for new products
@@ -173,6 +186,7 @@ router.post('/upload/multiple', authenticateToken, requireRole(['shop_owner', 'a
     const uploadPromises = req.files.map(async (file, index) => {
       const result = await uploadImage(file.buffer, folder);
       return {
+        size: sizes[index] || 'medium', // Use provided size or default to medium
         publicId: result.public_id,
         url: result.secure_url,
         alt: product ? `${product.name} - Image ${index + 1}` : `Product image ${index + 1}`,

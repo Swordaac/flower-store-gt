@@ -6,18 +6,35 @@ import { useUser } from '@/contexts/UserContext';
 
 interface ProductFormData {
   name: string;
+  color: string;
   description: string;
-  price: string;
-  quantity: string;
-  category: string;
+  price: {
+    standard: string;
+    deluxe: string;
+    premium: string;
+  };
+  stock: string;
+  category: string[];
   tags: string[];
   isActive: boolean;
   isFeatured: boolean;
   images: Array<{
+    size: string;
+    publicId?: string;
     url: string;
     alt: string;
     isPrimary: boolean;
   }>;
+  deluxeImage: {
+    publicId?: string;
+    url: string;
+    alt: string;
+  };
+  premiumImage: {
+    publicId?: string;
+    url: string;
+    alt: string;
+  };
 }
 
 interface ProductFormProps {
@@ -41,6 +58,26 @@ const categories = [
   'other'
 ];
 
+const colors = [
+  'red',
+  'pink',
+  'white',
+  'yellow',
+  'orange',
+  'purple',
+  'blue',
+  'green',
+  'mixed',
+  'other'
+];
+
+const imageSizes = [
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large' },
+  { value: 'xlarge', label: 'Extra Large' }
+];
+
 export const ProductForm: React.FC<ProductFormProps> = ({
   product,
   onSubmit,
@@ -50,22 +87,36 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
+    color: '',
     description: '',
-    price: '',
-    quantity: '',
-    category: '',
+    price: {
+      standard: '',
+      deluxe: '',
+      premium: ''
+    },
+    stock: '',
+    category: [],
     tags: [],
     isActive: true,
     isFeatured: false,
-    images: []
+    images: [],
+    deluxeImage: {
+      publicId: '',
+      url: '',
+      alt: ''
+    },
+    premiumImage: {
+      publicId: '',
+      url: '',
+      alt: ''
+    }
   });
 
   const [newTag, setNewTag] = useState('');
-  const [newImageUrl, setNewImageUrl] = useState('');
-  const [newImageAlt, setNewImageAlt] = useState('');
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [pendingFileSizes, setPendingFileSizes] = useState<{[key: number]: string}>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { session } = useUser();
 
@@ -73,14 +124,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     if (product) {
       setFormData({
         name: product.name || '',
+        color: product.color || '',
         description: product.description || '',
-        price: product.price ? (product.price / 100).toString() : '',
-        quantity: product.quantity?.toString() || '',
-        category: product.category || '',
+        price: {
+          standard: product.price?.standard ? (product.price.standard / 100).toString() : '',
+          deluxe: product.price?.deluxe ? (product.price.deluxe / 100).toString() : '',
+          premium: product.price?.premium ? (product.price.premium / 100).toString() : ''
+        },
+        stock: product.stock?.toString() || '',
+        category: product.category || [],
         tags: product.tags || [],
         isActive: product.isActive !== undefined ? product.isActive : true,
         isFeatured: product.isFeatured || false,
-        images: product.images || []
+        images: product.images || [],
+        deluxeImage: product.deluxeImage || { publicId: '', url: '', alt: '' },
+        premiumImage: product.premiumImage || { publicId: '', url: '', alt: '' }
       });
     }
   }, [product]);
@@ -92,6 +150,35 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handlePriceChange = (tier: 'standard' | 'deluxe' | 'premium', value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      price: {
+        ...prev.price,
+        [tier]: value
+      }
+    }));
+  };
+
+  const handleCategoryChange = (category: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      category: checked 
+        ? [...prev.category, category]
+        : prev.category.filter(c => c !== category)
+    }));
+  };
+
+  const handleTierImageChange = (tier: 'deluxe' | 'premium', field: 'url' | 'alt', value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [`${tier}Image`]: {
+        ...prev[`${tier}Image`],
+        [field]: value
+      }
     }));
   };
 
@@ -117,11 +204,36 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
     // Convert FileList to Array and add to pending files
     const newFiles = Array.from(files);
-    setPendingFiles(prev => [...prev, ...newFiles]);
+    
+    setPendingFiles(prev => {
+      const updatedFiles = [...prev, ...newFiles];
+      
+      // Initialize size for new files (default to medium)
+      const newSizes: {[key: number]: string} = {};
+      newFiles.forEach((_, index) => {
+        newSizes[prev.length + index] = 'medium';
+      });
+      
+      setPendingFileSizes(prevSizes => ({...prevSizes, ...newSizes}));
+      
+      return updatedFiles;
+    });
   };
 
   const removePendingFile = (index: number) => {
     setPendingFiles(prev => prev.filter((_, i) => i !== index));
+    setPendingFileSizes(prev => {
+      const newSizes = {...prev};
+      delete newSizes[index];
+      return newSizes;
+    });
+  };
+
+  const updatePendingFileSize = (index: number, size: string) => {
+    setPendingFileSizes(prev => ({
+      ...prev,
+      [index]: size
+    }));
   };
 
   const uploadImages = async (productId: string): Promise<any[]> => {
@@ -146,9 +258,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         console.log(`Adding file ${index}:`, file.name, file.size, file.type);
         formData.append('images', file);
       });
+      
+      // Add image sizes as a single array
+      const sizes = pendingFiles.map((_, index) => pendingFileSizes[index] || 'medium');
+      formData.append('imageSizes', JSON.stringify(sizes));
       formData.append('productId', productId);
 
       console.log('Sending upload request to:', 'http://localhost:5001/api/images/upload/multiple');
+      console.log('Image sizes being sent:', sizes);
+      console.log('Pending file sizes state:', pendingFileSizes);
 
       const response = await fetch('http://localhost:5001/api/images/upload/multiple', {
         method: 'POST',
@@ -187,23 +305,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }
   };
 
-  const addImage = () => {
-    if (newImageUrl.trim()) {
-      const newImage = {
-        url: newImageUrl.trim(),
-        alt: newImageAlt.trim() || 'Product image',
-        isPrimary: formData.images.length === 0
-      };
-      
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, newImage]
-      }));
-      
-      setNewImageUrl('');
-      setNewImageAlt('');
-    }
-  };
 
   const removeImage = (index: number) => {
     setFormData(prev => ({
@@ -249,13 +350,23 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     e.preventDefault();
     
     try {
-      // Convert price to cents
-      const priceInCents = Math.round(parseFloat(formData.price) * 100);
+      // Convert prices to cents
+      const priceInCents = {
+        standard: Math.round(parseFloat(formData.price.standard) * 100),
+        deluxe: Math.round(parseFloat(formData.price.deluxe) * 100),
+        premium: Math.round(parseFloat(formData.price.premium) * 100)
+      };
       
       const submitData = {
         ...formData,
-        price: priceInCents.toString(),
-        quantity: parseInt(formData.quantity).toString()
+        price: {
+          standard: priceInCents.standard.toString(),
+          deluxe: priceInCents.deluxe.toString(),
+          premium: priceInCents.premium.toString()
+        },
+        stock: parseInt(formData.stock).toString(),
+        // Only send images that have been uploaded (have publicId)
+        images: formData.images.filter(img => img.publicId)
       };
       
       console.log('Submitting product data:', submitData);
@@ -317,19 +428,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Category *
+                Color *
               </label>
               <select
-                name="category"
-                value={formData.category}
+                name="color"
+                value={formData.color}
                 onChange={handleInputChange}
                 required
                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               >
-                <option value="">Select a category</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>
-                    {category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')}
+                <option value="">Select a color</option>
+                {colors.map(color => (
+                  <option key={color} value={color}>
+                    {color.charAt(0).toUpperCase() + color.slice(1)}
                   </option>
                 ))}
               </select>
@@ -338,57 +449,130 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Description
+              Description *
             </label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleInputChange}
+              required
               rows={3}
               className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               placeholder="Describe your product..."
             />
           </div>
 
-          {/* Pricing and Inventory */}
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Price (USD) *
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">$</span>
+          {/* Categories */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Categories * (Select at least one)
+            </label>
+            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {categories.map(category => (
+                <label key={category} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.category.includes(category)}
+                    onChange={(e) => handleCategoryChange(category, e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm text-gray-900">
+                    {category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {formData.category.length === 0 && (
+              <p className="mt-1 text-sm text-red-600">Please select at least one category</p>
+            )}
+          </div>
+
+          {/* Tiered Pricing */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-4">
+              Pricing Tiers (USD) *
+            </label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-600">
+                  Standard
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 sm:text-sm">$</span>
+                  </div>
+                  <input
+                    type="number"
+                    value={formData.price.standard}
+                    onChange={(e) => handlePriceChange('standard', e.target.value)}
+                    required
+                    min="0"
+                    step="0.01"
+                    className="pl-7 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="0.00"
+                  />
                 </div>
-                <input
-                  type="number"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleInputChange}
-                  required
-                  min="0"
-                  step="0.01"
-                  className="pl-7 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="0.00"
-                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600">
+                  Deluxe
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 sm:text-sm">$</span>
+                  </div>
+                  <input
+                    type="number"
+                    value={formData.price.deluxe}
+                    onChange={(e) => handlePriceChange('deluxe', e.target.value)}
+                    required
+                    min="0"
+                    step="0.01"
+                    className="pl-7 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600">
+                  Premium
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 sm:text-sm">$</span>
+                  </div>
+                  <input
+                    type="number"
+                    value={formData.price.premium}
+                    onChange={(e) => handlePriceChange('premium', e.target.value)}
+                    required
+                    min="0"
+                    step="0.01"
+                    className="pl-7 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Quantity in Stock *
-              </label>
-              <input
-                type="number"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleInputChange}
-                required
-                min="0"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="0"
-              />
-            </div>
+          {/* Stock */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Stock Quantity *
+            </label>
+            <input
+              type="number"
+              name="stock"
+              value={formData.stock}
+              onChange={handleInputChange}
+              required
+              min="0"
+              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              placeholder="0"
+            />
           </div>
 
           {/* Tags */}
@@ -451,7 +635,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             {/* Upload Area */}
             <div className="mt-1">
               <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                   !shopId
                     ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50'
                     : dragOver
@@ -475,36 +659,39 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
                 {uploading ? (
                   <div className="flex flex-col items-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                    <p className="mt-2 text-sm text-gray-600">Uploading...</p>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                    <p className="mt-4 text-sm text-gray-600">Uploading images...</p>
                   </div>
                 ) : !shopId ? (
                   <div className="flex flex-col items-center">
-                    <PhotoIcon className="mx-auto h-12 w-12 text-gray-300" />
+                    <PhotoIcon className="mx-auto h-16 w-16 text-gray-300" />
                     <div className="mt-4">
-                      <p className="text-sm text-gray-400">
+                      <p className="text-lg font-medium text-gray-400">
                         Image upload disabled
                       </p>
-                      <p className="text-xs text-gray-400">Shop ID required</p>
+                      <p className="text-sm text-gray-400 mt-1">Shop ID required to upload images</p>
                     </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
+                    <PhotoIcon className="mx-auto h-16 w-16 text-gray-400" />
                     <div className="mt-4">
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium text-indigo-600 hover:text-indigo-500">
-                          Click to select
-                        </span>{' '}
-                        or drag and drop
+                      <p className="text-lg font-medium text-gray-700">
+                        <span className="font-semibold text-indigo-600 hover:text-indigo-500">
+                          Drag & Drop Images Here
+                        </span>
                       </p>
-                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB each</p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        or <span className="font-medium text-indigo-600 hover:text-indigo-500">click to browse</span>
+                      </p>
+                      <p className="text-xs text-gray-500 mt-2">PNG, JPG, GIF up to 5MB each</p>
                       <p className="text-xs text-gray-400 mt-1">Images will be uploaded when you create the product</p>
                     </div>
                   </div>
                 )}
               </div>
             </div>
+
 
             {/* Image Gallery */}
             {(formData.images.length > 0 || pendingFiles.length > 0) && (
@@ -520,10 +707,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                         className="w-full h-32 object-cover rounded-lg"
                       />
                       
+                      <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
+                        {image.size?.toUpperCase() || 'N/A'}
+                      </div>
+                      
                       {image.isPrimary && (
-                        <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                        <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
                           Primary
-                  </div>
+                        </div>
                       )}
 
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -562,17 +753,34 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                         Pending
                       </div>
 
+                      {/* Size selector - always visible */}
+                      <div className="absolute bottom-2 left-2 right-2 z-10">
+                        <select
+                          value={pendingFileSizes[index] || 'medium'}
+                          onChange={(e) => updatePendingFileSize(index, e.target.value)}
+                          className="w-full text-xs bg-white bg-opacity-95 rounded px-2 py-1 border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {imageSizes.map(size => (
+                            <option key={size.value} value={size.value}>
+                              {size.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Remove button - only on hover */}
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
                         <div className="flex space-x-2">
-                <button
-                  type="button"
+                          <button
+                            type="button"
                             onClick={() => removePendingFile(index)}
-                            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
-                >
+                            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 z-20"
+                          >
                             Remove
-                </button>
-              </div>
-            </div>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -584,6 +792,85 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 )}
               </div>
             )}
+          </div>
+
+          {/* Tier-Specific Images */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-4">
+              Tier-Specific Images
+            </label>
+            
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              {/* Deluxe Image */}
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                  Deluxe Version Image
+                </label>
+                <div className="space-y-2">
+                  <input
+                    type="url"
+                    value={formData.deluxeImage.url}
+                    onChange={(e) => handleTierImageChange('deluxe', 'url', e.target.value)}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="Image URL"
+                  />
+                  <input
+                    type="text"
+                    value={formData.deluxeImage.alt}
+                    onChange={(e) => handleTierImageChange('deluxe', 'alt', e.target.value)}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="Alt text"
+                  />
+                  {formData.deluxeImage.url && (
+                    <div className="mt-2">
+                      <img
+                        src={formData.deluxeImage.url}
+                        alt={formData.deluxeImage.alt}
+                        className="w-full h-32 object-cover rounded-lg"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Premium Image */}
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                  Premium Version Image
+                </label>
+                <div className="space-y-2">
+                  <input
+                    type="url"
+                    value={formData.premiumImage.url}
+                    onChange={(e) => handleTierImageChange('premium', 'url', e.target.value)}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="Image URL"
+                  />
+                  <input
+                    type="text"
+                    value={formData.premiumImage.alt}
+                    onChange={(e) => handleTierImageChange('premium', 'alt', e.target.value)}
+                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    placeholder="Alt text"
+                  />
+                  {formData.premiumImage.url && (
+                    <div className="mt-2">
+                      <img
+                        src={formData.premiumImage.url}
+                        alt={formData.premiumImage.alt}
+                        className="w-full h-32 object-cover rounded-lg"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Status Options */}

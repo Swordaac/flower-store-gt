@@ -184,7 +184,7 @@ orderSchema.pre('save', function(next) {
 // Indexes for performance
 orderSchema.index({ customerId: 1, createdAt: -1 });
 orderSchema.index({ shopId: 1, status: 1 });
-orderSchema.index({ orderNumber: 1 });
+// orderNumber index is automatically created by unique: true
 orderSchema.index({ 'payment.intentId': 1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 

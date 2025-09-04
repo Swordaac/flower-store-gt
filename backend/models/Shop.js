@@ -153,7 +153,7 @@ shopSchema.virtual('hasDelivery').get(function() {
 
 // Indexes for performance and geospatial queries
 shopSchema.index({ location: '2dsphere' });
-shopSchema.index({ ownerId: 1 });
+// ownerId index is automatically created by index: true
 shopSchema.index({ isActive: 1 });
 shopSchema.index({ 'address.city': 1, 'address.state': 1 });
 

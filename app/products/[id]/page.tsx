@@ -33,17 +33,33 @@ const theme = {
 interface Product {
   _id: string;
   name: string;
+  color: string;
   description: string;
-  price: number;
-  quantity: number;
-  category: string;
+  price: {
+    standard: number;
+    deluxe: number;
+    premium: number;
+  };
+  stock: number;
+  category: string[];
   tags: string[];
   images: Array<{
+    size: string;
     publicId: string;
     url: string;
     alt: string;
     isPrimary: boolean;
   }>;
+  deluxeImage?: {
+    publicId: string;
+    url: string;
+    alt: string;
+  };
+  premiumImage?: {
+    publicId: string;
+    url: string;
+    alt: string;
+  };
   isActive: boolean;
   isFeatured: boolean;
   shopId: string;
@@ -59,8 +75,10 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedSize, setSelectedSize] = useState<number>(0)
+  const [selectedTier, setSelectedTier] = useState<'standard' | 'deluxe' | 'premium'>('standard')
   const [quantity, setQuantity] = useState(1)
+  const [selectedImage, setSelectedImage] = useState<string>('')
+  const [selectedImageSize, setSelectedImageSize] = useState<string>('all')
   const [expandedSections, setExpandedSections] = useState({
     delivery: true,
     substitution: false,
@@ -85,7 +103,9 @@ export default function ProductDetailPage() {
         
         if (data.success) {
           setProduct(data.data)
-          setSelectedSize(data.data.price) // Set initial size to current price
+          // Set initial image to primary image
+          const primaryImage = data.data.images?.find((img: any) => img.isPrimary)
+          setSelectedImage(primaryImage?.url || data.data.images?.[0]?.url || '')
         } else {
           throw new Error(data.error || 'Failed to fetch product')
         }
@@ -107,24 +127,52 @@ export default function ProductDetailPage() {
     return `$${(priceInCents / 100).toFixed(2)} CAD`
   }
 
-  // Helper function to get primary image
-  const getPrimaryImage = (images: Product['images']) => {
-    const primaryImage = images.find(img => img.isPrimary)
-    return primaryImage?.url || images[0]?.url || "/placeholder.svg"
+  // Helper function to get current price based on selected tier
+  const getCurrentPrice = () => {
+    if (!product) return 0
+    return product.price[selectedTier]
   }
 
-  // Size options (you can customize these based on your product)
-  const sizeOptions = [
-    { price: 15000, label: "$150" },
-    { price: 20000, label: "$200" },
-    { price: 25000, label: "$250" },
-    { price: 30000, label: "$300" },
-    { price: 35000, label: "$350" },
-    { price: 40000, label: "$400" },
-    { price: 45000, label: "$450" },
-    { price: 50000, label: "$500" },
-    { price: 55000, label: "$550" },
-    { price: 60000, label: "$600" }
+  // Helper function to get current image based on selected tier
+  const getCurrentImage = () => {
+    if (!product) return "/placeholder.svg"
+    
+    if (selectedTier === 'deluxe' && product.deluxeImage?.url) {
+      return product.deluxeImage.url
+    }
+    if (selectedTier === 'premium' && product.premiumImage?.url) {
+      return product.premiumImage.url
+    }
+    
+    // Fall back to primary image or first image
+    const primaryImage = product.images?.find(img => img.isPrimary)
+    return primaryImage?.url || product.images?.[0]?.url || "/placeholder.svg"
+  }
+
+  // Helper function to get filtered images by size
+  const getFilteredImages = () => {
+    if (!product) return []
+    
+    if (selectedImageSize === 'all') {
+      return product.images || []
+    }
+    
+    return product.images?.filter(img => img.size === selectedImageSize) || []
+  }
+
+  // Helper function to get available image sizes
+  const getAvailableSizes = () => {
+    if (!product) return []
+    
+    const sizes = [...new Set(product.images?.map(img => img.size) || [])]
+    return ['all', ...sizes]
+  }
+
+  // Tier options
+  const tierOptions = [
+    { key: 'standard' as const, label: 'Standard', price: product?.price.standard || 0 },
+    { key: 'deluxe' as const, label: 'Deluxe', price: product?.price.deluxe || 0 },
+    { key: 'premium' as const, label: 'Premium', price: product?.price.premium || 0 }
   ]
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -147,10 +195,10 @@ export default function ProductDetailPage() {
     // Add the item to cart
     addToCart({
       productId: product._id,
-      name: product.name,
-      price: product.price,
-      image: getPrimaryImage(product.images),
-      selectedSize: selectedSize !== product.price ? selectedSize : undefined
+      name: `${product.name} (${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)})`,
+      price: getCurrentPrice(),
+      image: getCurrentImage(),
+      selectedTier: selectedTier
     });
 
     // Show success message
@@ -243,24 +291,85 @@ export default function ProductDetailPage() {
           <div className="lg:col-span-2">
             <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
               <img
-                src={getPrimaryImage(product.images)}
+                src={getCurrentImage()}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
             </div>
+            
+            {/* Image Gallery */}
+            {product.images.length > 0 && (
+              <div className="mt-4">
+                {/* Size Filter */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Filter by Size:
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {getAvailableSizes().map(size => (
+                      <button
+                        key={size}
+                        onClick={() => setSelectedImageSize(size)}
+                        className={`px-3 py-1 text-sm rounded-full border transition-colors ${
+                          selectedImageSize === size
+                            ? 'bg-indigo-100 text-indigo-700 border-indigo-300'
+                            : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                        }`}
+                      >
+                        {size === 'all' ? 'All Sizes' : size.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Image Grid */}
+                <div className="grid grid-cols-4 gap-2">
+                  {getFilteredImages().map((image, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(image.url)}
+                      className={`aspect-square overflow-hidden rounded-lg relative ${
+                        selectedImage === image.url ? 'ring-2 ring-indigo-500' : ''
+                      }`}
+                    >
+                      <img
+                        src={image.url}
+                        alt={image.alt}
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Size Badge */}
+                      <div className="absolute top-1 left-1 bg-black bg-opacity-60 text-white text-xs px-1 py-0.5 rounded">
+                        {image.size?.toUpperCase() || 'N/A'}
+                      </div>
+                      {/* Primary Badge */}
+                      {image.isPrimary && (
+                        <div className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded">
+                          ★
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Product Details - Right 1/3 */}
           <div className="lg:col-span-1">
             <div className="sticky top-8">
               {/* Product Title */}
-              <h1 className="text-3xl font-light mb-4" style={{ color: theme.colors.text.secondary }}>
+              <h1 className="text-3xl font-light mb-2" style={{ color: theme.colors.text.secondary }}>
                 {product.name}
               </h1>
 
+              {/* Color */}
+              <p className="text-sm mb-4" style={{ color: theme.colors.text.light }}>
+                Color: <span className="capitalize font-medium">{product.color}</span>
+              </p>
+
               {/* Price */}
               <p className="text-2xl font-medium mb-6" style={{ color: theme.colors.text.secondary }}>
-                {formatPrice(selectedSize)}
+                {formatPrice(getCurrentPrice())}
               </p>
 
               {/* Description */}
@@ -268,27 +377,30 @@ export default function ProductDetailPage() {
                 {product.description || "Let one of our skilled designers create a one of a kind masterpiece for you. It will arrive arranged in a simple container, gift wrapped with attention."}
               </p>
 
-              {/* Size Options */}
+              {/* Tier Options */}
               <div className="mb-6">
                 <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text.secondary }}>
-                  Size: {formatPrice(selectedSize)}
+                  Select Tier: {formatPrice(getCurrentPrice())}
                 </label>
-                <div className="grid grid-cols-5 gap-2">
-                  {sizeOptions.map((option) => (
+                <div className="grid grid-cols-1 gap-3">
+                  {tierOptions.map((option) => (
                     <button
-                      key={option.price}
-                      onClick={() => setSelectedSize(option.price)}
-                      className={`p-3 text-sm border rounded transition-colors ${
-                        selectedSize === option.price
-                          ? 'border-gray-400 bg-gray-50'
+                      key={option.key}
+                      onClick={() => setSelectedTier(option.key)}
+                      className={`p-4 text-left border rounded-lg transition-colors ${
+                        selectedTier === option.key
+                          ? 'border-indigo-500 bg-indigo-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                       style={{ 
                         color: theme.colors.text.secondary,
-                        backgroundColor: selectedSize === option.price ? theme.colors.hover : 'transparent'
+                        backgroundColor: selectedTier === option.key ? '#f0f9ff' : 'transparent'
                       }}
                     >
-                      {option.label}
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{option.label}</span>
+                        <span className="text-lg font-semibold">{formatPrice(option.price)}</span>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -416,19 +528,30 @@ export default function ProductDetailPage() {
                   {expandedSections.details && (
                     <div className="pb-4">
                       <p className="text-sm mb-2" style={{ color: theme.colors.text.light }}>
-                        Category: {product.category}
+                        Categories: {product.category.join(', ')}
+                      </p>
+                      <p className="text-sm mb-2" style={{ color: theme.colors.text.light }}>
+                        Color: <span className="capitalize">{product.color}</span>
+                      </p>
+                      <p className="text-sm mb-2" style={{ color: theme.colors.text.light }}>
+                        Stock: {product.stock} available
                       </p>
                       {product.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {product.tags.map((tag, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 text-xs rounded-full bg-gray-100"
-                              style={{ color: theme.colors.text.light }}
-                            >
-                              {tag}
-                            </span>
-                          ))}
+                        <div className="mt-3">
+                          <p className="text-sm mb-2" style={{ color: theme.colors.text.light }}>
+                            Tags:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {product.tags.map((tag, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 text-xs rounded-full bg-gray-100"
+                                style={{ color: theme.colors.text.light }}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>

@@ -8,7 +8,8 @@ interface CartItem {
   price: number; // in cents
   quantity: number;
   image: string;
-  selectedSize?: number; // in cents, for size variations
+  selectedSize?: number; // in cents, for size variations (legacy)
+  selectedTier?: 'standard' | 'deluxe' | 'premium'; // for tier variations
 }
 
 interface CartContextType {
@@ -78,7 +79,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     setItems(prevItems => {
       const existingItemIndex = prevItems.findIndex(
         item => item.productId === newItem.productId && 
-                item.selectedSize === newItem.selectedSize
+                item.selectedSize === newItem.selectedSize &&
+                item.selectedTier === newItem.selectedTier
       );
 
       if (existingItemIndex > -1) {
