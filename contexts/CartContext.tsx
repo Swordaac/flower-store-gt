@@ -2,6 +2,23 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+interface OrderInfo {
+  deliveryOption: 'delivery' | 'pickup';
+  address?: {
+    street: string;
+    city: string;
+    province: string;
+    postalCode: string;
+    country: string;
+  };
+  deliveryTime?: string;
+  pickupTime?: string;
+  pickupLocationId?: string;
+  specialInstructions?: string;
+  contactPhone: string;
+  contactEmail: string;
+}
+
 interface CartItem {
   productId: string;
   name: string;
@@ -10,6 +27,7 @@ interface CartItem {
   image: string;
   selectedSize?: number; // in cents, for size variations (legacy)
   selectedTier?: 'standard' | 'deluxe' | 'premium'; // for tier variations
+  orderInfo?: OrderInfo; // delivery/pickup information
 }
 
 interface CartContextType {
@@ -19,7 +37,7 @@ interface CartContextType {
   totalPrice: number; // in cents
   
   // Cart actions
-  addToCart: (item: Omit<CartItem, 'quantity'>) => void;
+  addToCart: (item: Omit<CartItem, 'quantity'>, quantity?: number) => void;
   removeFromCart: (productId: string, selectedSize?: number) => void;
   updateQuantity: (productId: string, quantity: number, selectedSize?: number) => void;
   clearCart: () => void;
@@ -27,6 +45,9 @@ interface CartContextType {
   // Cart utilities
   getItemQuantity: (productId: string, selectedSize?: number) => number;
   isInCart: (productId: string, selectedSize?: number) => boolean;
+  
+  // Order submission
+  submitOrder: (shopId: string, deliveryInfo: OrderInfo) => Promise<{ success: boolean; orderId?: string; error?: string }>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -75,22 +96,23 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   }, 0);
 
   // Add item to cart
-  const addToCart = (newItem: Omit<CartItem, 'quantity'>) => {
+  const addToCart = (newItem: Omit<CartItem, 'quantity'>, quantity: number = 1) => {
     setItems(prevItems => {
       const existingItemIndex = prevItems.findIndex(
         item => item.productId === newItem.productId && 
                 item.selectedSize === newItem.selectedSize &&
-                item.selectedTier === newItem.selectedTier
+                item.selectedTier === newItem.selectedTier &&
+                JSON.stringify(item.orderInfo) === JSON.stringify(newItem.orderInfo)
       );
 
       if (existingItemIndex > -1) {
         // Update existing item quantity
         const updatedItems = [...prevItems];
-        updatedItems[existingItemIndex].quantity += 1;
+        updatedItems[existingItemIndex].quantity += quantity;
         return updatedItems;
       } else {
         // Add new item
-        return [...prevItems, { ...newItem, quantity: 1 }];
+        return [...prevItems, { ...newItem, quantity }];
       }
     });
   };
@@ -140,6 +162,72 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     );
   };
 
+  // Submit order to API
+  const submitOrder = async (shopId: string, deliveryInfo: OrderInfo): Promise<{ success: boolean; orderId?: string; error?: string }> => {
+    try {
+      if (items.length === 0) {
+        return { success: false, error: 'Cart is empty' };
+      }
+
+      // Prepare order data in the format expected by the API
+      const orderData = {
+        shopId,
+        items: items.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity
+        })),
+        delivery: {
+          method: deliveryInfo.deliveryOption,
+          ...(deliveryInfo.deliveryOption === 'delivery' && {
+            address: deliveryInfo.address,
+            deliveryTime: deliveryInfo.deliveryTime
+          }),
+          ...(deliveryInfo.deliveryOption === 'pickup' && {
+            pickupTime: deliveryInfo.pickupTime,
+            pickupLocationId: deliveryInfo.pickupLocationId
+          }),
+          contactPhone: deliveryInfo.contactPhone,
+          contactEmail: deliveryInfo.contactEmail,
+          specialInstructions: deliveryInfo.specialInstructions || ''
+        }
+      };
+
+      // Get auth token from localStorage or context
+      const token = localStorage.getItem('auth-token') || 'mock-token'; // Replace with actual auth
+
+      const response = await fetch('http://localhost:5001/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Clear cart on successful order
+        clearCart();
+        return { 
+          success: true, 
+          orderId: result.data._id || result.data.orderNumber 
+        };
+      } else {
+        return { 
+          success: false, 
+          error: result.error || 'Failed to create order' 
+        };
+      }
+    } catch (error) {
+      console.error('Error submitting order:', error);
+      return { 
+        success: false, 
+        error: 'Network error. Please try again.' 
+      };
+    }
+  };
+
   const value: CartContextType = {
     items,
     totalItems,
@@ -149,7 +237,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     updateQuantity,
     clearCart,
     getItemQuantity,
-    isInCart
+    isInCart,
+    submitOrder
   };
 
   return (

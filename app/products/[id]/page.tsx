@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ChevronDown, Filter, Search, ShoppingCart, User, Minus, Plus } from "lucide-react"
+import { ChevronDown, Filter, Search, ShoppingCart, User, Minus, Plus, MapPin, Clock, Truck, Store } from "lucide-react"
 import { useCart } from "@/contexts/CartContext"
 import { CartIcon } from "@/components/CartIcon"
 
@@ -70,7 +70,7 @@ interface Product {
 export default function ProductDetailPage() {
   const params = useParams()
   const productId = params.id as string
-  const { addToCart, getItemQuantity, isInCart } = useCart()
+  const { addToCart, getItemQuantity, isInCart, submitOrder } = useCart()
   
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
@@ -85,6 +85,22 @@ export default function ProductDetailPage() {
     returns: false,
     details: false
   })
+  
+  // Delivery and pickup options
+  const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'pickup' | null>(null)
+  const [deliveryAddress, setDeliveryAddress] = useState({
+    street: '',
+    city: '',
+    province: '',
+    postalCode: '',
+    country: 'Canada'
+  })
+  const [deliveryTime, setDeliveryTime] = useState('')
+  const [pickupTime, setPickupTime] = useState('')
+  const [specialInstructions, setSpecialInstructions] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   // Fetch product details
   useEffect(() => {
@@ -189,20 +205,123 @@ export default function ProductDetailPage() {
     }
   }
 
+  // Validation functions
+  const validateForm = () => {
+    const errors: Record<string, string> = {}
+    
+    if (!deliveryOption) {
+      errors.deliveryOption = 'Please select delivery or pickup option'
+    }
+    
+    if (deliveryOption === 'delivery') {
+      if (!deliveryAddress.street.trim()) errors.street = 'Street address is required'
+      if (!deliveryAddress.city.trim()) errors.city = 'City is required'
+      if (!deliveryAddress.province.trim()) errors.province = 'Province is required'
+      if (!deliveryAddress.postalCode.trim()) errors.postalCode = 'Postal code is required'
+      if (!deliveryTime) errors.deliveryTime = 'Please select a delivery time'
+    }
+    
+    if (deliveryOption === 'pickup') {
+      if (!pickupTime) errors.pickupTime = 'Please select a pickup time'
+    }
+    
+    if (!contactPhone.trim()) errors.contactPhone = 'Phone number is required'
+    if (!contactEmail.trim()) errors.contactEmail = 'Email is required'
+    
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  // Generate time slots for delivery and pickup
+  const generateTimeSlots = (type: 'delivery' | 'pickup') => {
+    const slots = []
+    const startHour = type === 'delivery' ? 9 : 8
+    const endHour = type === 'delivery' ? 18 : 20
+    
+    for (let hour = startHour; hour <= endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
+        const displayTime = new Date(2000, 0, 1, hour, minute).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })
+        slots.push({ value: timeString, label: displayTime })
+      }
+    }
+    return slots
+  }
+
   const handleAddToCart = () => {
     if (!product) return;
 
-    // Add the item to cart
+    // Validate form before adding to cart
+    if (!validateForm()) {
+      return
+    }
+
+    // Prepare delivery/pickup information
+    const orderInfo = {
+      deliveryOption: deliveryOption!,
+      ...(deliveryOption === 'delivery' && {
+        address: deliveryAddress,
+        deliveryTime
+      }),
+      ...(deliveryOption === 'pickup' && {
+        pickupTime,
+        pickupLocationId: 'default-pickup-location' // This should be selected from available locations
+      }),
+      specialInstructions,
+      contactPhone,
+      contactEmail
+    }
+
+    // Add the item to cart with delivery/pickup info
     addToCart({
       productId: product._id,
       name: `${product.name} (${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)})`,
       price: getCurrentPrice(),
       image: getCurrentImage(),
-      selectedTier: selectedTier
-    });
+      selectedTier: selectedTier,
+      orderInfo: orderInfo
+    }, quantity);
 
     // Show success message
-    alert('Product added to cart!');
+    alert('Product added to cart with delivery/pickup information!');
+  }
+
+  const handleSubmitOrder = async () => {
+    if (!product) return;
+
+    // Validate form before submitting order
+    if (!validateForm()) {
+      return
+    }
+
+    // Prepare delivery/pickup information
+    const orderInfo = {
+      deliveryOption: deliveryOption!,
+      ...(deliveryOption === 'delivery' && {
+        address: deliveryAddress,
+        deliveryTime
+      }),
+      ...(deliveryOption === 'pickup' && {
+        pickupTime,
+        pickupLocationId: 'default-pickup-location' // This should be selected from available locations
+      }),
+      specialInstructions,
+      contactPhone,
+      contactEmail
+    }
+
+    // Submit order directly
+    const result = await submitOrder(product.shopId, orderInfo);
+    
+    if (result.success) {
+      alert(`Order submitted successfully! Order ID: ${result.orderId}`);
+    } else {
+      alert(`Failed to submit order: ${result.error}`);
+    }
   }
 
   if (loading) {
@@ -436,14 +555,242 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* Add to Cart Button */}
-              <Button
-                onClick={handleAddToCart}
-                className="w-full py-3 text-lg font-medium mb-8"
-                style={{ backgroundColor: theme.colors.text.secondary, color: theme.colors.white }}
-              >
-                Add to cart
-              </Button>
+              {/* Delivery/Pickup Options */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text.secondary }}>
+                  Delivery Option:
+                </label>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <button
+                    onClick={() => setDeliveryOption('delivery')}
+                    className={`p-4 text-left border rounded-lg transition-colors flex items-center space-x-3 ${
+                      deliveryOption === 'delivery'
+                        ? 'border-indigo-500 bg-indigo-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    style={{ 
+                      color: theme.colors.text.secondary,
+                      backgroundColor: deliveryOption === 'delivery' ? '#f0f9ff' : 'transparent'
+                    }}
+                  >
+                    <Truck className="h-5 w-5" />
+                    <div>
+                      <div className="font-medium">Delivery</div>
+                      <div className="text-xs text-gray-500">We'll deliver to you</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setDeliveryOption('pickup')}
+                    className={`p-4 text-left border rounded-lg transition-colors flex items-center space-x-3 ${
+                      deliveryOption === 'pickup'
+                        ? 'border-indigo-500 bg-indigo-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    style={{ 
+                      color: theme.colors.text.secondary,
+                      backgroundColor: deliveryOption === 'pickup' ? '#f0f9ff' : 'transparent'
+                    }}
+                  >
+                    <Store className="h-5 w-5" />
+                    <div>
+                      <div className="font-medium">Pickup</div>
+                      <div className="text-xs text-gray-500">Pick up at our store</div>
+                    </div>
+                  </button>
+                </div>
+                {formErrors.deliveryOption && (
+                  <p className="text-red-500 text-sm mb-2">{formErrors.deliveryOption}</p>
+                )}
+              </div>
+
+              {/* Delivery Address Form */}
+              {deliveryOption === 'delivery' && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text.secondary }}>
+                    <MapPin className="inline h-4 w-4 mr-1" />
+                    Delivery Address:
+                  </label>
+                  <div className="space-y-3">
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Street Address"
+                        value={deliveryAddress.street}
+                        onChange={(e) => setDeliveryAddress(prev => ({ ...prev, street: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        style={{ color: theme.colors.text.secondary }}
+                      />
+                      {formErrors.street && <p className="text-red-500 text-sm mt-1">{formErrors.street}</p>}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="City"
+                          value={deliveryAddress.city}
+                          onChange={(e) => setDeliveryAddress(prev => ({ ...prev, city: e.target.value }))}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          style={{ color: theme.colors.text.secondary }}
+                        />
+                        {formErrors.city && <p className="text-red-500 text-sm mt-1">{formErrors.city}</p>}
+                      </div>
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Province"
+                          value={deliveryAddress.province}
+                          onChange={(e) => setDeliveryAddress(prev => ({ ...prev, province: e.target.value }))}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          style={{ color: theme.colors.text.secondary }}
+                        />
+                        {formErrors.province && <p className="text-red-500 text-sm mt-1">{formErrors.province}</p>}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Postal Code"
+                          value={deliveryAddress.postalCode}
+                          onChange={(e) => setDeliveryAddress(prev => ({ ...prev, postalCode: e.target.value }))}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          style={{ color: theme.colors.text.secondary }}
+                        />
+                        {formErrors.postalCode && <p className="text-red-500 text-sm mt-1">{formErrors.postalCode}</p>}
+                      </div>
+                      <div>
+                        <select
+                          value={deliveryAddress.country}
+                          onChange={(e) => setDeliveryAddress(prev => ({ ...prev, country: e.target.value }))}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          style={{ color: theme.colors.text.secondary }}
+                        >
+                          <option value="Canada">Canada</option>
+                          <option value="United States">United States</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Delivery Time Selection */}
+              {deliveryOption === 'delivery' && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text.secondary }}>
+                    <Clock className="inline h-4 w-4 mr-1" />
+                    Delivery Time:
+                  </label>
+                  <select
+                    value={deliveryTime}
+                    onChange={(e) => setDeliveryTime(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    style={{ color: theme.colors.text.secondary }}
+                  >
+                    <option value="">Select delivery time</option>
+                    {generateTimeSlots('delivery').map((slot) => (
+                      <option key={slot.value} value={slot.value}>
+                        {slot.label}
+                      </option>
+                    ))}
+                  </select>
+                  {formErrors.deliveryTime && <p className="text-red-500 text-sm mt-1">{formErrors.deliveryTime}</p>}
+                </div>
+              )}
+
+              {/* Pickup Time Selection */}
+              {deliveryOption === 'pickup' && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text.secondary }}>
+                    <Clock className="inline h-4 w-4 mr-1" />
+                    Pickup Time:
+                  </label>
+                  <select
+                    value={pickupTime}
+                    onChange={(e) => setPickupTime(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    style={{ color: theme.colors.text.secondary }}
+                  >
+                    <option value="">Select pickup time</option>
+                    {generateTimeSlots('pickup').map((slot) => (
+                      <option key={slot.value} value={slot.value}>
+                        {slot.label}
+                      </option>
+                    ))}
+                  </select>
+                  {formErrors.pickupTime && <p className="text-red-500 text-sm mt-1">{formErrors.pickupTime}</p>}
+                  <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">
+                      <strong>Pickup Location:</strong> 123 Flower Street, Toronto, ON M5V 3A8<br/>
+                      <strong>Store Hours:</strong> Mon-Fri 8:00 AM - 8:00 PM, Sat-Sun 9:00 AM - 6:00 PM
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Contact Information */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text.secondary }}>
+                  Contact Information:
+                </label>
+                <div className="space-y-3">
+                  <div>
+                    <input
+                      type="tel"
+                      placeholder="Phone Number"
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      style={{ color: theme.colors.text.secondary }}
+                    />
+                    {formErrors.contactPhone && <p className="text-red-500 text-sm mt-1">{formErrors.contactPhone}</p>}
+                  </div>
+                  <div>
+                    <input
+                      type="email"
+                      placeholder="Email Address"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      style={{ color: theme.colors.text.secondary }}
+                    />
+                    {formErrors.contactEmail && <p className="text-red-500 text-sm mt-1">{formErrors.contactEmail}</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Special Instructions */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text.secondary }}>
+                  Special Instructions (Optional):
+                </label>
+                <textarea
+                  placeholder="Any special requests or instructions for your order..."
+                  value={specialInstructions}
+                  onChange={(e) => setSpecialInstructions(e.target.value)}
+                  rows={3}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  style={{ color: theme.colors.text.secondary }}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3 mb-8">
+                <Button
+                  onClick={handleAddToCart}
+                  className="w-full py-3 text-lg font-medium"
+                  style={{ backgroundColor: theme.colors.text.secondary, color: theme.colors.white }}
+                >
+                  Add to cart
+                </Button>
+                <Button
+                  onClick={handleSubmitOrder}
+                  className="w-full py-3 text-lg font-medium"
+                  style={{ backgroundColor: theme.colors.primary, color: theme.colors.white }}
+                >
+                  Submit Order
+                </Button>
+              </div>
 
               {/* Expandable Sections */}
               <div className="space-y-4">

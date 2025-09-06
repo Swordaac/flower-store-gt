@@ -109,8 +109,34 @@ const shopSchema = new mongoose.Schema({
       type: Number,
       default: 0, // in cents
       min: [0, 'Delivery fee cannot be negative']
+    },
+    // Delivery time slots
+    deliveryTimeSlots: {
+      startHour: {
+        type: Number,
+        default: 9,
+        min: [0, 'Start hour must be between 0-23'],
+        max: [23, 'Start hour must be between 0-23']
+      },
+      endHour: {
+        type: Number,
+        default: 18,
+        min: [0, 'End hour must be between 0-23'],
+        max: [23, 'End hour must be between 0-23']
+      },
+      intervalMinutes: {
+        type: Number,
+        default: 30,
+        min: [15, 'Interval must be at least 15 minutes']
+      }
     }
   },
+  
+  // Pickup locations for this shop
+  pickupLocations: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PickupLocation'
+  }],
   
   // Stripe integration
   stripeAccountId: {

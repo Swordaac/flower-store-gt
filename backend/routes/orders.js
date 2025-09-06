@@ -4,6 +4,7 @@ const { authenticateToken, requireRole, requireShopOwnership } = require('../mid
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Shop = require('../models/Shop');
+const PickupLocation = require('../models/PickupLocation');
 
 /**
  * GET /api/orders - Get orders (filtered by user role)
@@ -52,6 +53,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const orders = await Order.find(filter)
       .populate('shopId', 'name address.city address.state')
       .populate('customerId', 'name email')
+      .populate('delivery.pickupLocationId', 'name address phone businessHours')
       .select('-__v')
       .sort(sort)
       .limit(limit * 1)
@@ -87,6 +89,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const order = await Order.findById(req.params.id)
       .populate('shopId', 'name address.city address.state')
       .populate('customerId', 'name email')
+      .populate('delivery.pickupLocationId', 'name address phone businessHours')
       .select('-__v');
     
     if (!order) {
@@ -156,12 +159,91 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
       });
     }
     
+    // Validate delivery/pickup information
+    if (!delivery.method || !['delivery', 'pickup'].includes(delivery.method)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid delivery method (delivery or pickup) is required'
+      });
+    }
+    
+    if (!delivery.contactPhone || !delivery.contactEmail) {
+      return res.status(400).json({
+        success: false,
+        error: 'Contact phone and email are required'
+      });
+    }
+    
+    // Validate delivery-specific requirements
+    if (delivery.method === 'delivery') {
+      if (!delivery.address || !delivery.address.street || !delivery.address.city || 
+          !delivery.address.province || !delivery.address.postalCode) {
+        return res.status(400).json({
+          success: false,
+          error: 'Complete delivery address is required for delivery orders'
+        });
+      }
+      if (!delivery.deliveryTime) {
+        return res.status(400).json({
+          success: false,
+          error: 'Delivery time is required for delivery orders'
+        });
+      }
+    }
+    
+    // Validate pickup-specific requirements
+    if (delivery.method === 'pickup') {
+      if (!delivery.pickupTime) {
+        return res.status(400).json({
+          success: false,
+          error: 'Pickup time is required for pickup orders'
+        });
+      }
+      if (!delivery.pickupLocationId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Pickup location is required for pickup orders'
+        });
+      }
+    }
+    
     // Verify shop exists and is active
     const shop = await Shop.findById(shopId);
     if (!shop || !shop.isActive) {
       return res.status(400).json({
         success: false,
         error: 'Shop not found or inactive'
+      });
+    }
+    
+    // Verify pickup location if pickup method
+    if (delivery.method === 'pickup') {
+      const pickupLocation = await PickupLocation.findOne({
+        _id: delivery.pickupLocationId,
+        shopId: shopId,
+        'settings.isActive': true
+      });
+      
+      if (!pickupLocation) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid pickup location or location not available'
+        });
+      }
+    }
+    
+    // Check if delivery method is supported by shop
+    if (delivery.method === 'delivery' && !shop.deliveryOptions.delivery) {
+      return res.status(400).json({
+        success: false,
+        error: 'Delivery is not available from this shop'
+      });
+    }
+    
+    if (delivery.method === 'pickup' && !shop.deliveryOptions.pickup) {
+      return res.status(400).json({
+        success: false,
+        error: 'Pickup is not available from this shop'
       });
     }
     

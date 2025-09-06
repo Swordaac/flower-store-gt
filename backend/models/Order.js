@@ -81,22 +81,46 @@ const orderSchema = new mongoose.Schema({
     default: 'pending'
   },
   
-  // Delivery information
+  // Delivery/Pickup information
   delivery: {
     method: {
       type: String,
       enum: ['pickup', 'delivery'],
       required: true
     },
+    // For delivery orders
     address: {
       street: String,
       city: String,
-      state: String,
-      postal: String,
-      country: String
+      province: String, // Changed from 'state' to 'province' for Canadian context
+      postalCode: String, // Changed from 'postal' to 'postalCode'
+      country: {
+        type: String,
+        default: 'Canada'
+      }
     },
-    instructions: String,
-    estimatedDelivery: Date
+    // Time information
+    deliveryTime: String, // e.g., "14:30" for 2:30 PM
+    pickupTime: String, // e.g., "14:30" for 2:30 PM
+    // Pickup location reference (if pickup method)
+    pickupLocationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'PickupLocation'
+    },
+    // Contact information
+    contactPhone: {
+      type: String,
+      required: true
+    },
+    contactEmail: {
+      type: String,
+      required: true
+    },
+    // Special instructions
+    specialInstructions: String,
+    // Estimated times
+    estimatedDelivery: Date,
+    estimatedPickup: Date
   },
   
   // Payment information

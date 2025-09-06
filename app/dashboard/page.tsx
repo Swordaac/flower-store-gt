@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { UserProfile } from '@/components/auth/UserProfile';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Navigation } from '@/components/Navigation';
 import { ProductForm } from '@/components/ProductForm';
 import { OrderManagement } from '@/components/OrderManagement';
 import { AdminShopCreation } from '@/components/AdminShopCreation';
+import { PickupLocationManagement } from '@/components/PickupLocationManagement';
 import { useUser } from '@/contexts/UserContext';
 import { 
   HomeIcon, 
@@ -19,7 +21,8 @@ import {
   EyeIcon,
   PencilIcon,
   TrashIcon,
-  BuildingStorefrontIcon
+  BuildingStorefrontIcon,
+  MapPinIcon
 } from '@heroicons/react/24/outline';
 
 interface DashboardStats {
@@ -99,6 +102,7 @@ interface Order {
 
 export default function DashboardPage() {
   const { currentUser, userShop, isAdmin, isShopOwner, hasShop, session } = useUser();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState<DashboardStats>({
     totalProducts: 0,
@@ -113,12 +117,16 @@ export default function DashboardPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showShopCreation, setShowShopCreation] = useState(false);
+  const [allShops, setAllShops] = useState<any[]>([]);
+  const [selectedShop, setSelectedShop] = useState<any>(null);
+  const [shopsLoading, setShopsLoading] = useState(false);
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: HomeIcon, show: true },
     { id: 'shop', name: 'My Shop', icon: BuildingStorefrontIcon, show: isShopOwner && hasShop },
     { id: 'products', name: 'Products', icon: CubeIcon, show: isShopOwner && hasShop },
     { id: 'orders', name: 'Orders', icon: ShoppingCartIcon, show: isShopOwner && hasShop },
+    { id: 'pickup-locations', name: 'Pickup Locations', icon: MapPinIcon, show: isShopOwner && hasShop },
     { id: 'customers', name: 'Customers', icon: UserGroupIcon, show: isShopOwner && hasShop },
     { id: 'analytics', name: 'Analytics', icon: ChartBarIcon, show: isShopOwner && hasShop },
     { id: 'admin', name: 'Admin Panel', icon: CogIcon, show: isAdmin },
@@ -128,9 +136,24 @@ export default function DashboardPage() {
   // Fetch dashboard data
   useEffect(() => {
     if (currentUser && (isShopOwner || isAdmin)) {
+      // Security check: ensure shop owners can only access their own shop
+      const requestedShopId = searchParams.get('shop');
+      if (isShopOwner && !isAdmin && requestedShopId && requestedShopId !== userShop?._id) {
+        console.warn('Shop owner attempted to access different shop data, redirecting to own shop');
+        // Redirect to their own shop dashboard
+        window.history.replaceState({}, '', '/dashboard');
+        return;
+      }
       fetchDashboardData();
     }
-  }, [currentUser, isShopOwner, isAdmin]);
+  }, [currentUser, isShopOwner, isAdmin, searchParams, userShop]);
+
+  // Fetch all shops when admin tab is active
+  useEffect(() => {
+    if (isAdmin && activeTab === 'admin') {
+      fetchAllShops();
+    }
+  }, [isAdmin, activeTab]);
 
   const fetchDashboardData = async () => {
     try {
@@ -155,7 +178,16 @@ export default function DashboardPage() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/products', {
+      // Check for shop parameter in URL or use user's shop
+      const shopId = searchParams.get('shop') || userShop?._id;
+      
+      // For shop owners, only fetch products from their own shop
+      let url = 'http://localhost:5001/api/products';
+      if (isShopOwner && shopId) {
+        url = `http://localhost:5001/api/products/shop/${shopId}`;
+      }
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`
         }
@@ -172,7 +204,16 @@ export default function DashboardPage() {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/orders', {
+      // Check for shop parameter in URL or use user's shop
+      const shopId = searchParams.get('shop') || userShop?._id;
+      
+      // For shop owners, only fetch orders from their own shop
+      let url = 'http://localhost:5001/api/orders';
+      if (isShopOwner && shopId) {
+        url = `http://localhost:5001/api/orders/shop/${shopId}`;
+      }
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`
         }
@@ -184,6 +225,28 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
+    }
+  };
+
+  const fetchAllShops = async () => {
+    if (!isAdmin) return;
+    
+    try {
+      setShopsLoading(true);
+      const response = await fetch('http://localhost:5001/api/shops/admin/all', {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAllShops(data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching shops:', error);
+    } finally {
+      setShopsLoading(false);
     }
   };
 
@@ -199,6 +262,22 @@ export default function DashboardPage() {
       pendingOrders,
       totalRevenue
     });
+  };
+
+  const handleShopSelect = (shop: any) => {
+    setSelectedShop(shop);
+    // Update URL to show selected shop
+    const url = new URL(window.location.href);
+    url.searchParams.set('shop', shop._id);
+    window.history.pushState({}, '', url.toString());
+  };
+
+  const handleViewAllShops = () => {
+    setSelectedShop(null);
+    // Remove shop parameter from URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete('shop');
+    window.history.pushState({}, '', url.toString());
   };
 
   const handleProductSubmit = async (productData: any) => {
@@ -308,7 +387,7 @@ export default function DashboardPage() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab stats={stats} onAddProduct={() => setShowProductForm(true)} />;
+        return <OverviewTab stats={stats} onAddProduct={() => setShowProductForm(true)} userShop={userShop} isShopOwner={isShopOwner} />;
       case 'shop':
         return <ShopTab shop={userShop} />;
       case 'products':
@@ -329,16 +408,28 @@ export default function DashboardPage() {
             onViewOrder={setSelectedOrder}
           />
         );
+      case 'pickup-locations':
+        return <PickupLocationManagement shopId={userShop?._id} />;
       case 'customers':
         return <CustomersTab />;
       case 'analytics':
         return <AnalyticsTab />;
       case 'admin':
-        return <AdminTab onShowShopCreation={() => setShowShopCreation(true)} />;
+        return (
+          <AdminTab 
+            onShowShopCreation={() => setShowShopCreation(true)}
+            allShops={allShops}
+            selectedShop={selectedShop}
+            shopsLoading={shopsLoading}
+            onShopSelect={handleShopSelect}
+            onViewAllShops={handleViewAllShops}
+            isAdmin={isAdmin}
+          />
+        );
       case 'settings':
         return <SettingsTab />;
       default:
-        return <OverviewTab stats={stats} onAddProduct={() => setShowProductForm(true)} />;
+        return <OverviewTab stats={stats} onAddProduct={() => setShowProductForm(true)} userShop={userShop} isShopOwner={isShopOwner} />;
     }
   };
 
@@ -356,6 +447,16 @@ export default function DashboardPage() {
                  currentUser?.role === 'shop_owner' ? 'Shop Management' : 
                  'Customer Dashboard'}
               </p>
+              {isShopOwner && userShop && (
+                <div className="mt-2 p-2 bg-indigo-50 rounded-md">
+                  <p className="text-xs text-indigo-700 font-medium">Viewing: {userShop.name}</p>
+                </div>
+              )}
+              {isAdmin && selectedShop && (
+                <div className="mt-2 p-2 bg-blue-50 rounded-md">
+                  <p className="text-xs text-blue-700 font-medium">Admin View: {selectedShop.name}</p>
+                </div>
+              )}
             </div>
             
             <nav className="px-3">
@@ -425,7 +526,12 @@ export default function DashboardPage() {
 }
 
 // Overview Tab Component
-function OverviewTab({ stats, onAddProduct }: { stats: DashboardStats; onAddProduct: () => void }) {
+function OverviewTab({ stats, onAddProduct, userShop, isShopOwner }: { 
+  stats: DashboardStats; 
+  onAddProduct: () => void;
+  userShop: any;
+  isShopOwner: boolean;
+}) {
   return (
     <div>
       <div className="mb-8">
@@ -433,6 +539,11 @@ function OverviewTab({ stats, onAddProduct }: { stats: DashboardStats; onAddProd
         <p className="mt-2 text-gray-600">
           Welcome back! Here's what's happening with your business today.
         </p>
+        {isShopOwner && userShop && (
+          <p className="mt-1 text-sm text-indigo-600">
+            Showing data for: <span className="font-medium">{userShop.name}</span>
+          </p>
+        )}
       </div>
 
       {/* Stats Grid */}
@@ -908,22 +1019,41 @@ function AnalyticsTab() {
 }
 
 // Admin Tab Component
-function AdminTab({ onShowShopCreation }: { onShowShopCreation: () => void }) {
+function AdminTab({ 
+  onShowShopCreation, 
+  allShops, 
+  selectedShop, 
+  shopsLoading, 
+  onShopSelect, 
+  onViewAllShops,
+  isAdmin 
+}: { 
+  onShowShopCreation: () => void;
+  allShops: any[];
+  selectedShop: any;
+  shopsLoading: boolean;
+  onShopSelect: (shop: any) => void;
+  onViewAllShops: () => void;
+  isAdmin: boolean;
+}) {
+  if (!isAdmin) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">Access denied. Admin privileges required.</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
-        <p className="mt-2 text-gray-600">
-          Manage users, shops, and system settings
-        </p>
-      </div>
-      
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Shop Management</h3>
-          <p className="text-gray-600 mb-4">
-            Create new shops for users. This will automatically upgrade their role to shop_owner.
-          </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
+            <p className="mt-2 text-gray-600">
+              Manage users, shops, and system settings
+            </p>
+          </div>
           <button
             onClick={onShowShopCreation}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -932,14 +1062,207 @@ function AdminTab({ onShowShopCreation }: { onShowShopCreation: () => void }) {
             Create New Shop
           </button>
         </div>
-        
+      </div>
+
+      {selectedShop ? (
+        <ShopDetailsView 
+          shop={selectedShop} 
+          onBack={onViewAllShops}
+        />
+      ) : (
+        <AllShopsView 
+          shops={allShops}
+          loading={shopsLoading}
+          onShopSelect={onShopSelect}
+        />
+      )}
+    </div>
+  );
+}
+
+// All Shops View Component
+function AllShopsView({ 
+  shops, 
+  loading, 
+  onShopSelect 
+}: { 
+  shops: any[];
+  loading: boolean;
+  onShopSelect: (shop: any) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-2 text-gray-500">Loading shops...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white shadow rounded-lg">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900">All Shops</h3>
+        <p className="text-sm text-gray-600">Click on a shop to view its details and manage its data</p>
+      </div>
+      
+      <div className="p-6">
+        {shops.length === 0 ? (
+          <div className="text-center py-8">
+            <BuildingStorefrontIcon className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No shops found</h3>
+            <p className="mt-1 text-sm text-gray-500">Get started by creating a new shop.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {shops.map((shop) => (
+              <div
+                key={shop._id}
+                onClick={() => onShopSelect(shop)}
+                className="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm flex items-center space-x-3 hover:border-gray-400 cursor-pointer transition-colors"
+              >
+                <div className="flex-shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                    <BuildingStorefrontIcon className="h-6 w-6 text-indigo-600" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {shop.name}
+                    </p>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      shop.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {shop.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500 truncate">
+                    {shop.address?.city}, {shop.address?.state}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Created: {new Date(shop.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Shop Details View Component
+function ShopDetailsView({ 
+  shop, 
+  onBack 
+}: { 
+  shop: any;
+  onBack: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={onBack}
+              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">{shop.name}</h2>
+              <p className="text-gray-600">{shop.description || 'No description'}</p>
+            </div>
+          </div>
+          <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
+            shop.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {shop.isActive ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+      </div>
+
+      {/* Shop Information */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">User Management</h3>
-          <p className="text-gray-600 mb-4">
-            Manage user roles and permissions across the system.
-          </p>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Shop Information</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Shop Name</label>
+              <p className="mt-1 text-sm text-gray-900">{shop.name}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Description</label>
+              <p className="mt-1 text-sm text-gray-900">{shop.description || 'No description'}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Phone</label>
+              <p className="mt-1 text-sm text-gray-900">{shop.phone || 'No phone'}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <p className="mt-1 text-sm text-gray-900">{shop.email || 'No email'}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white shadow rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Address</h3>
+          <div className="space-y-2">
+            <p className="text-sm text-gray-900">{shop.address?.street}</p>
+            <p className="text-sm text-gray-900">
+              {shop.address?.city}, {shop.address?.state} {shop.address?.postal}
+            </p>
+            <p className="text-sm text-gray-900">{shop.address?.country}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Business Settings */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Business Settings</h3>
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Currency</label>
+            <p className="mt-1 text-sm text-gray-900">{shop.currency || 'USD'}</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Tax Rate</label>
+            <p className="mt-1 text-sm text-gray-900">{(shop.taxRate * 100).toFixed(1)}%</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Delivery Options</label>
+            <p className="mt-1 text-sm text-gray-900">
+              {shop.deliveryOptions?.pickup ? 'Pickup' : ''}
+              {shop.deliveryOptions?.pickup && shop.deliveryOptions?.delivery ? ', ' : ''}
+              {shop.deliveryOptions?.delivery ? 'Delivery' : ''}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+        <div className="flex space-x-4">
+          <button
+            onClick={() => window.open(`/dashboard?shop=${shop._id}`, '_blank')}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <EyeIcon className="h-4 w-4 mr-2" />
+            View Shop Dashboard
+          </button>
           <button className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-            Manage Users
+            <PencilIcon className="h-4 w-4 mr-2" />
+            Edit Shop
           </button>
         </div>
       </div>

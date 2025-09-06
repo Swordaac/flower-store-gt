@@ -41,6 +41,7 @@ const authRoutes = require('./routes/auth');
 const shopRoutes = require('./routes/shops');
 const orderRoutes = require('./routes/orders');
 const imageRoutes = require('./routes/images');
+const pickupLocationRoutes = require('./routes/pickup-locations');
 
 // Use Routes
 app.use('/api/products', productRoutes);
@@ -48,20 +49,22 @@ app.use('/api/auth', authRoutes);
 app.use('/api/shops', shopRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/pickup-locations', pickupLocationRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
     message: '🌸 Flower Store API is running!',
     version: '1.0.0',
-    endpoints: {
-      health: '/health',
-      products: '/api/products',
-      auth: '/api/auth',
-      shops: '/api/shops',
-      orders: '/api/orders',
-      images: '/api/images'
-    }
+      endpoints: {
+        health: '/health',
+        products: '/api/products',
+        auth: '/api/auth',
+        shops: '/api/shops',
+        orders: '/api/orders',
+        images: '/api/images',
+        pickupLocations: '/api/pickup-locations'
+      }
   });
 });
 
