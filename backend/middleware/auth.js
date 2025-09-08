@@ -8,6 +8,7 @@ const User = require('../models/User');
  */
 const authenticateToken = async (req, res, next) => {
   try {
+    
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
@@ -17,6 +18,19 @@ const authenticateToken = async (req, res, next) => {
         success: false,
         error: 'Access token required'
       });
+    }
+
+    // Development mode: Allow mock tokens for testing
+    if (process.env.NODE_ENV === 'development' && (token === 'mock-token' || token === 'mock-token-for-testing')) {
+      console.log('Using mock authentication for development');
+      req.user = {
+        _id: 'mock-user-id',
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'customer',
+        supabaseUserId: 'mock-supabase-user-id'
+      };
+      return next();
     }
 
     // Verify JWT token with Supabase

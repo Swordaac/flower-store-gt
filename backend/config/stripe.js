@@ -1,0 +1,120 @@
+const Stripe = require('stripe');
+
+// Initialize Stripe with secret key
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY is not defined in environment variables');
+}
+
+console.log('Initializing Stripe with key:', process.env.STRIPE_SECRET_KEY.substring(0, 7) + '...');
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+// Stripe configuration
+const STRIPE_CONFIG = {
+  // Currency settings
+  currency: 'cad', // Canadian Dollar for flower store
+  
+  // Payment method types
+  paymentMethodTypes: ['card'],
+  
+  // Success and cancel URLs (will be set dynamically based on environment)
+  successUrl: process.env.NODE_ENV === 'production' 
+    ? 'https://yourdomain.com/checkout/success' 
+    : 'http://localhost:3000/checkout/success',
+    
+  cancelUrl: process.env.NODE_ENV === 'production'
+    ? 'https://yourdomain.com/checkout/cancel'
+    : 'http://localhost:3000/checkout/cancel',
+  
+  // Webhook settings
+  webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+  
+  // Billing address collection
+  billingAddressCollection: 'required',
+  
+  // Shipping address collection (for delivery orders)
+  shippingAddressCollection: {
+    allowed_countries: ['CA', 'US'], // Canada and US only
+  }
+};
+
+// Helper function to create line items for Stripe checkout
+const createLineItems = (items) => {
+  return items.map(item => ({
+    price_data: {
+      currency: STRIPE_CONFIG.currency,
+      product_data: {
+        name: item.name,
+        images: item.image && item.image.url ? [item.image.url] : [], // Only use URL string
+      },
+      unit_amount: item.price, // Price in cents
+    },
+    quantity: item.quantity,
+  }));
+};
+
+// Helper function to create Stripe checkout session
+const createCheckoutSession = async (orderData) => {
+  const {
+    orderId,
+    items,
+    total,
+    customerEmail,
+    deliveryMethod,
+    deliveryAddress,
+    metadata = {}
+  } = orderData;
+
+  const sessionConfig = {
+    payment_method_types: STRIPE_CONFIG.paymentMethodTypes,
+    line_items: createLineItems(items),
+    mode: 'payment',
+    success_url: `${STRIPE_CONFIG.successUrl}?session_id={CHECKOUT_SESSION_ID}&order_id=${orderId}`,
+    cancel_url: `${STRIPE_CONFIG.cancelUrl}?order_id=${orderId}`,
+    customer_email: customerEmail,
+    billing_address_collection: STRIPE_CONFIG.billingAddressCollection,
+    metadata: {
+      orderId: orderId.toString(),
+      ...metadata
+    }
+  };
+
+  // Add shipping address collection for delivery orders
+  if (deliveryMethod === 'delivery') {
+    sessionConfig.shipping_address_collection = STRIPE_CONFIG.shippingAddressCollection;
+  }
+
+  return await stripe.checkout.sessions.create(sessionConfig);
+};
+
+// Helper function to retrieve checkout session
+const retrieveCheckoutSession = async (sessionId) => {
+  return await stripe.checkout.sessions.retrieve(sessionId);
+};
+
+// Helper function to retrieve payment intent
+const retrievePaymentIntent = async (paymentIntentId) => {
+  return await stripe.paymentIntents.retrieve(paymentIntentId);
+};
+
+// Helper function to construct webhook event
+const constructWebhookEvent = (payload, signature) => {
+  if (!STRIPE_CONFIG.webhookSecret) {
+    throw new Error('STRIPE_WEBHOOK_SECRET is not defined in environment variables');
+  }
+  
+  return stripe.webhooks.constructEvent(
+    payload,
+    signature,
+    STRIPE_CONFIG.webhookSecret
+  );
+};
+
+module.exports = {
+  stripe,
+  STRIPE_CONFIG,
+  createLineItems,
+  createCheckoutSession,
+  retrieveCheckoutSession,
+  retrievePaymentIntent,
+  constructWebhookEvent
+};

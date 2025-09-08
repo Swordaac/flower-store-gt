@@ -127,7 +127,11 @@ const orderSchema = new mongoose.Schema({
   payment: {
     intentId: {
       type: String, // Stripe payment intent ID
-      required: true
+      required: false // Made optional as it will be set after Stripe session creation
+    },
+    sessionId: {
+      type: String, // Stripe checkout session ID
+      required: false
     },
     method: {
       type: String,
@@ -136,12 +140,16 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
       type: String,
-      enum: ['pending', 'succeeded', 'failed', 'cancelled'],
+      enum: ['pending', 'processing', 'succeeded', 'failed', 'cancelled', 'requires_action'],
       default: 'pending'
     },
     paidAt: {
       type: Date,
       default: null
+    },
+    failureReason: {
+      type: String,
+      maxlength: [500, 'Failure reason cannot exceed 500 characters']
     }
   },
   

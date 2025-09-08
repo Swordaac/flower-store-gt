@@ -4,6 +4,9 @@ import { useCart } from "@/contexts/CartContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
+import CheckoutForm from "@/components/CheckoutForm"
+import MockAuth from "@/components/MockAuth"
+import { useState } from "react"
 
 // Reusable theme object
 const theme = {
@@ -32,6 +35,9 @@ export default function CartPage() {
     removeFromCart, 
     clearCart 
   } = useCart()
+  
+  const [showCheckout, setShowCheckout] = useState(false)
+  const [selectedShopId, setSelectedShopId] = useState('68b742b5a770a392af60c925') // Default shop ID
 
   // Helper function to format price
   const formatPrice = (priceInCents: number) => {
@@ -48,8 +54,23 @@ export default function CartPage() {
   }
 
   const handleCheckout = () => {
-    // TODO: Implement checkout functionality
-    alert('Checkout functionality coming soon!')
+    if (items.length === 0) {
+      alert('Your cart is empty!')
+      return
+    }
+    setShowCheckout(true)
+  }
+
+  const handleCheckoutSuccess = (orderId: string) => {
+    console.log('Order created successfully:', orderId)
+    setShowCheckout(false)
+    clearCart()
+    // You might want to redirect to a success page or show a success message
+  }
+
+  const handleCheckoutError = (error: string) => {
+    console.error('Checkout error:', error)
+    alert(`Checkout error: ${error}`)
   }
 
   return (
@@ -119,6 +140,30 @@ export default function CartPage() {
             >
               Continue Shopping
             </Button>
+          </div>
+        ) : showCheckout ? (
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+              <Button 
+                onClick={() => setShowCheckout(false)}
+                variant="outline"
+                className="mb-4"
+              >
+                ← Back to Cart
+              </Button>
+              <h2 className="text-2xl font-light" style={{ color: theme.colors.text.primary }}>
+                Checkout
+              </h2>
+            </div>
+            
+            {/* Mock Authentication for Testing */}
+            <MockAuth />
+            
+            <CheckoutForm
+              shopId={selectedShopId}
+              onSuccess={handleCheckoutSuccess}
+              onError={handleCheckoutError}
+            />
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

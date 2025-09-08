@@ -48,6 +48,9 @@ interface CartContextType {
   
   // Order submission
   submitOrder: (shopId: string, deliveryInfo: OrderInfo) => Promise<{ success: boolean; orderId?: string; error?: string }>;
+  
+  // Stripe checkout
+  checkoutWithStripe: (shopId: string, deliveryInfo: OrderInfo) => Promise<{ success: boolean; sessionId?: string; url?: string; orderId?: string; error?: string }>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -228,6 +231,75 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
+  // Checkout with Stripe
+  const checkoutWithStripe = async (shopId: string, deliveryInfo: OrderInfo): Promise<{ success: boolean; sessionId?: string; url?: string; orderId?: string; error?: string }> => {
+    try {
+      if (items.length === 0) {
+        return { success: false, error: 'Cart is empty' };
+      }
+
+      // Prepare order data for Stripe checkout
+      const orderData = {
+        shopId,
+        items: items.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity
+        })),
+        delivery: {
+          method: deliveryInfo.deliveryOption,
+          ...(deliveryInfo.deliveryOption === 'delivery' && {
+            address: deliveryInfo.address,
+            deliveryTime: deliveryInfo.deliveryTime
+          }),
+          ...(deliveryInfo.deliveryOption === 'pickup' && {
+            pickupTime: deliveryInfo.pickupTime,
+            pickupLocationId: deliveryInfo.pickupLocationId
+          }),
+          contactPhone: deliveryInfo.contactPhone,
+          contactEmail: deliveryInfo.contactEmail,
+          specialInstructions: deliveryInfo.specialInstructions || ''
+        },
+        notes: `Order from cart with ${items.length} items`
+      };
+
+      console.log('CartContext - Prepared order data:', JSON.stringify(orderData, null, 2));
+
+      // Get auth token from localStorage or context
+      const token = localStorage.getItem('auth-token') || 'mock-token';
+
+      const response = await fetch('http://localhost:5001/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        return { 
+          success: true, 
+          sessionId: result.sessionId,
+          url: result.url,
+          orderId: result.orderId
+        };
+      } else {
+        return { 
+          success: false, 
+          error: result.error || 'Failed to create checkout session' 
+        };
+      }
+    } catch (error) {
+      console.error('Error creating Stripe checkout session:', error);
+      return { 
+        success: false, 
+        error: 'Network error. Please try again.' 
+      };
+    }
+  };
+
   const value: CartContextType = {
     items,
     totalItems,
@@ -238,7 +310,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     clearCart,
     getItemQuantity,
     isInCart,
-    submitOrder
+    submitOrder,
+    checkoutWithStripe
   };
 
   return (

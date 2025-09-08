@@ -42,6 +42,7 @@ const shopRoutes = require('./routes/shops');
 const orderRoutes = require('./routes/orders');
 const imageRoutes = require('./routes/images');
 const pickupLocationRoutes = require('./routes/pickup-locations');
+const stripeRoutes = require('./routes/stripe');
 
 // Use Routes
 app.use('/api/products', productRoutes);
@@ -50,6 +51,7 @@ app.use('/api/shops', shopRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/pickup-locations', pickupLocationRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

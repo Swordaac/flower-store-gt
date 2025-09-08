@@ -21,7 +21,9 @@
     "mongodb": "^6.19.0",
     "mongoose": "^8.0.0",
     "morgan": "^1.10.0",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "node-fetch": "^3.3.2",
+    "stripe": "^18.5.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
