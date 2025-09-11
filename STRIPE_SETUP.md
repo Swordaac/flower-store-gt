@@ -230,3 +230,4 @@ For Stripe-specific issues, consult:
 - [Stripe Support](https://support.stripe.com)
 
 For application-specific issues, check the server logs and browser console for error messages.
+

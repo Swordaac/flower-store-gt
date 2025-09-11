@@ -149,3 +149,4 @@ paymentSchema.index({ orderId: 1 });
 paymentSchema.index({ stripeCustomerId: 1 });
 
 module.exports = mongoose.model('Payment', paymentSchema);
+

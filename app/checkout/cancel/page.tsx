@@ -82,3 +82,4 @@ export default function CheckoutCancelPage() {
     </div>
   );
 }
+

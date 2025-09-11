@@ -293,9 +293,7 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
                   <SelectValue placeholder="Select pickup location" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="main-store">Main Store - 123 Flower Street, Toronto, ON</SelectItem>
-                  <SelectItem value="downtown">Downtown Location - 456 Queen Street, Toronto, ON</SelectItem>
-                  <SelectItem value="north">North Location - 789 Yonge Street, Toronto, ON</SelectItem>
+                  <SelectItem value="68bf680327878268f9bfcc8e">Main Store - 123 Flower Street, Toronto, ON</SelectItem>
                 </SelectContent>
               </Select>
             </div>

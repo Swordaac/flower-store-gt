@@ -269,7 +269,7 @@ export default function ProductDetailPage() {
       }),
       ...(deliveryOption === 'pickup' && {
         pickupTime,
-        pickupLocationId: 'default-pickup-location' // This should be selected from available locations
+        pickupLocationId: '68bf680327878268f9bfcc8e' // Main Store pickup location
       }),
       specialInstructions,
       contactPhone,
@@ -307,7 +307,7 @@ export default function ProductDetailPage() {
       }),
       ...(deliveryOption === 'pickup' && {
         pickupTime,
-        pickupLocationId: 'default-pickup-location' // This should be selected from available locations
+        pickupLocationId: '68bf680327878268f9bfcc8e' // Main Store pickup location
       }),
       specialInstructions,
       contactPhone,
