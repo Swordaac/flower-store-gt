@@ -325,7 +325,7 @@ export default function BestSellersPage() {
                   )}
                 </div>
                 
-                <a href="#" className="text-gray-700 hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
+                <a href="/about" className="text-gray-700 hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
                   About Us
                 </a>
                 <a href="#" className="text-gray-700 hover:text-gray-900" style={{ color: theme.colors.text.primary }}>

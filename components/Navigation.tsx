@@ -5,6 +5,29 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, Search, ShoppingCart, User, Menu, X } from 'lucide-react';
+import { CartIcon } from '@/components/CartIcon';
+
+// Reusable theme object matching the landing page
+const theme = {
+  colors: {
+    background: '#F0E7F2',
+    primary: '#664b39',
+    secondary: '#E07A5F',
+    white: '#FFFFFF',
+    text: {
+      primary: '#d1ad8e',
+      secondary: '#333333',
+      light: '#666666',
+      white: '#FFFFFF'
+    },
+    border: '#CCCCCC',
+    hover: '#F5F5F5',
+    countdown: {
+      background: '#664b39',
+      text: '#FFFFFF'
+    }
+  }
+}
 
 export const Navigation: React.FC = () => {
   const { user, signOut, loading } = useAuth();
@@ -40,66 +63,67 @@ export const Navigation: React.FC = () => {
 
   if (loading) {
     return (
-      <nav className="bg-white shadow-sm">
+      <header style={{ backgroundColor: theme.colors.background, zIndex: 9999 }} className="backdrop-blur-sm border-b border-gray-200 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="text-xl font-serif tracking-wider text-gray-900">Flower</div>
-              <div className="text-xs text-gray-500 tracking-widest">FLORIST</div>
+          <div className="flex items-center justify-between h-16">
+            <div className="flex-shrink-0">
+              <div className="text-xl font-serif tracking-wider" style={{ color: theme.colors.text.primary }}>Flower</div>
+              <div className="text-xs tracking-widest" style={{ color: theme.colors.text.primary }}>FLORIST</div>
             </div>
-            <div className="animate-pulse bg-gray-200 h-8 w-32 rounded"></div>
+            <div className="animate-pulse h-8 w-32 rounded" style={{ backgroundColor: theme.colors.hover }}></div>
           </div>
         </div>
-      </nav>
+      </header>
     );
   }
 
   return (
-    <nav className="bg-white shadow-sm relative">
+    <header style={{ backgroundColor: theme.colors.background, zIndex: 9999 }} className="backdrop-blur-sm border-b border-gray-200 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
-              <div className="text-xl font-serif tracking-wider text-gray-900">Flower</div>
-              <div className="text-xs text-gray-500 tracking-widest">FLORIST</div>
+              <div className="text-xl font-serif tracking-wider" style={{ color: theme.colors.text.primary }}>Flower</div>
+              <div className="text-xs tracking-widest" style={{ color: theme.colors.text.primary }}>FLORIST</div>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <div className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 cursor-pointer">
+          <nav className="hidden md:flex space-x-8">
+            <div className="flex items-center space-x-1 cursor-pointer" style={{ color: theme.colors.text.primary }}>
               <span>Shop</span>
               <ChevronDown className="h-4 w-4" />
             </div>
-            <Link href="/" className="text-gray-900 font-medium">
+            <Link href="/" className="font-medium" style={{ color: theme.colors.text.primary }}>
               Best Sellers
             </Link>
-            <Link href="#" className="text-gray-700 hover:text-gray-900">
+            <Link href="/about" className="hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
               About Us
             </Link>
-            <Link href="#" className="text-gray-700 hover:text-gray-900">
+            <Link href="#" className="hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
               Store Locator
             </Link>
-            <Link href="#" className="text-gray-700 hover:text-gray-900">
+            <Link href="#" className="hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
               Contact
             </Link>
-          </div>
+          </nav>
 
           {/* Right side icons and user menu */}
           <div className="flex items-center space-x-4">
-            <Search className="h-5 w-5 text-gray-600 cursor-pointer hover:text-gray-900" />
-            <ShoppingCart className="h-5 w-5 text-gray-600 cursor-pointer hover:text-gray-900" />
+            <Search className="h-5 w-5 cursor-pointer" style={{ color: theme.colors.text.primary }} />
+            <CartIcon style={{ color: theme.colors.text.primary }} />
             
             {/* User Authentication */}
             {user ? (
               <div className="relative">
                 <button
                   onClick={toggleUserMenu}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md p-2"
+                  className="flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md p-2"
+                  style={{ color: theme.colors.text.primary }}
                 >
-                  <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
+                  <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: theme.colors.primary }}>
+                    <span className="text-sm font-medium" style={{ color: theme.colors.text.white }}>
                       {user.user_metadata?.full_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                     </span>
                   </div>
@@ -111,24 +135,27 @@ export const Navigation: React.FC = () => {
 
                 {/* User Dropdown Menu */}
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 z-50" style={{ backgroundColor: theme.colors.white, borderColor: theme.colors.border, border: '1px solid' }}>
                     <Link
                       href="/dashboard"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-sm hover:bg-gray-100"
+                      style={{ color: theme.colors.text.secondary }}
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       Dashboard
                     </Link>
                     <Link
                       href="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-sm hover:bg-gray-100"
+                      style={{ color: theme.colors.text.secondary }}
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       Profile
                     </Link>
                     <Link
                       href="/orders"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="block px-4 py-2 text-sm hover:bg-gray-100"
+                      style={{ color: theme.colors.text.secondary }}
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       My Orders
@@ -148,25 +175,28 @@ export const Navigation: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <Link
                   href="/auth/signin"
-                  className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                  style={{ color: theme.colors.text.primary }}
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}
                 >
                   Sign Up
                 </Link>
               </div>
             )}
 
-            <span className="text-sm text-gray-600">EN</span>
+            <span className="text-sm" style={{ color: theme.colors.text.primary }}>EN</span>
 
             {/* Mobile menu button */}
             <button
               onClick={toggleMobileMenu}
-              className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+              className="md:hidden inline-flex items-center justify-center p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+              style={{ color: theme.colors.text.primary }}
             >
               {isMobileMenuOpen ? (
                 <X className="block h-6 w-6" />
@@ -181,31 +211,35 @@ export const Navigation: React.FC = () => {
       {/* Mobile Navigation Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
+          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-200" style={{ backgroundColor: theme.colors.white }}>
             <Link
               href="/"
-              className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+              className="block px-3 py-2 text-base font-medium hover:text-gray-900 hover:bg-gray-50"
+              style={{ color: theme.colors.text.primary }}
               onClick={closeMobileMenu}
             >
               Best Sellers
             </Link>
             <Link
-              href="#"
-              className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+              href="/about"
+              className="block px-3 py-2 text-base font-medium hover:text-gray-900 hover:bg-gray-50"
+              style={{ color: theme.colors.text.primary }}
               onClick={closeMobileMenu}
             >
               About Us
             </Link>
             <Link
               href="#"
-              className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+              className="block px-3 py-2 text-base font-medium hover:text-gray-900 hover:bg-gray-50"
+              style={{ color: theme.colors.text.primary }}
               onClick={closeMobileMenu}
             >
               Store Locator
             </Link>
             <Link
               href="#"
-              className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+              className="block px-3 py-2 text-base font-medium hover:text-gray-900 hover:bg-gray-50"
+              style={{ color: theme.colors.text.primary }}
               onClick={closeMobileMenu}
             >
               Contact
@@ -215,28 +249,31 @@ export const Navigation: React.FC = () => {
             {user ? (
               <div className="border-t border-gray-200 pt-4">
                 <div className="px-3 py-2">
-                  <p className="text-sm text-gray-500">Signed in as</p>
-                  <p className="text-base font-medium text-gray-900">
+                  <p className="text-sm" style={{ color: theme.colors.text.light }}>Signed in as</p>
+                  <p className="text-base font-medium" style={{ color: theme.colors.text.secondary }}>
                     {user.user_metadata?.full_name || user.email}
                   </p>
                 </div>
                 <Link
                   href="/dashboard"
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                  className="block px-3 py-2 text-base font-medium hover:text-gray-900 hover:bg-gray-50"
+                  style={{ color: theme.colors.text.primary }}
                   onClick={closeMobileMenu}
                 >
                   Dashboard
                 </Link>
                 <Link
                   href="/profile"
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                  className="block px-3 py-2 text-base font-medium hover:text-gray-900 hover:bg-gray-50"
+                  style={{ color: theme.colors.text.primary }}
                   onClick={closeMobileMenu}
                 >
                   Profile
                 </Link>
                 <Link
                   href="/orders"
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                  className="block px-3 py-2 text-base font-medium hover:text-gray-900 hover:bg-gray-50"
+                  style={{ color: theme.colors.text.primary }}
                   onClick={closeMobileMenu}
                 >
                   My Orders
@@ -253,14 +290,16 @@ export const Navigation: React.FC = () => {
               <div className="border-t border-gray-200 pt-4 space-y-2">
                 <Link
                   href="/auth/signin"
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                  className="block px-3 py-2 text-base font-medium hover:text-gray-900 hover:bg-gray-50"
+                  style={{ color: theme.colors.text.primary }}
                   onClick={closeMobileMenu}
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="block px-3 py-2 text-base font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                  className="block px-3 py-2 text-base font-medium hover:bg-gray-50"
+                  style={{ color: theme.colors.primary }}
                   onClick={closeMobileMenu}
                 >
                   Sign Up
@@ -281,6 +320,6 @@ export const Navigation: React.FC = () => {
           }}
         />
       )}
-    </nav>
+    </header>
   );
 };
