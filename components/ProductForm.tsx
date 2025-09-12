@@ -8,12 +8,27 @@ interface ProductFormData {
   name: string;
   color: string;
   description: string;
+  productTypes: string[];
+  occasions: string[];
+  variants: Array<{
+    tierName: 'standard' | 'deluxe' | 'premium';
+    price: string;
+    stock: string;
+    images: Array<{
+      size: string;
+      publicId?: string;
+      url: string;
+      alt: string;
+      isPrimary: boolean;
+    }>;
+    isActive: boolean;
+  }>;
+  // Legacy fields for backwards compatibility
   price: {
     standard: string;
     deluxe: string;
     premium: string;
   };
-  stock: string;
   category: string[];
   tags: string[];
   isActive: boolean;
@@ -45,6 +60,7 @@ interface ProductFormProps {
   shopId?: string; // Required for image uploads
 }
 
+// Legacy categories for backwards compatibility
 const categories = [
   'bouquet',
   'single-flower',
@@ -71,6 +87,8 @@ const colors = [
   'other'
 ];
 
+const tierNames = ['standard', 'deluxe', 'premium'] as const;
+
 const imageSizes = [
   { value: 'small', label: 'Small' },
   { value: 'medium', label: 'Medium' },
@@ -89,12 +107,37 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     name: '',
     color: '',
     description: '',
+    productTypes: [],
+    occasions: [],
+    variants: [
+      {
+        tierName: 'standard',
+        price: '',
+        stock: '',
+        images: [],
+        isActive: true
+      },
+      {
+        tierName: 'deluxe',
+        price: '',
+        stock: '',
+        images: [],
+        isActive: true
+      },
+      {
+        tierName: 'premium',
+        price: '',
+        stock: '',
+        images: [],
+        isActive: true
+      }
+    ],
+    // Legacy fields for backwards compatibility
     price: {
       standard: '',
       deluxe: '',
       premium: ''
     },
-    stock: '',
     category: [],
     tags: [],
     isActive: true,
@@ -117,21 +160,117 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [dragOver, setDragOver] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [pendingFileSizes, setPendingFileSizes] = useState<{[key: number]: string}>({});
+  const [productTypes, setProductTypes] = useState<any[]>([]);
+  const [occasions, setOccasions] = useState<any[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { session } = useUser();
 
+  // Load productTypes and occasions data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoadingData(true);
+        
+        // Load product types
+        const productTypesResponse = await fetch('http://localhost:5001/api/products/types');
+        if (productTypesResponse.ok) {
+          const productTypesData = await productTypesResponse.json();
+          setProductTypes(productTypesData.data || []);
+        }
+        
+        // Load occasions
+        const occasionsResponse = await fetch('http://localhost:5001/api/products/occasions');
+        if (occasionsResponse.ok) {
+          const occasionsData = await occasionsResponse.json();
+          setOccasions(occasionsData.data || []);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    
+    loadData();
+  }, []);
+
   useEffect(() => {
     if (product) {
+      // Convert variants to form data if they exist
+      let variants = [
+        {
+          tierName: 'standard' as const,
+          price: '',
+          stock: '',
+          images: [],
+          isActive: true
+        },
+        {
+          tierName: 'deluxe' as const,
+          price: '',
+          stock: '',
+          images: [],
+          isActive: true
+        },
+        {
+          tierName: 'premium' as const,
+          price: '',
+          stock: '',
+          images: [],
+          isActive: true
+        }
+      ];
+
+      if (product.variants && product.variants.length > 0) {
+        // Use new variant structure
+        variants = product.variants.map((variant: any) => ({
+          tierName: variant.tierName,
+          price: variant.price ? (variant.price / 100).toString() : '',
+          stock: variant.stock?.toString() || '',
+          images: variant.images || [],
+          isActive: variant.isActive !== false
+        }));
+      } else if (product.price) {
+        // Convert legacy price structure to variants
+        variants = [
+          {
+            tierName: 'standard' as const,
+            price: product.price.standard ? (product.price.standard / 100).toString() : '',
+            stock: product.stock?.toString() || '',
+            images: product.images || [],
+            isActive: true
+          },
+          {
+            tierName: 'deluxe' as const,
+            price: product.price.deluxe ? (product.price.deluxe / 100).toString() : '',
+            stock: product.stock?.toString() || '',
+            images: product.deluxeImage ? [product.deluxeImage] : [],
+            isActive: true
+          },
+          {
+            tierName: 'premium' as const,
+            price: product.price.premium ? (product.price.premium / 100).toString() : '',
+            stock: product.stock?.toString() || '',
+            images: product.premiumImage ? [product.premiumImage] : [],
+            isActive: true
+          }
+        ];
+      }
+
       setFormData({
         name: product.name || '',
         color: product.color || '',
         description: product.description || '',
+        productTypes: product.productTypes?.map((pt: any) => pt._id || pt) || [],
+        occasions: product.occasions?.map((o: any) => o._id || o) || [],
+        variants,
+        // Legacy fields for backwards compatibility
         price: {
           standard: product.price?.standard ? (product.price.standard / 100).toString() : '',
           deluxe: product.price?.deluxe ? (product.price.deluxe / 100).toString() : '',
           premium: product.price?.premium ? (product.price.premium / 100).toString() : ''
         },
-        stock: product.stock?.toString() || '',
         category: product.category || [],
         tags: product.tags || [],
         isActive: product.isActive !== undefined ? product.isActive : true,
@@ -169,6 +308,35 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       category: checked 
         ? [...prev.category, category]
         : prev.category.filter(c => c !== category)
+    }));
+  };
+
+  const handleProductTypeChange = (productTypeId: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      productTypes: checked 
+        ? [...prev.productTypes, productTypeId]
+        : prev.productTypes.filter(pt => pt !== productTypeId)
+    }));
+  };
+
+  const handleOccasionChange = (occasionId: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      occasions: checked 
+        ? [...prev.occasions, occasionId]
+        : prev.occasions.filter(o => o !== occasionId)
+    }));
+  };
+
+  const handleVariantChange = (tierName: 'standard' | 'deluxe' | 'premium', field: 'price' | 'stock' | 'isActive', value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.map(variant => 
+        variant.tierName === tierName 
+          ? { ...variant, [field]: value }
+          : variant
+      )
     }));
   };
 
@@ -350,21 +518,33 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     e.preventDefault();
     
     try {
-      // Convert prices to cents
+      // Convert variants to the correct format
+      const variants = formData.variants.map(variant => ({
+        tierName: variant.tierName,
+        price: Math.round(parseFloat(variant.price || '0') * 100), // Convert to cents
+        stock: parseInt(variant.stock || '0'),
+        images: variant.images.filter(img => img.publicId), // Only send uploaded images
+        isActive: variant.isActive
+      }));
+      
+      // Convert variant prices to legacy price structure for backwards compatibility
       const priceInCents = {
-        standard: Math.round(parseFloat(formData.price.standard) * 100),
-        deluxe: Math.round(parseFloat(formData.price.deluxe) * 100),
-        premium: Math.round(parseFloat(formData.price.premium) * 100)
+        standard: Math.round(parseFloat(variants.find(v => v.tierName === 'standard')?.price || '0') * 100),
+        deluxe: Math.round(parseFloat(variants.find(v => v.tierName === 'deluxe')?.price || '0') * 100),
+        premium: Math.round(parseFloat(variants.find(v => v.tierName === 'premium')?.price || '0') * 100)
       };
       
       const submitData = {
         ...formData,
+        productTypes: formData.productTypes,
+        occasions: formData.occasions,
+        variants,
+        // Legacy fields for backwards compatibility
         price: {
           standard: priceInCents.standard.toString(),
           deluxe: priceInCents.deluxe.toString(),
           premium: priceInCents.premium.toString()
         },
-        stock: parseInt(formData.stock).toString(),
         // Only send images that have been uploaded (have publicId)
         images: formData.images.filter(img => img.publicId)
       };
@@ -462,6 +642,64 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             />
           </div>
 
+          {/* Product Types */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Product Types * (Select at least one)
+            </label>
+            {loadingData ? (
+              <div className="mt-2 text-sm text-gray-500">Loading product types...</div>
+            ) : (
+              <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {productTypes.map(productType => (
+                  <label key={productType._id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.productTypes.includes(productType._id)}
+                      onChange={(e) => handleProductTypeChange(productType._id, e.target.checked)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-900 flex items-center">
+                      {productType.icon && <span className="mr-1">{productType.icon}</span>}
+                      {productType.name}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {formData.productTypes.length === 0 && !loadingData && (
+              <p className="mt-1 text-sm text-red-600">Please select at least one product type</p>
+            )}
+          </div>
+
+          {/* Occasions */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Occasions (Optional)
+            </label>
+            {loadingData ? (
+              <div className="mt-2 text-sm text-gray-500">Loading occasions...</div>
+            ) : (
+              <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {occasions.map(occasion => (
+                  <label key={occasion._id} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.occasions.includes(occasion._id)}
+                      onChange={(e) => handleOccasionChange(occasion._id, e.target.checked)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-900 flex items-center">
+                      {occasion.icon && <span className="mr-1">{occasion.icon}</span>}
+                      {occasion.name}
+                      {occasion.isSeasonal && <span className="ml-1 text-xs text-orange-500">(Seasonal)</span>}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Categories */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -487,93 +725,69 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             )}
           </div>
 
-          {/* Tiered Pricing */}
+          {/* Product Variants */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-4">
-              Pricing Tiers (USD) *
+              Product Variants (USD) *
             </label>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  Standard
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 sm:text-sm">$</span>
+            <div className="space-y-6">
+              {formData.variants.map((variant, index) => (
+                <div key={variant.tierName} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-medium text-gray-900 capitalize">
+                      {variant.tierName} Tier
+                    </h4>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={variant.isActive}
+                        onChange={(e) => handleVariantChange(variant.tierName, 'isActive', e.target.checked)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-900">Active</span>
+                    </label>
                   </div>
-                  <input
-                    type="number"
-                    value={formData.price.standard}
-                    onChange={(e) => handlePriceChange('standard', e.target.value)}
-                    required
-                    min="0"
-                    step="0.01"
-                    className="pl-7 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  Deluxe
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 sm:text-sm">$</span>
+                  
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600">
+                        Price
+                      </label>
+                      <div className="mt-1 relative rounded-md shadow-sm">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-500 sm:text-sm">$</span>
+                        </div>
+                        <input
+                          type="number"
+                          value={variant.price}
+                          onChange={(e) => handleVariantChange(variant.tierName, 'price', e.target.value)}
+                          min="0"
+                          step="0.01"
+                          className="pl-7 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600">
+                        Stock Quantity
+                      </label>
+                      <input
+                        type="number"
+                        value={variant.stock}
+                        onChange={(e) => handleVariantChange(variant.tierName, 'stock', e.target.value)}
+                        min="0"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="0"
+                      />
+                    </div>
                   </div>
-                  <input
-                    type="number"
-                    value={formData.price.deluxe}
-                    onChange={(e) => handlePriceChange('deluxe', e.target.value)}
-                    required
-                    min="0"
-                    step="0.01"
-                    className="pl-7 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="0.00"
-                  />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-600">
-                  Premium
-                </label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 sm:text-sm">$</span>
-                  </div>
-                  <input
-                    type="number"
-                    value={formData.price.premium}
-                    onChange={(e) => handlePriceChange('premium', e.target.value)}
-                    required
-                    min="0"
-                    step="0.01"
-                    className="pl-7 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Stock */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Stock Quantity *
-            </label>
-            <input
-              type="number"
-              name="stock"
-              value={formData.stock}
-              onChange={handleInputChange}
-              required
-              min="0"
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="0"
-            />
-          </div>
 
           {/* Tags */}
           <div>

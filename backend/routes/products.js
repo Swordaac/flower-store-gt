@@ -3,6 +3,8 @@ const router = express.Router();
 const { authenticateToken, requireRole, requireShopOwnership } = require('../middleware/auth');
 const Product = require('../models/Product');
 const Shop = require('../models/Shop');
+const ProductType = require('../models/ProductType');
+const Occasion = require('../models/Occasion');
 
 /**
  * GET /api/products - Get all products with filtering (public)
@@ -14,6 +16,8 @@ router.get('/', async (req, res) => {
       limit = 20, 
       shopId, 
       category, 
+      productTypes,
+      occasions,
       color,
       tags, 
       minPrice, 
@@ -28,10 +32,25 @@ router.get('/', async (req, res) => {
     let filter = { isActive: true };
     
     if (shopId) filter.shopId = shopId;
+    
+    // Handle legacy category filter
     if (category) {
       const categoryArray = Array.isArray(category) ? category : [category];
       filter.category = { $in: categoryArray };
     }
+    
+    // Handle new productTypes filter
+    if (productTypes) {
+      const productTypeArray = Array.isArray(productTypes) ? productTypes : [productTypes];
+      filter.productTypes = { $in: productTypeArray };
+    }
+    
+    // Handle occasions filter
+    if (occasions) {
+      const occasionArray = Array.isArray(occasions) ? occasions : [occasions];
+      filter.occasions = { $in: occasionArray };
+    }
+    
     if (color) {
       const colorArray = Array.isArray(color) ? color : [color];
       filter.color = { $in: colorArray };
@@ -40,27 +59,40 @@ router.get('/', async (req, res) => {
       const tagArray = Array.isArray(tags) ? tags : [tags];
       filter.tags = { $in: tagArray };
     }
+    
+    // Price filtering - check both variants and legacy prices
     if (minPrice || maxPrice) {
       const priceFilter = {};
       if (minPrice) priceFilter.$gte = parseInt(minPrice);
       if (maxPrice) priceFilter.$lte = parseInt(maxPrice);
       
-      // Check against all price tiers
+      // Check against variants and legacy prices
       filter.$or = [
+        { 'variants.price': priceFilter },
         { 'price.standard': priceFilter },
         { 'price.deluxe': priceFilter },
         { 'price.premium': priceFilter }
       ];
     }
+    
+    // Stock filtering - check variants only
     if (inStock !== undefined) {
-      filter.stock = inStock === 'true' ? { $gt: 0 } : { $lte: 0 };
+      if (inStock === 'true') {
+        filter['variants.stock'] = { $gt: 0 };
+        filter['variants.isActive'] = true;
+      } else {
+        filter.$or = [
+          { 'variants.stock': { $lte: 0 } },
+          { 'variants.isActive': false },
+          { variants: { $exists: false } },
+          { variants: { $size: 0 } }
+        ];
+      }
     }
+    
     if (search) {
-      // Use regex search instead of text index temporarily
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
+      // Use text search
+      filter.$text = { $search: search };
     }
     
     // Build sort
@@ -69,6 +101,8 @@ router.get('/', async (req, res) => {
     
     const products = await Product.find(filter)
       .populate('shopId', 'name address.city address.state')
+      .populate('productTypes', 'name slug color icon')
+      .populate('occasions', 'name slug color icon isSeasonal')
       .select('-__v')
       .sort(sort)
       .limit(limit * 1)
@@ -96,12 +130,58 @@ router.get('/', async (req, res) => {
 });
 
 /**
+ * GET /api/products/types - Get all product types (public)
+ */
+router.get('/types', async (req, res) => {
+  try {
+    const productTypes = await ProductType.find({ isActive: true })
+      .sort({ sortOrder: 1, name: 1 })
+      .select('-__v');
+    
+    res.json({
+      success: true,
+      data: productTypes
+    });
+  } catch (error) {
+    console.error('Error fetching product types:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch product types'
+    });
+  }
+});
+
+/**
+ * GET /api/products/occasions - Get all occasions (public)
+ */
+router.get('/occasions', async (req, res) => {
+  try {
+    const occasions = await Occasion.find({ isActive: true })
+      .sort({ sortOrder: 1, name: 1 })
+      .select('-__v');
+    
+    res.json({
+      success: true,
+      data: occasions
+    });
+  } catch (error) {
+    console.error('Error fetching occasions:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch occasions'
+    });
+  }
+});
+
+/**
  * GET /api/products/:id - Get single product by ID (public)
  */
 router.get('/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
       .populate('shopId', 'name address.city address.state isActive')
+      .populate('productTypes', 'name slug color icon')
+      .populate('occasions', 'name slug color icon isSeasonal')
       .select('-__v');
     
     if (!product || !product.isActive) {
@@ -153,8 +233,10 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       color,
       description,
       price,
-      stock,
       category,
+      productTypes,
+      occasions,
+      variants,
       tags,
       images,
       deluxeImage,
@@ -168,34 +250,114 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
     console.log('- color:', color);
     console.log('- description:', description);
     console.log('- price:', price);
-    console.log('- stock:', stock);
     console.log('- category:', category);
+    console.log('- productTypes:', productTypes);
+    console.log('- occasions:', occasions);
+    console.log('- variants:', variants);
     console.log('- tags:', tags);
     console.log('- images:', images);
     console.log('- deluxeImage:', deluxeImage);
     console.log('- premiumImage:', premiumImage);
     
     // Validate required fields
-    if (!name || !color || !description || !price || !category) {
+    if (!name || !color || !description) {
       return res.status(400).json({
         success: false,
-        error: 'Name, color, description, price, and category are required'
+        error: 'Name, color, and description are required'
       });
     }
     
-    // Validate price structure
-    if (!price.standard || !price.deluxe || !price.premium) {
+    // Validate productTypes (new required field)
+    if (!productTypes || !Array.isArray(productTypes) || productTypes.length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'All price tiers (standard, deluxe, premium) are required'
+        error: 'At least one product type is required'
       });
     }
     
-    // Validate category is array
-    if (!Array.isArray(category) || category.length === 0) {
+    // Validate productTypes exist
+    const existingProductTypes = await ProductType.find({ 
+      _id: { $in: productTypes }, 
+      isActive: true 
+    });
+    if (existingProductTypes.length !== productTypes.length) {
       return res.status(400).json({
         success: false,
-        error: 'At least one category is required'
+        error: 'One or more product types are invalid or inactive'
+      });
+    }
+    
+    // Validate occasions if provided
+    if (occasions && occasions.length > 0) {
+      const existingOccasions = await Occasion.find({ 
+        _id: { $in: occasions }, 
+        isActive: true 
+      });
+      if (existingOccasions.length !== occasions.length) {
+        return res.status(400).json({
+          success: false,
+          error: 'One or more occasions are invalid or inactive'
+        });
+      }
+    }
+    
+    // Handle variants vs legacy price structure
+    let productVariants = [];
+    let legacyPrice = {};
+    
+    if (variants && variants.length > 0) {
+      // Use new variant structure
+      productVariants = variants.map(variant => ({
+        tierName: variant.tierName,
+        price: parseInt(variant.price),
+        stock: parseInt(variant.stock) || 0,
+        images: variant.images || [],
+        isActive: variant.isActive !== false
+      }));
+    } else if (price) {
+      // Use legacy price structure - convert to variants
+      productVariants = [
+        {
+          tierName: 'standard',
+          price: parseInt(price.standard),
+          stock: parseInt(stock) || 0,
+          images: images || [],
+          isActive: true
+        },
+        {
+          tierName: 'deluxe',
+          price: parseInt(price.deluxe),
+          stock: parseInt(stock) || 0,
+          images: deluxeImage ? [deluxeImage] : [],
+          isActive: true
+        },
+        {
+          tierName: 'premium',
+          price: parseInt(price.premium),
+          stock: parseInt(stock) || 0,
+          images: premiumImage ? [premiumImage] : [],
+          isActive: true
+        }
+      ];
+      
+      // Keep legacy fields for backwards compatibility
+      legacyPrice = {
+        standard: parseInt(price.standard),
+        deluxe: parseInt(price.deluxe),
+        premium: parseInt(price.premium)
+      };
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Either variants or price structure is required'
+      });
+    }
+    
+    // Validate legacy category if provided (for backwards compatibility)
+    if (category && (!Array.isArray(category) || category.length === 0)) {
+      return res.status(400).json({
+        success: false,
+        error: 'If provided, at least one category is required'
       });
     }
     
@@ -228,12 +390,11 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       name,
       color,
       description,
-      price: {
-        standard: parseInt(price.standard),
-        deluxe: parseInt(price.deluxe),
-        premium: parseInt(price.premium)
-      },
-      stock: parseInt(stock) || 0,
+      productTypes,
+      occasions: occasions || [],
+      variants: productVariants,
+      // Legacy fields for backwards compatibility
+      price: legacyPrice,
       category,
       tags,
       images,
@@ -244,11 +405,8 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
     };
 
     console.log('Creating Product with data:', JSON.stringify(productData, null, 2));
-    console.log('Price values:', {
-      standard: parseInt(price.standard),
-      deluxe: parseInt(price.deluxe),
-      premium: parseInt(price.premium)
-    });
+    console.log('Variants:', productVariants);
+    console.log('Legacy price values:', legacyPrice);
 
     const product = new Product(productData);
     
@@ -322,7 +480,79 @@ router.put('/:id', authenticateToken, requireRole(['shop_owner', 'admin']), asyn
     
     const updateData = { ...req.body };
     
-    // Price is already in cents from frontend, no conversion needed
+    // Validate productTypes if provided
+    if (updateData.productTypes) {
+      if (!Array.isArray(updateData.productTypes) || updateData.productTypes.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'At least one product type is required'
+        });
+      }
+      
+      const existingProductTypes = await ProductType.find({ 
+        _id: { $in: updateData.productTypes }, 
+        isActive: true 
+      });
+      if (existingProductTypes.length !== updateData.productTypes.length) {
+        return res.status(400).json({
+          success: false,
+          error: 'One or more product types are invalid or inactive'
+        });
+      }
+    }
+    
+    // Validate occasions if provided
+    if (updateData.occasions) {
+      if (updateData.occasions.length > 0) {
+        const existingOccasions = await Occasion.find({ 
+          _id: { $in: updateData.occasions }, 
+          isActive: true 
+        });
+        if (existingOccasions.length !== updateData.occasions.length) {
+          return res.status(400).json({
+            success: false,
+            error: 'One or more occasions are invalid or inactive'
+          });
+        }
+      }
+    }
+    
+    // Handle variants vs legacy price structure for updates
+    if (updateData.variants && updateData.variants.length > 0) {
+      // Use new variant structure
+      updateData.variants = updateData.variants.map(variant => ({
+        tierName: variant.tierName,
+        price: parseInt(variant.price),
+        stock: parseInt(variant.stock) || 0,
+        images: variant.images || [],
+        isActive: variant.isActive !== false
+      }));
+    } else if (updateData.price) {
+      // Convert legacy price structure to variants
+      updateData.variants = [
+        {
+          tierName: 'standard',
+          price: parseInt(updateData.price.standard),
+          stock: parseInt(updateData.stock) || 0,
+          images: updateData.images || [],
+          isActive: true
+        },
+        {
+          tierName: 'deluxe',
+          price: parseInt(updateData.price.deluxe),
+          stock: parseInt(updateData.stock) || 0,
+          images: updateData.deluxeImage ? [updateData.deluxeImage] : [],
+          isActive: true
+        },
+        {
+          tierName: 'premium',
+          price: parseInt(updateData.price.premium),
+          stock: parseInt(updateData.stock) || 0,
+          images: updateData.premiumImage ? [updateData.premiumImage] : [],
+          isActive: true
+        }
+      ];
+    }
     
     // Prevent changing shop ownership
     delete updateData.shopId;
@@ -419,57 +649,14 @@ router.delete('/:id', authenticateToken, requireRole(['shop_owner', 'admin']), a
 });
 
 /**
- * PATCH /api/products/:id/stock - Update product stock
+ * PATCH /api/products/:id/stock - Update product stock (deprecated - use variants instead)
  * Requires shop ownership or admin role
  */
 router.patch('/:id/stock', authenticateToken, requireRole(['shop_owner', 'admin']), async (req, res) => {
   try {
-    const { stock } = req.body;
-    const productId = req.params.id;
-    
-    if (stock === undefined || stock < 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Valid stock quantity is required'
-      });
-    }
-    
-    // Check ownership (unless admin)
-    if (req.user.role !== 'admin') {
-      const product = await Product.findById(productId).populate('shopId');
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          error: 'Product not found'
-        });
-      }
-      
-      // Check if the user owns the shop that owns this product
-      if (!product.shopId || product.shopId.ownerId.toString() !== req.user._id.toString()) {
-        return res.status(403).json({
-          success: false,
-          error: 'Access denied: Product not owned by user'
-        });
-      }
-    }
-    
-    const product = await Product.findByIdAndUpdate(
-      productId,
-      { stock },
-      { new: true, runValidators: true }
-    ).select('-__v');
-    
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        error: 'Product not found'
-      });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Stock updated successfully',
-      data: product
+    return res.status(410).json({
+      success: false,
+      error: 'This endpoint is deprecated. Please use the product update endpoint to modify variant stock levels.'
     });
   } catch (error) {
     console.error('Error updating stock:', error);
@@ -486,7 +673,15 @@ router.patch('/:id/stock', authenticateToken, requireRole(['shop_owner', 'admin'
 router.get('/shop/:shopId', async (req, res) => {
   try {
     const { shopId } = req.params;
-    const { page = 1, limit = 20, category, color, inStock } = req.query;
+    const { 
+      page = 1, 
+      limit = 20, 
+      category, 
+      productTypes,
+      occasions,
+      color, 
+      inStock 
+    } = req.query;
     
     // Verify shop exists and is active
     const shop = await Shop.findById(shopId);
@@ -499,19 +694,48 @@ router.get('/shop/:shopId', async (req, res) => {
     
     // Build filter
     let filter = { shopId, isActive: true };
+    
+    // Handle legacy category filter
     if (category) {
       const categoryArray = Array.isArray(category) ? category : [category];
       filter.category = { $in: categoryArray };
     }
+    
+    // Handle new productTypes filter
+    if (productTypes) {
+      const productTypeArray = Array.isArray(productTypes) ? productTypes : [productTypes];
+      filter.productTypes = { $in: productTypeArray };
+    }
+    
+    // Handle occasions filter
+    if (occasions) {
+      const occasionArray = Array.isArray(occasions) ? occasions : [occasions];
+      filter.occasions = { $in: occasionArray };
+    }
+    
     if (color) {
       const colorArray = Array.isArray(color) ? color : [color];
       filter.color = { $in: colorArray };
     }
+    
+    // Stock filtering - check variants only
     if (inStock !== undefined) {
-      filter.stock = inStock === 'true' ? { $gt: 0 } : { $lte: 0 };
+      if (inStock === 'true') {
+        filter['variants.stock'] = { $gt: 0 };
+        filter['variants.isActive'] = true;
+      } else {
+        filter.$or = [
+          { 'variants.stock': { $lte: 0 } },
+          { 'variants.isActive': false },
+          { variants: { $exists: false } },
+          { variants: { $size: 0 } }
+        ];
+      }
     }
     
     const products = await Product.find(filter)
+      .populate('productTypes', 'name slug color icon')
+      .populate('occasions', 'name slug color icon isSeasonal')
       .select('-__v')
       .sort({ sortOrder: 1, createdAt: -1 })
       .limit(limit * 1)
@@ -542,6 +766,114 @@ router.get('/shop/:shopId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch shop products'
+    });
+  }
+});
+
+/**
+ * POST /api/products/types - Create new product type (admin only)
+ */
+router.post('/types', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { name, description, color, icon, sortOrder } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        error: 'Product type name is required'
+      });
+    }
+    
+    const productType = new ProductType({
+      name,
+      description,
+      color,
+      icon,
+      sortOrder
+    });
+    
+    const savedProductType = await productType.save();
+    
+    res.status(201).json({
+      success: true,
+      message: 'Product type created successfully',
+      data: savedProductType
+    });
+  } catch (error) {
+    console.error('Error creating product type:', error);
+    
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: messages
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create product type'
+    });
+  }
+});
+
+/**
+ * POST /api/products/occasions - Create new occasion (admin only)
+ */
+router.post('/occasions', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { 
+      name, 
+      description, 
+      color, 
+      icon, 
+      sortOrder, 
+      isSeasonal, 
+      seasonalStart, 
+      seasonalEnd 
+    } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        error: 'Occasion name is required'
+      });
+    }
+    
+    const occasion = new Occasion({
+      name,
+      description,
+      color,
+      icon,
+      sortOrder,
+      isSeasonal: isSeasonal || false,
+      seasonalStart,
+      seasonalEnd
+    });
+    
+    const savedOccasion = await occasion.save();
+    
+    res.status(201).json({
+      success: true,
+      message: 'Occasion created successfully',
+      data: savedOccasion
+    });
+  } catch (error) {
+    console.error('Error creating occasion:', error);
+    
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: messages
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create occasion'
     });
   }
 });

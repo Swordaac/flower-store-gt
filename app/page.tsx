@@ -34,9 +34,38 @@ interface Product {
   _id: string;
   name: string;
   description: string;
-  price: number;
+  price: {
+    standard: number;
+    deluxe: number;
+    premium: number;
+  };
   stock: number;
-  category: string;
+  category: string[];
+  productTypes: Array<{
+    _id: string;
+    name: string;
+    color: string;
+    icon?: string;
+  }>;
+  occasions: Array<{
+    _id: string;
+    name: string;
+    color: string;
+    icon?: string;
+    isSeasonal: boolean;
+  }>;
+  variants: Array<{
+    tierName: string;
+    price: number;
+    stock: number;
+    images: Array<{
+      publicId: string;
+      url: string;
+      alt: string;
+      isPrimary: boolean;
+    }>;
+    isActive: boolean;
+  }>;
   tags: string[];
   images: Array<{
     publicId: string;
@@ -51,6 +80,27 @@ interface Product {
   updatedAt: string;
 }
 
+interface ProductType {
+  _id: string;
+  name: string;
+  description: string;
+  color: string;
+  icon?: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+interface Occasion {
+  _id: string;
+  name: string;
+  description: string;
+  color: string;
+  icon?: string;
+  isActive: boolean;
+  isSeasonal: boolean;
+  sortOrder: number;
+}
+
 export default function BestSellersPage() {
   const searchParams = useSearchParams()
   const { clearCart } = useCart()
@@ -62,8 +112,14 @@ export default function BestSellersPage() {
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [products, setProducts] = useState<Product[]>([])
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [productTypes, setProductTypes] = useState<ProductType[]>([])
+  const [occasions, setOccasions] = useState<Occasion[]>([])
+  const [selectedProductTypes, setSelectedProductTypes] = useState<string[]>([])
+  const [selectedOccasions, setSelectedOccasions] = useState<string[]>([])
+  const [showFilters, setShowFilters] = useState(false)
 
   // Clear cart if returning from successful payment
   useEffect(() => {
@@ -80,6 +136,31 @@ export default function BestSellersPage() {
       window.history.replaceState({}, '', url.toString())
     }
   }, [searchParams, clearCart])
+
+  // Load product types and occasions
+  useEffect(() => {
+    const loadFilterData = async () => {
+      try {
+        // Load product types
+        const productTypesResponse = await fetch('http://localhost:5001/api/products/types')
+        if (productTypesResponse.ok) {
+          const productTypesData = await productTypesResponse.json()
+          setProductTypes(productTypesData.data || [])
+        }
+        
+        // Load occasions
+        const occasionsResponse = await fetch('http://localhost:5001/api/products/occasions')
+        if (occasionsResponse.ok) {
+          const occasionsData = await occasionsResponse.json()
+          setOccasions(occasionsData.data || [])
+        }
+      } catch (error) {
+        console.error('Error loading filter data:', error)
+      }
+    }
+    
+    loadFilterData()
+  }, [])
 
   // Fetch products from API
   useEffect(() => {
@@ -101,6 +182,7 @@ export default function BestSellersPage() {
           // Filter products to only show those with stock > 0 (extra safety)
           const productsWithStock = (data.data || []).filter((product: Product) => product.stock > 0)
           setProducts(productsWithStock)
+          setFilteredProducts(productsWithStock)
         } else {
           throw new Error(data.error || 'Failed to fetch products')
         }
@@ -114,6 +196,77 @@ export default function BestSellersPage() {
 
     fetchProducts()
   }, [])
+
+  // Filter products based on selected filters
+  useEffect(() => {
+    let filtered = [...products]
+
+    // Filter by product types
+    if (selectedProductTypes.length > 0) {
+      filtered = filtered.filter(product => 
+        product.productTypes?.some(pt => selectedProductTypes.includes(pt._id))
+      )
+    }
+
+    // Filter by occasions
+    if (selectedOccasions.length > 0) {
+      filtered = filtered.filter(product => 
+        product.occasions?.some(occasion => selectedOccasions.includes(occasion._id))
+      )
+    }
+
+    setFilteredProducts(filtered)
+  }, [products, selectedProductTypes, selectedOccasions])
+
+  // Fetch filtered products from API when filters change
+  useEffect(() => {
+    const fetchFilteredProducts = async () => {
+      if (selectedProductTypes.length === 0 && selectedOccasions.length === 0) {
+        return // Use existing products
+      }
+
+      try {
+        const shopId = '68c34f45ee89e0fd81c8aa4d'
+        let url = `http://localhost:5001/api/products/shop/${shopId}?inStock=true`
+        
+        // Add product type filters
+        if (selectedProductTypes.length > 0) {
+          url += `&productTypes=${selectedProductTypes.join(',')}`
+        }
+        
+        // Add occasion filters
+        if (selectedOccasions.length > 0) {
+          url += `&occasions=${selectedOccasions.join(',')}`
+        }
+
+        const response = await fetch(url)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            const productsWithStock = (data.data || []).filter((product: Product) => product.stock > 0)
+            setFilteredProducts(productsWithStock)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching filtered products:', error)
+        // Fallback to client-side filtering
+        let filtered = [...products]
+        if (selectedProductTypes.length > 0) {
+          filtered = filtered.filter(product => 
+            product.productTypes?.some(pt => selectedProductTypes.includes(pt._id))
+          )
+        }
+        if (selectedOccasions.length > 0) {
+          filtered = filtered.filter(product => 
+            product.occasions?.some(occasion => selectedOccasions.includes(occasion._id))
+          )
+        }
+        setFilteredProducts(filtered)
+      }
+    }
+
+    fetchFilteredProducts()
+  }, [selectedProductTypes, selectedOccasions, products])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -149,6 +302,27 @@ export default function BestSellersPage() {
     setActiveCategory(null)
   }
 
+  const handleProductTypeChange = (productTypeId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedProductTypes(prev => [...prev, productTypeId])
+    } else {
+      setSelectedProductTypes(prev => prev.filter(id => id !== productTypeId))
+    }
+  }
+
+  const handleOccasionChange = (occasionId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedOccasions(prev => [...prev, occasionId])
+    } else {
+      setSelectedOccasions(prev => prev.filter(id => id !== occasionId))
+    }
+  }
+
+  const clearFilters = () => {
+    setSelectedProductTypes([])
+    setSelectedOccasions([])
+  }
+
   useEffect(() => {
     const handleClickOutsideDropdown = (event: MouseEvent) => {
       const target = event.target as Element
@@ -167,14 +341,47 @@ export default function BestSellersPage() {
   }, [isShopDropdownOpen])
 
   // Helper function to format price
-  const formatPrice = (priceInCents: number) => {
-    return `From $${(priceInCents / 100).toFixed(2)}`
+  const formatPrice = (product: Product) => {
+    if (product.variants && product.variants.length > 0) {
+      const activeVariants = product.variants.filter(v => v.isActive && v.stock > 0)
+      if (activeVariants.length > 0) {
+        const minPrice = Math.min(...activeVariants.map(v => v.price))
+        return `From $${(minPrice / 100).toFixed(2)}`
+      }
+    }
+    
+    // Fallback to legacy price structure
+    if (product.price) {
+      const prices = [product.price.standard, product.price.deluxe, product.price.premium].filter(p => p > 0)
+      if (prices.length > 0) {
+        const minPrice = Math.min(...prices)
+        return `From $${(minPrice / 100).toFixed(2)}`
+      }
+    }
+    
+    return 'Price not available'
   }
 
   // Helper function to get primary image
-  const getPrimaryImage = (images: Product['images']) => {
-    const primaryImage = images.find(img => img.isPrimary)
-    return primaryImage?.url || images[0]?.url || "/placeholder.svg"
+  const getPrimaryImage = (product: Product) => {
+    // Try to get image from variants first
+    if (product.variants && product.variants.length > 0) {
+      for (const variant of product.variants) {
+        if (variant.isActive && variant.images && variant.images.length > 0) {
+          const primaryImage = variant.images.find(img => img.isPrimary)
+          if (primaryImage) return primaryImage.url
+          if (variant.images[0]) return variant.images[0].url
+        }
+      }
+    }
+    
+    // Fallback to legacy images
+    if (product.images && product.images.length > 0) {
+      const primaryImage = product.images.find(img => img.isPrimary)
+      return primaryImage?.url || product.images[0]?.url || "/placeholder.svg"
+    }
+    
+    return "/placeholder.svg"
   }
 
   return (
@@ -415,9 +622,37 @@ export default function BestSellersPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="text-sm" style={{ color: theme.colors.text.primary }}>Home {">"} Best sellers</div>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" className="flex items-center space-x-2 bg-transparent" style={{ borderColor: theme.colors.border, color: theme.colors.text.primary }}>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center space-x-2 bg-transparent" 
+                style={{ borderColor: theme.colors.border, color: theme.colors.text.primary }}
+                onClick={() => setShowFilters(!showFilters)}
+              >
                 <Filter className="h-4 w-4" />
                 <span>Filters</span>
+                {(selectedProductTypes.length > 0 || selectedOccasions.length > 0) && (
+                  <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 ml-1">
+                    {selectedProductTypes.length + selectedOccasions.length}
+                  </span>
+                )}
+              </Button>
+              
+              {/* Quick Filter for Bouquets */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center space-x-2 bg-transparent" 
+                style={{ borderColor: theme.colors.border, color: theme.colors.text.primary }}
+                onClick={() => {
+                  const bouquetType = productTypes.find(pt => pt.name.toLowerCase() === 'bouquets')
+                  if (bouquetType) {
+                    setSelectedProductTypes([bouquetType._id])
+                    setSelectedOccasions([])
+                  }
+                }}
+              >
+                🌸 Bouquets
               </Button>
               <div className="flex items-center space-x-2 text-sm">
                 <span style={{ color: theme.colors.text.primary }}>Sort by:</span>
@@ -427,6 +662,92 @@ export default function BestSellersPage() {
               </div>
             </div>
           </div>
+
+          {/* Filter Panel */}
+          {showFilters && (
+            <div className="bg-white rounded-lg border p-6 mb-6" style={{ borderColor: theme.colors.border }}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold" style={{ color: theme.colors.text.primary }}>Filter Products</h3>
+                <div className="flex items-center space-x-2">
+                  {(selectedProductTypes.length > 0 || selectedOccasions.length > 0) && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={clearFilters}
+                      style={{ borderColor: theme.colors.border, color: theme.colors.text.primary }}
+                    >
+                      Clear All
+                    </Button>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowFilters(false)}
+                    style={{ borderColor: theme.colors.border, color: theme.colors.text.primary }}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Product Types Filter */}
+                <div>
+                  <h4 className="font-medium mb-3" style={{ color: theme.colors.text.primary }}>Product Types</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {productTypes.map((productType) => (
+                      <label key={productType._id} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedProductTypes.includes(productType._id)}
+                          onChange={(e) => handleProductTypeChange(productType._id, e.target.checked)}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm flex items-center" style={{ color: theme.colors.text.secondary }}>
+                          {productType.icon && <span className="mr-2">{productType.icon}</span>}
+                          {productType.name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Occasions Filter */}
+                <div>
+                  <h4 className="font-medium mb-3" style={{ color: theme.colors.text.primary }}>Occasions</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {occasions.map((occasion) => (
+                      <label key={occasion._id} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedOccasions.includes(occasion._id)}
+                          onChange={(e) => handleOccasionChange(occasion._id, e.target.checked)}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm flex items-center" style={{ color: theme.colors.text.secondary }}>
+                          {occasion.icon && <span className="mr-2">{occasion.icon}</span>}
+                          {occasion.name}
+                          {occasion.isSeasonal && <span className="ml-1 text-xs text-orange-500">(Seasonal)</span>}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Filter Results Summary */}
+              <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.colors.border }}>
+                <p className="text-sm" style={{ color: theme.colors.text.primary }}>
+                  Showing {filteredProducts.length} of {products.length} products
+                  {(selectedProductTypes.length > 0 || selectedOccasions.length > 0) && (
+                    <span className="ml-2 text-xs text-gray-500">
+                      (filtered by {selectedProductTypes.length + selectedOccasions.length} criteria)
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Product Grid */}
           {loading ? (
@@ -444,18 +765,32 @@ export default function BestSellersPage() {
                 Retry
               </Button>
             </div>
-          ) : products.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-12">
-              <p style={{ color: theme.colors.text.primary }}>No products found for this shop.</p>
+              <p style={{ color: theme.colors.text.primary }}>
+                {products.length === 0 
+                  ? "No products found for this shop." 
+                  : "No products match your current filters. Try adjusting your filter criteria."
+                }
+              </p>
+              {products.length > 0 && (
+                <Button 
+                  onClick={clearFilters}
+                  className="mt-4"
+                  style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}
+                >
+                  Clear Filters
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <a key={product._id} href={`/products/${product._id}`} className="block">
                   <div className="cursor-pointer hover:opacity-90 transition-opacity">
                     <div className="w-full overflow-hidden rounded-lg">
                       <img
-                        src={getPrimaryImage(product.images)}
+                        src={getPrimaryImage(product)}
                         alt={product.name}
                         className="w-full h-auto object-cover hover:scale-105 transition-transform duration-300"
                         style={{ width: '463.992px', height: '463.992px' }}
@@ -463,7 +798,22 @@ export default function BestSellersPage() {
                     </div>
                     <div className="mt-4">
                       <h3 className="text-sm mb-1 line-clamp-2" style={{ color: theme.colors.text.secondary }}>{product.name}</h3>
-                      <p className="text-sm" style={{ color: theme.colors.text.secondary }}>{formatPrice(product.price)}</p>
+                      <p className="text-sm" style={{ color: theme.colors.text.secondary }}>{formatPrice(product)}</p>
+                      {/* Show product types and occasions */}
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {product.productTypes?.slice(0, 2).map((pt) => (
+                          <span 
+                            key={pt._id} 
+                            className="text-xs px-2 py-1 rounded-full"
+                            style={{ backgroundColor: pt.color + '20', color: pt.color }}
+                          >
+                            {pt.icon} {pt.name}
+                          </span>
+                        ))}
+                        {product.productTypes?.length > 2 && (
+                          <span className="text-xs text-gray-500">+{product.productTypes.length - 2} more</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </a>
