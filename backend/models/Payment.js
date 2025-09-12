@@ -26,7 +26,8 @@ const paymentSchema = new mongoose.Schema({
   
   // Customer information
   customerId: {
-    type: String, // Supabase user ID
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true,
     index: true
   },
@@ -149,4 +150,3 @@ paymentSchema.index({ orderId: 1 });
 paymentSchema.index({ stripeCustomerId: 1 });
 
 module.exports = mongoose.model('Payment', paymentSchema);
-

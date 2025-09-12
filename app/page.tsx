@@ -33,7 +33,7 @@ interface Product {
   name: string;
   description: string;
   price: number;
-  quantity: number;
+  stock: number;
   category: string;
   tags: string[];
   images: Array<{
@@ -69,7 +69,7 @@ export default function BestSellersPage() {
         setError(null)
         
         const shopId = '68c34f45ee89e0fd81c8aa4d'
-        const response = await fetch(`http://localhost:5001/api/products/shop/${shopId}`)
+        const response = await fetch(`http://localhost:5001/api/products/shop/${shopId}?inStock=true`)
         
         if (!response.ok) {
           throw new Error(`Failed to fetch products: ${response.status}`)
@@ -78,7 +78,9 @@ export default function BestSellersPage() {
         const data = await response.json()
         
         if (data.success) {
-          setProducts(data.data || [])
+          // Filter products to only show those with stock > 0 (extra safety)
+          const productsWithStock = (data.data || []).filter((product: Product) => product.stock > 0)
+          setProducts(productsWithStock)
         } else {
           throw new Error(data.error || 'Failed to fetch products')
         }

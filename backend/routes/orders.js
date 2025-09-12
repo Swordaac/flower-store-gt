@@ -100,7 +100,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
     
     // Check access permissions
-    if (req.user.role === 'customer' && order.customerId !== req.user._id) {
+    if (req.user.role === 'customer' && order.customerId.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         error: 'Access denied: You can only view your own orders'
@@ -260,20 +260,22 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
         });
       }
       
-      if (product.quantity < item.quantity) {
+      if (product.stock < item.quantity) {
         return res.status(400).json({
           success: false,
-          error: `Insufficient stock for ${product.name}. Available: ${product.quantity}`
+          error: `Insufficient stock for ${product.name}. Available: ${product.stock}`
         });
       }
       
-      const itemTotal = product.price * item.quantity;
+      // Use standard price for now - in a real app, you'd pass the selected tier
+      const itemPrice = product.price.standard;
+      const itemTotal = itemPrice * item.quantity;
       subtotal += itemTotal;
       
       processedItems.push({
         productId: product._id,
         name: product.name,
-        price: product.price,
+        price: itemPrice,
         quantity: item.quantity,
         total: itemTotal
       });
@@ -304,10 +306,10 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
     
     const savedOrder = await order.save();
     
-    // Update product quantities
+    // Update product stock
     for (const item of items) {
       await Product.findByIdAndUpdate(item.productId, {
-        $inc: { quantity: -item.quantity }
+        $inc: { stock: -item.quantity }
       });
     }
     

@@ -1,11 +1,11 @@
 "use client"
 
 import { useCart } from "@/contexts/CartContext"
+import { useUser } from "@/contexts/UserContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
 import CheckoutForm from "@/components/CheckoutForm"
-import MockAuth from "@/components/MockAuth"
 import { useState } from "react"
 
 // Reusable theme object
@@ -36,6 +36,7 @@ export default function CartPage() {
     clearCart 
   } = useCart()
   
+  const { currentUser, loading: userLoading, session: userSession } = useUser()
   const [showCheckout, setShowCheckout] = useState(false)
   const [selectedShopId, setSelectedShopId] = useState('68c34f45ee89e0fd81c8aa4d') // Default shop ID
 
@@ -58,6 +59,13 @@ export default function CartPage() {
       alert('Your cart is empty!')
       return
     }
+    
+    if (!currentUser) {
+      alert('Please sign in to proceed with checkout!')
+      window.location.href = '/auth/signin'
+      return
+    }
+    
     setShowCheckout(true)
   }
 
@@ -156,8 +164,14 @@ export default function CartPage() {
               </h2>
             </div>
             
-            {/* Mock Authentication for Testing */}
-            <MockAuth />
+            {/* User Authentication Status */}
+            {currentUser && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800">
+                  Signed in as: <strong>{currentUser.name}</strong> ({currentUser.email})
+                </p>
+              </div>
+            )}
             
             <CheckoutForm
               shopId={selectedShopId}

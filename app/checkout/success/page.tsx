@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useUser } from '@/contexts/UserContext';
 
 interface CheckoutSession {
   id: string;
@@ -25,33 +26,68 @@ interface Order {
 export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { session: userSession, loading: userLoading } = useUser();
   const [session, setSession] = useState<CheckoutSession | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sessionStable, setSessionStable] = useState(false);
 
   const sessionId = searchParams.get('session_id');
   const orderId = searchParams.get('order_id');
 
+  // Wait for session to be stable before proceeding
   useEffect(() => {
+    if (userLoading) {
+      setSessionStable(false);
+      return;
+    }
+
+    if (userSession?.access_token) {
+      // Add a small delay to ensure session is stable
+      const timer = setTimeout(() => {
+        console.log('Session is now stable:', userSession);
+        setSessionStable(true);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setSessionStable(false);
+    }
+  }, [userSession, userLoading]);
+
+  useEffect(() => {
+    console.log('Main useEffect triggered:', {
+      sessionId,
+      orderId,
+      sessionStable,
+      hasUserSession: !!userSession,
+      hasAccessToken: !!userSession?.access_token
+    });
+
     if (!sessionId || !orderId) {
       setError('Missing session or order information');
       setLoading(false);
       return;
     }
 
+    if (!sessionStable) {
+      console.log('Session not stable yet, waiting...');
+      return; // Wait for session to be stable
+    }
+
+    if (!userSession?.access_token) {
+      console.log('No access token found after session is stable');
+      setError('Authentication required. Please sign in to view your order.');
+      setLoading(false);
+      return;
+    }
+
     const fetchSessionDetails = async () => {
       try {
-        const token = localStorage.getItem('auth-token');
-        if (!token) {
-          setError('Authentication required');
-          setLoading(false);
-          return;
-        }
-
         const response = await fetch(`http://localhost:5001/api/stripe/checkout-session/${sessionId}`, {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${userSession.access_token}`
           }
         });
 
@@ -72,7 +108,7 @@ export default function CheckoutSuccessPage() {
     };
 
     fetchSessionDetails();
-  }, [sessionId, orderId]);
+  }, [sessionId, orderId, userSession, sessionStable]);
 
   const handleContinueShopping = () => {
     router.push('/');

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useUser } from './UserContext';
 
 interface OrderInfo {
   deliveryOption: 'delivery' | 'pickup';
@@ -69,6 +70,7 @@ interface CartProviderProps {
 
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const { currentUser, session } = useUser();
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -172,6 +174,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         return { success: false, error: 'Cart is empty' };
       }
 
+      if (!currentUser || !session?.access_token) {
+        return { success: false, error: 'Please sign in to place an order' };
+      }
+
       // Prepare order data in the format expected by the API
       const orderData = {
         shopId,
@@ -195,14 +201,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         }
       };
 
-      // Get auth token from localStorage or context
-      const token = localStorage.getItem('auth-token') || 'mock-token'; // Replace with actual auth
-
       const response = await fetch('http://localhost:5001/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify(orderData)
       });
@@ -238,6 +241,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         return { success: false, error: 'Cart is empty' };
       }
 
+      if (!currentUser || !session?.access_token) {
+        return { success: false, error: 'Please sign in to place an order' };
+      }
+
       // Prepare order data for Stripe checkout
       const orderData = {
         shopId,
@@ -264,14 +271,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
       console.log('CartContext - Prepared order data:', JSON.stringify(orderData, null, 2));
 
-      // Get auth token from localStorage or context
-      const token = localStorage.getItem('auth-token') || 'mock-token';
-
       const response = await fetch('http://localhost:5001/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify(orderData)
       });

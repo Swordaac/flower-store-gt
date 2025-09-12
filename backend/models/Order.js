@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const orderSchema = new mongoose.Schema({
   // Customer and shop references
   customerId: {
-    type: String, // Supabase user ID
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: [true, 'Customer ID is required'],
     index: true
   },

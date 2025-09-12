@@ -49,7 +49,7 @@ const authenticateToken = async (req, res, next) => {
     let dbUser = await User.findOne({ supabaseUserId: user.id });
     
     if (!dbUser) {
-      console.log('Creating new user in MongoDB:', user.email);
+      console.log('Creating new user in MongoDB:', user.email, 'Supabase ID:', user.id);
       // Create user if they don't exist - ALWAYS as customer
       dbUser = new User({
         supabaseUserId: user.id,
@@ -58,9 +58,9 @@ const authenticateToken = async (req, res, next) => {
         role: 'customer' // ALWAYS default to customer role
       });
       await dbUser.save();
-      console.log('User created successfully in MongoDB as customer:', dbUser._id);
+      console.log('User created successfully in MongoDB as customer:', dbUser._id, 'Type:', typeof dbUser._id);
     } else {
-      console.log('User found in MongoDB:', dbUser.email, 'Role:', dbUser.role);
+      console.log('User found in MongoDB:', dbUser.email, 'Role:', dbUser.role, 'ID:', dbUser._id, 'Type:', typeof dbUser._id);
     }
 
     // Attach user to request

@@ -120,6 +120,10 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
     
     // Create order first (without payment details)
+    console.log('=== CREATING ORDER ===');
+    console.log('User ID for order creation:', req.user._id, 'Type:', typeof req.user._id);
+    console.log('User email:', req.user.email);
+    
     const order = new Order({
       customerId: req.user._id,
       shopId,
@@ -137,6 +141,8 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
     });
     
     const savedOrder = await order.save();
+    console.log('Order created with ID:', savedOrder._id);
+    console.log('Order customer ID:', savedOrder.customerId, 'Type:', typeof savedOrder.customerId);
     
     // Create Stripe checkout session
     const sessionData = {
@@ -148,7 +154,7 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
       deliveryAddress: delivery.address,
       metadata: {
         shopId: shopId.toString(),
-        customerId: req.user._id
+        customerId: req.user._id.toString()
       }
     };
     
@@ -224,10 +230,25 @@ router.get('/checkout-session/:sessionId', authenticateToken, async (req, res) =
     }
     
     // Check access permissions
-    if (req.user.role === 'customer' && order.customerId !== req.user._id) {
+    console.log('=== ORDER ACCESS CHECK ===');
+    console.log('User ID:', req.user._id, 'Type:', typeof req.user._id);
+    console.log('Order Customer ID:', order.customerId, 'Type:', typeof order.customerId);
+    console.log('User ID String:', req.user._id.toString());
+    console.log('Order Customer ID String:', order.customerId.toString());
+    console.log('Are they equal?', order.customerId.toString() === req.user._id.toString());
+    console.log('User Role:', req.user.role);
+    
+    if (req.user.role === 'customer' && order.customerId.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
-        error: 'Access denied: You can only view your own orders'
+        error: 'Access denied: You can only view your own orders',
+        debug: {
+          userId: req.user._id.toString(),
+          orderCustomerId: order.customerId.toString(),
+          userIdType: typeof req.user._id,
+          orderCustomerIdType: typeof order.customerId,
+          areEqual: order.customerId.toString() === req.user._id.toString()
+        }
       });
     }
     
@@ -341,10 +362,10 @@ async function handleCheckoutSessionCompleted(session) {
     
     await payment.save();
     
-    // Update product quantities
+    // Update product stock
     for (const item of order.items) {
       await Product.findByIdAndUpdate(item.productId, {
-        $inc: { quantity: -item.quantity }
+        $inc: { stock: -item.quantity }
       });
     }
     
