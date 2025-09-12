@@ -68,7 +68,7 @@ export default function BestSellersPage() {
         setLoading(true)
         setError(null)
         
-        const shopId = '68b742b5a770a392af60c925'
+        const shopId = '68c34f45ee89e0fd81c8aa4d'
         const response = await fetch(`http://localhost:5001/api/products/shop/${shopId}`)
         
         if (!response.ok) {

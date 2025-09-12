@@ -37,7 +37,7 @@ export default function CartPage() {
   } = useCart()
   
   const [showCheckout, setShowCheckout] = useState(false)
-  const [selectedShopId, setSelectedShopId] = useState('68b742b5a770a392af60c925') // Default shop ID
+  const [selectedShopId, setSelectedShopId] = useState('68c34f45ee89e0fd81c8aa4d') // Default shop ID
 
   // Helper function to format price
   const formatPrice = (priceInCents: number) => {
