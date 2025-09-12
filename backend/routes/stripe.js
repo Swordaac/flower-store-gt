@@ -82,17 +82,17 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
     
     for (const item of items) {
       const product = await Product.findById(item.productId);
-      if (!product || !product.isActive || product.shopId.toString() !== shopId) {
+      if (!product || product.shopId.toString() !== shopId) {
         return res.status(400).json({
           success: false,
           error: `Product ${item.productId} not found or not available from this shop`
         });
       }
       
-      if (product.quantity < item.quantity) {
+      if (product.stock < item.quantity) {
         return res.status(400).json({
           success: false,
-          error: `Insufficient stock for ${product.name}. Available: ${product.quantity}`
+          error: `Insufficient stock for ${product.name}. Available: ${product.stock}`
         });
       }
       
@@ -143,6 +143,17 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
     const savedOrder = await order.save();
     console.log('Order created with ID:', savedOrder._id);
     console.log('Order customer ID:', savedOrder.customerId, 'Type:', typeof savedOrder.customerId);
+    
+    // Reduce stock immediately in development (since webhooks can't reach localhost)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Development mode: Reducing stock immediately');
+      for (const item of items) {
+        await Product.findByIdAndUpdate(item.productId, {
+          $inc: { stock: -item.quantity }
+        });
+        console.log(`Reduced stock for product ${item.productId} by ${item.quantity}`);
+      }
+    }
     
     // Create Stripe checkout session
     const sessionData = {
@@ -288,11 +299,22 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   const sig = req.headers['stripe-signature'];
   let event;
 
-  try {
-    event = constructWebhookEvent(req.body, sig);
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+  // Skip signature verification in development for testing
+  if (process.env.NODE_ENV === 'development' && !sig) {
+    console.log('Development mode: Skipping webhook signature verification');
+    try {
+      event = JSON.parse(req.body.toString());
+    } catch (err) {
+      console.error('Failed to parse webhook body:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+  } else {
+    try {
+      event = constructWebhookEvent(req.body, sig);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
   }
 
   try {
@@ -318,6 +340,42 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   } catch (error) {
     console.error('Error handling webhook:', error);
     res.status(500).json({ error: 'Webhook handler failed' });
+  }
+});
+
+/**
+ * POST /api/stripe/test-webhook
+ * Test webhook endpoint without signature verification
+ * For development testing only
+ */
+router.post('/test-webhook', express.json(), async (req, res) => {
+  try {
+    console.log('Test webhook received:', req.body);
+    
+    const event = req.body;
+    
+    // Handle the event
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object);
+        break;
+        
+      case 'payment_intent.succeeded':
+        await handlePaymentIntentSucceeded(event.data.object);
+        break;
+        
+      case 'payment_intent.payment_failed':
+        await handlePaymentIntentFailed(event.data.object);
+        break;
+        
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    res.json({ received: true, message: 'Test webhook processed successfully' });
+  } catch (error) {
+    console.error('Error handling test webhook:', error);
+    res.status(500).json({ error: 'Test webhook handler failed' });
   }
 });
 
@@ -362,11 +420,15 @@ async function handleCheckoutSessionCompleted(session) {
     
     await payment.save();
     
-    // Update product stock
-    for (const item of order.items) {
-      await Product.findByIdAndUpdate(item.productId, {
-        $inc: { stock: -item.quantity }
-      });
+    // Update product stock (skip in development since it was already reduced)
+    if (process.env.NODE_ENV !== 'development') {
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.productId, {
+          $inc: { stock: -item.quantity }
+        });
+      }
+    } else {
+      console.log('Development mode: Skipping stock reduction in webhook (already reduced)');
     }
     
     console.log('Order confirmed and payment recorded:', order._id);

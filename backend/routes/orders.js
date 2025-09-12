@@ -4,7 +4,6 @@ const { authenticateToken, requireRole, requireShopOwnership } = require('../mid
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Shop = require('../models/Shop');
-const PickupLocation = require('../models/PickupLocation');
 
 /**
  * GET /api/orders - Get orders (filtered by user role)
@@ -53,7 +52,6 @@ router.get('/', authenticateToken, async (req, res) => {
     const orders = await Order.find(filter)
       .populate('shopId', 'name address.city address.state')
       .populate('customerId', 'name email')
-      .populate('delivery.pickupLocationId', 'name address phone businessHours')
       .select('-__v')
       .sort(sort)
       .limit(limit * 1)
@@ -89,7 +87,6 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const order = await Order.findById(req.params.id)
       .populate('shopId', 'name address.city address.state')
       .populate('customerId', 'name email')
-      .populate('delivery.pickupLocationId', 'name address phone businessHours')
       .select('-__v');
     
     if (!order) {
@@ -193,18 +190,7 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
     
     // Validate pickup-specific requirements
     if (delivery.method === 'pickup') {
-      if (!delivery.pickupTime) {
-        return res.status(400).json({
-          success: false,
-          error: 'Pickup time is required for pickup orders'
-        });
-      }
-      if (!delivery.pickupLocationId) {
-        return res.status(400).json({
-          success: false,
-          error: 'Pickup location is required for pickup orders'
-        });
-      }
+      // No additional validation needed for single store setup
     }
     
     // Verify shop exists and is active
@@ -216,21 +202,7 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
       });
     }
     
-    // Verify pickup location if pickup method
-    if (delivery.method === 'pickup') {
-      const pickupLocation = await PickupLocation.findOne({
-        _id: delivery.pickupLocationId,
-        shopId: shopId,
-        'settings.isActive': true
-      });
-      
-      if (!pickupLocation) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid pickup location or location not available'
-        });
-      }
-    }
+    // Pickup location verification removed for single store setup
     
     // Check if delivery method is supported by shop
     if (delivery.method === 'delivery' && !shop.deliveryOptions.delivery) {
@@ -253,7 +225,7 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
     
     for (const item of items) {
       const product = await Product.findById(item.productId);
-      if (!product || !product.isActive || product.shopId.toString() !== shopId) {
+      if (!product || product.shopId.toString() !== shopId) {
         return res.status(400).json({
           success: false,
           error: `Product ${item.productId} not found or not available from this shop`
@@ -286,10 +258,14 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
     const deliveryFee = delivery.method === 'delivery' ? shop.deliveryOptions.deliveryFee : 0;
     const total = subtotal + taxAmount + deliveryFee;
     
+    // Generate order number
+    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    
     // Create order
     const order = new Order({
       customerId: req.user._id,
       shopId,
+      orderNumber,
       items: processedItems,
       subtotal,
       taxAmount,
