@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/contexts/UserContext';
 import getStripe from '@/lib/stripe';
 
 interface CheckoutSessionData {
@@ -39,14 +40,14 @@ export const useStripeCheckout = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { currentUser, session } = useUser();
 
   const createCheckoutSession = async (data: CheckoutSessionData): Promise<CheckoutResult> => {
     setLoading(true);
     setError(null);
 
     try {
-      const token = localStorage.getItem('auth-token');
-      if (!token) {
+      if (!currentUser || !session?.access_token) {
         throw new Error('Authentication required');
       }
 
@@ -56,7 +57,7 @@ export const useStripeCheckout = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify(data)
       });

@@ -1,10 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ChevronDown, Filter, Search, ShoppingCart, User } from "lucide-react"
 import { CartIcon } from "@/components/CartIcon"
+import { useCart } from "@/contexts/CartContext"
 
 // Reusable theme object
 const theme = {
@@ -50,6 +52,8 @@ interface Product {
 }
 
 export default function BestSellersPage() {
+  const searchParams = useSearchParams()
+  const { clearCart } = useCart()
   const [timeLeft, setTimeLeft] = useState({
     hours: 8,
     minutes: 36,
@@ -60,6 +64,22 @@ export default function BestSellersPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Clear cart if returning from successful payment
+  useEffect(() => {
+    const paymentSuccess = searchParams.get('payment_success')
+    const orderId = searchParams.get('order_id')
+    
+    if (paymentSuccess === 'true' && orderId) {
+      console.log('Payment success detected, clearing cart for order:', orderId)
+      clearCart()
+      // Clean up URL parameters
+      const url = new URL(window.location.href)
+      url.searchParams.delete('payment_success')
+      url.searchParams.delete('order_id')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [searchParams, clearCart])
 
   // Fetch products from API
   useEffect(() => {

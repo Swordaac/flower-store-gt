@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
+import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { CreditCardIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
@@ -34,6 +35,7 @@ export default function StripeCheckoutButton({
   children 
 }: StripeCheckoutButtonProps) {
   const { checkoutWithStripe } = useCart();
+  const { currentUser, session } = useUser();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,8 +49,7 @@ export default function StripeCheckoutButton({
 
     try {
       // Check authentication first
-      const token = localStorage.getItem('auth-token');
-      if (!token) {
+      if (!currentUser || !session?.access_token) {
         setError('Please sign in to continue with checkout. Redirecting to login...');
         setTimeout(() => {
           window.location.href = '/auth/signin';

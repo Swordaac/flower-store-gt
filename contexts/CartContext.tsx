@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useUser } from './UserContext';
 
 interface OrderInfo {
@@ -52,6 +52,9 @@ interface CartContextType {
   
   // Stripe checkout
   checkoutWithStripe: (shopId: string, deliveryInfo: OrderInfo) => Promise<{ success: boolean; sessionId?: string; url?: string; orderId?: string; error?: string }>;
+  
+  // Cart clearing utilities
+  clearCartForOrder: (orderId: string) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -101,7 +104,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   }, 0);
 
   // Add item to cart
-  const addToCart = (newItem: Omit<CartItem, 'quantity'>, quantity: number = 1) => {
+  const addToCart = useCallback((newItem: Omit<CartItem, 'quantity'>, quantity: number = 1) => {
     setItems(prevItems => {
       const existingItemIndex = prevItems.findIndex(
         item => item.productId === newItem.productId && 
@@ -120,19 +123,19 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         return [...prevItems, { ...newItem, quantity }];
       }
     });
-  };
+  }, []);
 
   // Remove item from cart
-  const removeFromCart = (productId: string, selectedSize?: number) => {
+  const removeFromCart = useCallback((productId: string, selectedSize?: number) => {
     setItems(prevItems => 
       prevItems.filter(
         item => !(item.productId === productId && item.selectedSize === selectedSize)
       )
     );
-  };
+  }, []);
 
   // Update item quantity
-  const updateQuantity = (productId: string, quantity: number, selectedSize?: number) => {
+  const updateQuantity = useCallback((productId: string, quantity: number, selectedSize?: number) => {
     if (quantity <= 0) {
       removeFromCart(productId, selectedSize);
       return;
@@ -145,30 +148,36 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           : item
       )
     );
-  };
+  }, [removeFromCart]);
 
   // Clear entire cart
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setItems([]);
-  };
+  }, []);
+
+  // Clear cart for a specific order (with logging)
+  const clearCartForOrder = useCallback((orderId: string) => {
+    console.log(`Clearing cart for order: ${orderId}`);
+    setItems([]);
+  }, []);
 
   // Get quantity of specific item
-  const getItemQuantity = (productId: string, selectedSize?: number): number => {
+  const getItemQuantity = useCallback((productId: string, selectedSize?: number): number => {
     const item = items.find(
       item => item.productId === productId && item.selectedSize === selectedSize
     );
     return item ? item.quantity : 0;
-  };
+  }, [items]);
 
   // Check if item is in cart
-  const isInCart = (productId: string, selectedSize?: number): boolean => {
+  const isInCart = useCallback((productId: string, selectedSize?: number): boolean => {
     return items.some(
       item => item.productId === productId && item.selectedSize === selectedSize
     );
-  };
+  }, [items]);
 
   // Submit order to API
-  const submitOrder = async (shopId: string, deliveryInfo: OrderInfo): Promise<{ success: boolean; orderId?: string; error?: string }> => {
+  const submitOrder = useCallback(async (shopId: string, deliveryInfo: OrderInfo): Promise<{ success: boolean; orderId?: string; error?: string }> => {
     try {
       if (items.length === 0) {
         return { success: false, error: 'Cart is empty' };
@@ -232,10 +241,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         error: 'Network error. Please try again.' 
       };
     }
-  };
+  }, [items, currentUser, session, clearCart]);
 
   // Checkout with Stripe
-  const checkoutWithStripe = async (shopId: string, deliveryInfo: OrderInfo): Promise<{ success: boolean; sessionId?: string; url?: string; orderId?: string; error?: string }> => {
+  const checkoutWithStripe = useCallback(async (shopId: string, deliveryInfo: OrderInfo): Promise<{ success: boolean; sessionId?: string; url?: string; orderId?: string; error?: string }> => {
     try {
       if (items.length === 0) {
         return { success: false, error: 'Cart is empty' };
@@ -283,6 +292,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       const result = await response.json();
 
       if (result.success) {
+        // Note: Cart will be cleared on the success page when payment is confirmed
+        // This ensures cart is cleared even if user doesn't reach success page
+        console.log('Stripe checkout session created successfully, order ID:', result.orderId);
         return { 
           success: true, 
           sessionId: result.sessionId,
@@ -302,9 +314,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         error: 'Network error. Please try again.' 
       };
     }
-  };
+  }, [items, currentUser, session]);
 
-  const value: CartContextType = {
+  const value: CartContextType = useMemo(() => ({
     items,
     totalItems,
     totalPrice,
@@ -315,8 +327,22 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     getItemQuantity,
     isInCart,
     submitOrder,
-    checkoutWithStripe
-  };
+    checkoutWithStripe,
+    clearCartForOrder
+  }), [
+    items,
+    totalItems,
+    totalPrice,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    getItemQuantity,
+    isInCart,
+    submitOrder,
+    checkoutWithStripe,
+    clearCartForOrder
+  ]);
 
   return (
     <CartContext.Provider value={value}>

@@ -2,25 +2,26 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { useUser } from '@/contexts/UserContext';
 
 export default function AuthStatus() {
+  const { currentUser, session, loading } = useUser();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth-token');
-    setIsAuthenticated(!!token);
-    setIsLoading(false);
-  }, []);
+    const authenticated = !!(currentUser && session?.access_token);
+    setIsAuthenticated(authenticated);
+    setIsLoading(loading);
+  }, [currentUser, session, loading]);
 
   const handleLogin = () => {
     window.location.href = '/auth/signin';
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('auth-token');
-    setIsAuthenticated(false);
-    window.location.reload();
+    // The logout will be handled by the AuthContext
+    window.location.href = '/auth/signin';
   };
 
   if (isLoading) {

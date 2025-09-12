@@ -6,6 +6,7 @@ import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useUser } from '@/contexts/UserContext';
+import { useCart } from '@/contexts/CartContext';
 
 interface CheckoutSession {
   id: string;
@@ -27,11 +28,13 @@ export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { session: userSession, loading: userLoading } = useUser();
+  const { clearCart, clearCartForOrder } = useCart();
   const [session, setSession] = useState<CheckoutSession | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sessionStable, setSessionStable] = useState(false);
+  const [cartCleared, setCartCleared] = useState(false);
 
   const sessionId = searchParams.get('session_id');
   const orderId = searchParams.get('order_id');
@@ -96,6 +99,17 @@ export default function CheckoutSuccessPage() {
         if (data.success) {
           setSession(data.session);
           setOrder(data.order);
+          
+          // Clear cart when payment is successful
+          if (data.session?.payment_status === 'paid' && !cartCleared) {
+            console.log('Payment successful, clearing cart...');
+            if (data.order?.id) {
+              clearCartForOrder(data.order.id);
+            } else {
+              clearCart();
+            }
+            setCartCleared(true);
+          }
         } else {
           setError(data.error || 'Failed to retrieve session details');
         }
@@ -111,7 +125,13 @@ export default function CheckoutSuccessPage() {
   }, [sessionId, orderId, userSession, sessionStable]);
 
   const handleContinueShopping = () => {
-    router.push('/');
+    // Add payment success parameters to ensure cart is cleared
+    const url = new URL('/', window.location.origin);
+    if (order?.id) {
+      url.searchParams.set('payment_success', 'true');
+      url.searchParams.set('order_id', order.id);
+    }
+    router.push(url.toString());
   };
 
   const handleViewOrders = () => {
