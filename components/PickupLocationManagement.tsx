@@ -12,6 +12,7 @@ import {
   CheckIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PickupLocation {
   _id: string;
@@ -31,11 +32,13 @@ interface PickupLocation {
   phone?: string;
   email?: string;
   businessHours: {
-    [key: string]: {
-      open: string;
-      close: string;
-      isOpen: boolean;
-    };
+    monday: { open: string; close: string; isOpen: boolean };
+    tuesday: { open: string; close: string; isOpen: boolean };
+    wednesday: { open: string; close: string; isOpen: boolean };
+    thursday: { open: string; close: string; isOpen: boolean };
+    friday: { open: string; close: string; isOpen: boolean };
+    saturday: { open: string; close: string; isOpen: boolean };
+    sunday: { open: string; close: string; isOpen: boolean };
   };
   settings: {
     minNoticeHours: number;
@@ -53,6 +56,7 @@ interface PickupLocationManagementProps {
 }
 
 export function PickupLocationManagement({ shopId, onClose }: PickupLocationManagementProps) {
+  const { session } = useAuth();
   const [pickupLocations, setPickupLocations] = useState<PickupLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +104,11 @@ export function PickupLocationManagement({ shopId, onClose }: PickupLocationMana
         ? `http://localhost:5001/api/pickup-locations?shopId=${shopId}`
         : 'http://localhost:5001/api/pickup-locations';
       
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      });
       const result = await response.json();
       
       if (result.success) {
@@ -134,7 +142,7 @@ export function PickupLocationManagement({ shopId, onClose }: PickupLocationMana
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth-token') || 'mock-token'}`
+          'Authorization': `Bearer ${session?.access_token}`
         },
         body: JSON.stringify({
           ...formData,
@@ -167,7 +175,7 @@ export function PickupLocationManagement({ shopId, onClose }: PickupLocationMana
       const response = await fetch(`http://localhost:5001/api/pickup-locations/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth-token') || 'mock-token'}`
+          'Authorization': `Bearer ${session?.access_token}`
         }
       });
       
