@@ -35,11 +35,28 @@ interface Product {
   name: string;
   color: string;
   description: string;
+  // Legacy price structure (deprecated)
   price: {
     standard: number;
     deluxe: number;
     premium: number;
   };
+  // New variants structure
+  variants: Array<{
+    _id: string;
+    tierName: 'standard' | 'deluxe' | 'premium';
+    price: number;
+    stock: number;
+    images: Array<{
+      size: string;
+      publicId: string;
+      url: string;
+      alt: string;
+      isPrimary: boolean;
+    }>;
+    isActive: boolean;
+  }>;
+  // Legacy stock field (deprecated)
   stock: number;
   category: string[];
   tags: string[];
@@ -146,13 +163,31 @@ export default function ProductDetailPage() {
   // Helper function to get current price based on selected tier
   const getCurrentPrice = () => {
     if (!product) return 0
-    return product.price[selectedTier]
+    
+    // Try to get price from variants first (new structure)
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.find(v => v.tierName === selectedTier && v.isActive)
+      if (variant) return variant.price
+    }
+    
+    // Fallback to legacy price structure
+    return product.price[selectedTier] || 0
   }
 
   // Helper function to get current image based on selected tier
   const getCurrentImage = () => {
     if (!product) return "/placeholder.svg"
     
+    // Try to get image from variants first (new structure)
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.find(v => v.tierName === selectedTier && v.isActive)
+      if (variant && variant.images && variant.images.length > 0) {
+        const primaryImage = variant.images.find(img => img.isPrimary)
+        return primaryImage?.url || variant.images[0]?.url || "/placeholder.svg"
+      }
+    }
+    
+    // Fallback to legacy image structure
     if (selectedTier === 'deluxe' && product.deluxeImage?.url) {
       return product.deluxeImage.url
     }
@@ -184,11 +219,25 @@ export default function ProductDetailPage() {
     return ['all', ...sizes]
   }
 
+  // Helper function to get price for a specific tier
+  const getTierPrice = (tier: 'standard' | 'deluxe' | 'premium') => {
+    if (!product) return 0
+    
+    // Try to get price from variants first (new structure)
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.find(v => v.tierName === tier && v.isActive)
+      if (variant) return variant.price
+    }
+    
+    // Fallback to legacy price structure
+    return product.price[tier] || 0
+  }
+
   // Tier options
   const tierOptions = [
-    { key: 'standard' as const, label: 'Standard', price: product?.price.standard || 0 },
-    { key: 'deluxe' as const, label: 'Deluxe', price: product?.price.deluxe || 0 },
-    { key: 'premium' as const, label: 'Premium', price: product?.price.premium || 0 }
+    { key: 'standard' as const, label: 'Standard', price: getTierPrice('standard') },
+    { key: 'deluxe' as const, label: 'Deluxe', price: getTierPrice('deluxe') },
+    { key: 'premium' as const, label: 'Premium', price: getTierPrice('premium') }
   ]
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -881,7 +930,10 @@ export default function ProductDetailPage() {
                         Color: <span className="capitalize">{product.color}</span>
                       </p>
                       <p className="text-sm mb-2" style={{ color: theme.colors.text.light }}>
-                        Stock: {product.stock} available
+                        Stock: {product.variants && product.variants.length > 0 
+                          ? product.variants.find(v => v.tierName === selectedTier && v.isActive)?.stock || 0
+                          : product.stock || 0
+                        } available
                       </p>
                       {product.tags.length > 0 && (
                         <div className="mt-3">
