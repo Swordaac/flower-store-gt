@@ -180,7 +180,7 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
           error: 'Complete delivery address is required for delivery orders'
         });
       }
-      if (!delivery.deliveryTime) {
+      if (!delivery.time) {
         return res.status(400).json({
           success: false,
           error: 'Delivery time is required for delivery orders'
@@ -239,8 +239,16 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
         });
       }
       
-      // Use standard price for now - in a real app, you'd pass the selected tier
-      const itemPrice = product.price.standard;
+      // Handle tiered pricing - use variants first, fallback to legacy price
+      let itemPrice = 0;
+      if (product.variants && product.variants.length > 0) {
+        // Use the first active variant's price
+        const activeVariant = product.variants.find(v => v.isActive && v.stock > 0);
+        itemPrice = activeVariant ? activeVariant.price : 0;
+      } else {
+        // Fallback to legacy price structure
+        itemPrice = product.price.standard || product.price.deluxe || product.price.premium || 0;
+      }
       const itemTotal = itemPrice * item.quantity;
       subtotal += itemTotal;
       

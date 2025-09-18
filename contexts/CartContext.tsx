@@ -5,16 +5,37 @@ import { useUser } from './UserContext';
 
 interface OrderInfo {
   deliveryOption: 'delivery' | 'pickup';
-  address?: {
-    street: string;
-    city: string;
-    province: string;
-    postalCode: string;
-    country: string;
+  // Recipient information (required)
+  recipient: {
+    name: string;
+    phone: string;
+    email: string;
   };
-  deliveryTime?: string;
-  pickupTime?: string;
-  pickupLocationId?: string;
+  // Optional occasion and card message
+  occasion?: string;
+  cardMessage?: string;
+  // Delivery specific fields
+  delivery?: {
+    address: {
+      company?: string;
+      street: string;
+      city: string;
+      province: string;
+      postalCode: string;
+      country: string;
+    };
+    date: string;
+    time: string;
+    instructions?: string;
+    buzzerCode?: string;
+  };
+  // Pickup specific fields
+  pickup?: {
+    date: string;
+    time: string;
+    storeAddress: string;
+  };
+  // Common fields (required)
   specialInstructions?: string;
   contactPhone: string;
   contactEmail: string;
@@ -179,12 +200,39 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   // Submit order to API
   const submitOrder = useCallback(async (shopId: string, deliveryInfo: OrderInfo): Promise<{ success: boolean; orderId?: string; error?: string }> => {
     try {
+      // Validate cart
       if (items.length === 0) {
         return { success: false, error: 'Cart is empty' };
       }
 
+      // Validate authentication
       if (!currentUser || !session?.access_token) {
         return { success: false, error: 'Please sign in to place an order' };
+      }
+
+      // Validate required recipient information
+      if (!deliveryInfo.recipient?.name || !deliveryInfo.recipient?.phone || !deliveryInfo.recipient?.email) {
+        return { success: false, error: 'Recipient name, phone, and email are required' };
+      }
+
+      // Validate required contact information
+      if (!deliveryInfo.contactPhone || !deliveryInfo.contactEmail) {
+        return { success: false, error: 'Contact phone and email are required' };
+      }
+
+      // Validate delivery/pickup specific fields
+      if (deliveryInfo.deliveryOption === 'delivery') {
+        if (!deliveryInfo.delivery?.date || !deliveryInfo.delivery?.time) {
+          return { success: false, error: 'Delivery date and time are required' };
+        }
+        if (!deliveryInfo.delivery?.address?.street || !deliveryInfo.delivery?.address?.city ||
+            !deliveryInfo.delivery?.address?.province || !deliveryInfo.delivery?.address?.postalCode) {
+          return { success: false, error: 'Complete delivery address is required' };
+        }
+      } else if (deliveryInfo.deliveryOption === 'pickup') {
+        if (!deliveryInfo.pickup?.date || !deliveryInfo.pickup?.time) {
+          return { success: false, error: 'Pickup date and time are required' };
+        }
       }
 
       // Prepare order data in the format expected by the API
@@ -194,19 +242,42 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           productId: item.productId,
           quantity: item.quantity
         })),
+        // Move recipient to root level
+        recipient: {
+          name: deliveryInfo.recipient.name.trim(),
+          phone: deliveryInfo.recipient.phone.trim(),
+          email: deliveryInfo.recipient.email.trim()
+        },
+        // Optional fields at root level
+        occasion: deliveryInfo.occasion || '',
+        cardMessage: deliveryInfo.cardMessage || '',
+        // Delivery information
         delivery: {
           method: deliveryInfo.deliveryOption,
-          ...(deliveryInfo.deliveryOption === 'delivery' && {
-            address: deliveryInfo.address,
-            deliveryTime: deliveryInfo.deliveryTime
-          }),
-          ...(deliveryInfo.deliveryOption === 'pickup' && {
-            pickupTime: deliveryInfo.pickupTime,
-            pickupLocationId: deliveryInfo.pickupLocationId
-          }),
           contactPhone: deliveryInfo.contactPhone,
           contactEmail: deliveryInfo.contactEmail,
-          specialInstructions: deliveryInfo.specialInstructions || ''
+          specialInstructions: deliveryInfo.specialInstructions || '',
+          // For delivery orders
+          ...(deliveryInfo.deliveryOption === 'delivery' && deliveryInfo.delivery && {
+            address: {
+              company: deliveryInfo.delivery.address.company || '',
+              street: deliveryInfo.delivery.address.street,
+              city: deliveryInfo.delivery.address.city,
+              province: deliveryInfo.delivery.address.province,
+              postalCode: deliveryInfo.delivery.address.postalCode,
+              country: deliveryInfo.delivery.address.country || 'Canada'
+            },
+            date: deliveryInfo.delivery.date,
+            time: deliveryInfo.delivery.time,
+            instructions: deliveryInfo.delivery.instructions || '',
+            buzzerCode: deliveryInfo.delivery.buzzerCode || ''
+          }),
+          // For pickup orders
+          ...(deliveryInfo.deliveryOption === 'pickup' && deliveryInfo.pickup && {
+            date: deliveryInfo.pickup.date,
+            time: deliveryInfo.pickup.time,
+            storeAddress: deliveryInfo.pickup.storeAddress || '1208 Crescent St, Montreal, Quebec H3G 2A9'
+          })
         }
       };
 
@@ -246,13 +317,45 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   // Checkout with Stripe
   const checkoutWithStripe = useCallback(async (shopId: string, deliveryInfo: OrderInfo): Promise<{ success: boolean; sessionId?: string; url?: string; orderId?: string; error?: string }> => {
     try {
+      // Validate cart
       if (items.length === 0) {
         return { success: false, error: 'Cart is empty' };
       }
 
+      // Validate authentication
       if (!currentUser || !session?.access_token) {
         return { success: false, error: 'Please sign in to place an order' };
       }
+
+      // Validate required recipient information
+      if (!deliveryInfo.recipient?.name || !deliveryInfo.recipient?.phone || !deliveryInfo.recipient?.email) {
+        return { success: false, error: 'Recipient name, phone, and email are required' };
+      }
+
+      // Validate required contact information
+      if (!deliveryInfo.contactPhone || !deliveryInfo.contactEmail) {
+        return { success: false, error: 'Contact phone and email are required' };
+      }
+
+      // Validate delivery/pickup specific fields
+      if (deliveryInfo.deliveryOption === 'delivery') {
+        if (!deliveryInfo.delivery?.date || !deliveryInfo.delivery?.time) {
+          return { success: false, error: 'Delivery date and time are required' };
+        }
+        if (!deliveryInfo.delivery?.address?.street || !deliveryInfo.delivery?.address?.city ||
+            !deliveryInfo.delivery?.address?.province || !deliveryInfo.delivery?.address?.postalCode) {
+          return { success: false, error: 'Complete delivery address is required' };
+        }
+      } else if (deliveryInfo.deliveryOption === 'pickup') {
+        if (!deliveryInfo.pickup?.date || !deliveryInfo.pickup?.time) {
+          return { success: false, error: 'Pickup date and time are required' };
+        }
+      }
+
+      // Debug log incoming data
+      console.log('=== DEBUG: Checkout Data ===');
+      console.log('DeliveryInfo:', JSON.stringify(deliveryInfo, null, 2));
+      console.log('Items:', JSON.stringify(items, null, 2));
 
       // Prepare order data for Stripe checkout
       const orderData = {
@@ -261,24 +364,50 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           productId: item.productId,
           quantity: item.quantity
         })),
+        // Move recipient to root level
+        recipient: {
+          name: deliveryInfo.recipient.name.trim(),
+          phone: deliveryInfo.recipient.phone.trim(),
+          email: deliveryInfo.recipient.email.trim()
+        },
+        // Optional fields at root level
+        occasion: deliveryInfo.occasion || '',
+        cardMessage: deliveryInfo.cardMessage || '',
+        // Delivery information
         delivery: {
           method: deliveryInfo.deliveryOption,
-          ...(deliveryInfo.deliveryOption === 'delivery' && {
-            address: deliveryInfo.address,
-            deliveryTime: deliveryInfo.deliveryTime
-          }),
-          ...(deliveryInfo.deliveryOption === 'pickup' && {
-            pickupTime: deliveryInfo.pickupTime,
-            pickupLocationId: deliveryInfo.pickupLocationId
-          }),
           contactPhone: deliveryInfo.contactPhone,
           contactEmail: deliveryInfo.contactEmail,
-          specialInstructions: deliveryInfo.specialInstructions || ''
+          specialInstructions: deliveryInfo.specialInstructions || '',
+          // For delivery orders
+          ...(deliveryInfo.deliveryOption === 'delivery' && deliveryInfo.delivery && {
+            address: {
+              company: deliveryInfo.delivery.address.company || '',
+              street: deliveryInfo.delivery.address.street,
+              city: deliveryInfo.delivery.address.city,
+              province: deliveryInfo.delivery.address.province,
+              postalCode: deliveryInfo.delivery.address.postalCode,
+              country: deliveryInfo.delivery.address.country || 'Canada'
+            },
+            date: deliveryInfo.delivery.date,
+            time: deliveryInfo.delivery.time,
+            instructions: deliveryInfo.delivery.instructions || '',
+            buzzerCode: deliveryInfo.delivery.buzzerCode || ''
+          }),
+          // For pickup orders
+          ...(deliveryInfo.deliveryOption === 'pickup' && deliveryInfo.pickup && {
+            date: deliveryInfo.pickup.date,
+            time: deliveryInfo.pickup.time,
+            storeAddress: deliveryInfo.pickup.storeAddress || '1208 Crescent St, Montreal, Quebec H3G 2A9'
+          })
         },
         notes: `Order from cart with ${items.length} items`
       };
 
-      console.log('CartContext - Prepared order data:', JSON.stringify(orderData, null, 2));
+      console.log('=== DEBUG: Final Payload ===');
+      console.log('Full orderData:', JSON.stringify(orderData, null, 2));
+      console.log('Recipient Info:', JSON.stringify(orderData.delivery.recipient, null, 2));
+      console.log('Delivery Method:', orderData.delivery.method);
 
       const response = await fetch('http://localhost:5001/api/stripe/create-checkout-session', {
         method: 'POST',

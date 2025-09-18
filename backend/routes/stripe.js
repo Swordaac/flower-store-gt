@@ -24,7 +24,10 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
       shopId,
       items,
       delivery,
-      notes
+      notes,
+      recipient,
+      occasion,
+      cardMessage
     } = req.body;
     
     // Validate required fields
@@ -42,22 +45,94 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
         error: 'Valid delivery method (delivery or pickup) is required'
       });
     }
-    
+
     // Debug logging
-    console.log('Received delivery data:', JSON.stringify(delivery, null, 2));
-    
-    if (!delivery.contactPhone || !delivery.contactEmail) {
-      console.log('Missing contact info - Phone:', delivery.contactPhone, 'Email:', delivery.contactEmail);
+    console.log('=== RECEIVED ORDER DATA ===');
+    console.log('Full request body:', JSON.stringify(req.body, null, 2));
+    console.log('Delivery data:', JSON.stringify(delivery, null, 2));
+    console.log('Recipient (root) data:', JSON.stringify(recipient, null, 2));
+    console.log('Recipient (delivery.recipient) data:', JSON.stringify(delivery && delivery.recipient, null, 2));
+    console.log('Method:', delivery.method);
+    console.log('Delivery option:', delivery.deliveryOption);
+
+    // Validate recipient information (prefer root recipient, fallback to delivery.recipient for compatibility)
+    const recipientData = recipient || (delivery ? delivery.recipient : null) || {};
+    if (!recipientData.name || !recipientData.phone || !recipientData.email) {
       return res.status(400).json({
         success: false,
-        error: 'Contact phone and email are required',
+        error: 'Recipient name, phone, and email are required',
         debug: {
-          contactPhone: delivery.contactPhone,
-          contactEmail: delivery.contactEmail,
-          deliveryData: delivery
+          recipient: recipientData,
+          delivery
         }
       });
     }
+
+    // Validate contact information
+    if (!delivery.contactPhone || !delivery.contactEmail) {
+      return res.status(400).json({
+        success: false,
+        error: 'Contact phone and email are required'
+      });
+    }
+
+    // Validate date and time
+    if (!delivery.date || !delivery.time) {
+      return res.status(400).json({
+        success: false,
+        error: 'Date and time are required'
+      });
+    }
+
+    // Validate future date
+    const deliveryDate = new Date(delivery.date);
+    if (deliveryDate <= new Date()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Date must be in the future'
+      });
+    }
+
+    // Validate time format
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(delivery.time)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Time must be in 24-hour format (HH:MM)'
+      });
+    }
+
+    // Validate delivery-specific fields
+    if (delivery.method === 'delivery') {
+      const { address } = delivery;
+      if (!address?.street || !address?.city || !address?.province || !address?.postalCode) {
+        return res.status(400).json({
+          success: false,
+          error: 'Complete delivery address is required'
+        });
+      }
+
+      // Validate postal code format
+      const postalCodeRegex = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/;
+      if (!postalCodeRegex.test(address.postalCode)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid postal code format'
+        });
+      }
+
+      // Validate province
+      const validProvinces = ['QC', 'ON', 'BC', 'AB', 'MB', 'SK', 'NS', 'NB', 'NL', 'PE', 'YT', 'NT', 'NU'];
+      if (!validProvinces.includes(address.province)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid province'
+        });
+      }
+    }
+
+    // Debug logging
+    console.log('Received delivery data:', JSON.stringify(delivery, null, 2));
     
     // Verify shop exists and is active
     console.log('Looking for shop with ID:', shopId);
@@ -96,8 +171,24 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
         });
       }
       
-      // Handle tiered pricing - use standard price for now
-      const productPrice = product.price.standard || product.price.deluxe || product.price.premium || 0;
+      // Handle tiered pricing - use variants first, fallback to legacy price
+      let productPrice = 0;
+      console.log(`Processing product ${product._id}:`, {
+        name: product.name,
+        variants: product.variants,
+        legacyPrice: product.price
+      });
+      
+      if (product.variants && product.variants.length > 0) {
+        // Use the first active variant's price
+        const activeVariant = product.variants.find(v => v.isActive && v.stock > 0);
+        productPrice = activeVariant ? activeVariant.price : 0;
+        console.log(`Using variant price: ${productPrice} from variant:`, activeVariant);
+      } else {
+        // Fallback to legacy price structure
+        productPrice = product.price.standard || product.price.deluxe || product.price.premium || 0;
+        console.log(`Using legacy price: ${productPrice}`);
+      }
       const itemTotal = productPrice * item.quantity;
       subtotal += itemTotal;
       
@@ -133,6 +224,13 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
       taxAmount,
       deliveryFee,
       total,
+      recipient: {
+        name: recipientData.name,
+        phone: recipientData.phone,
+        email: recipientData.email
+      },
+      occasion: occasion || undefined,
+      cardMessage: cardMessage || undefined,
       delivery,
       notes,
       payment: {

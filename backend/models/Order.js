@@ -8,6 +8,42 @@ const orderSchema = new mongoose.Schema({
     required: [true, 'Customer ID is required'],
     index: true
   },
+
+  // Recipient information
+  recipient: {
+    name: {
+      type: String,
+      required: [true, 'Recipient name is required'],
+      trim: true,
+      minlength: [2, 'Name must be at least 2 characters long'],
+      maxlength: [100, 'Name cannot exceed 100 characters']
+    },
+    phone: {
+      type: String,
+      required: [true, 'Recipient phone number is required'],
+      trim: true,
+      match: [/^[\d\s\-\+\(\)]{10,}$/, 'Please enter a valid phone number']
+    },
+    email: {
+      type: String,
+      required: [true, 'Recipient email is required'],
+      trim: true,
+      lowercase: true,
+      match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address']
+    }
+  },
+
+  // Optional occasion and card message
+  occasion: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Occasion cannot exceed 50 characters']
+  },
+  cardMessage: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Card message cannot exceed 500 characters']
+  },
   
   shopId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -22,6 +58,7 @@ const orderSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+
   
   // Order items with product snapshots
   items: [{
@@ -68,6 +105,13 @@ const orderSchema = new mongoose.Schema({
     default: 0,
     min: [0, 'Delivery fee cannot be negative']
   },
+
+  // Optional service/platform/processing fee
+  serviceFee: {
+    type: Number,
+    default: 0,
+    min: [0, 'Service fee cannot be negative']
+  },
   
   total: {
     type: Number,
@@ -86,40 +130,121 @@ const orderSchema = new mongoose.Schema({
   delivery: {
     method: {
       type: String,
-      enum: ['pickup', 'delivery'],
-      required: true
+      enum: {
+        values: ['pickup', 'delivery'],
+        message: '{VALUE} is not a valid delivery method'
+      },
+      required: [true, 'Delivery method is required']
     },
     // For delivery orders
     address: {
-      street: String,
-      city: String,
-      province: String, // Changed from 'state' to 'province' for Canadian context
-      postalCode: String, // Changed from 'postal' to 'postalCode'
+      company: {
+        type: String,
+        trim: true,
+        maxlength: [100, 'Company name cannot exceed 100 characters']
+      },
+      street: {
+        type: String,
+        trim: true,
+        required: [
+          function() { return this.parent().method === 'delivery'; },
+          'Street address is required for delivery'
+        ],
+        maxlength: [200, 'Street address cannot exceed 200 characters']
+      },
+      city: {
+        type: String,
+        trim: true,
+        required: [
+          function() { return this.parent().method === 'delivery'; },
+          'City is required for delivery'
+        ],
+        maxlength: [100, 'City cannot exceed 100 characters']
+      },
+      province: {
+        type: String,
+        trim: true,
+        required: [
+          function() { return this.parent().method === 'delivery'; },
+          'Province is required for delivery'
+        ],
+        enum: {
+          values: ['QC', 'ON', 'BC', 'AB', 'MB', 'SK', 'NS', 'NB', 'NL', 'PE', 'YT', 'NT', 'NU'],
+          message: '{VALUE} is not a valid province'
+        }
+      },
+      postalCode: {
+        type: String,
+        trim: true,
+        required: [
+          function() { return this.parent().method === 'delivery'; },
+          'Postal code is required for delivery'
+        ],
+        match: [/^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/, 'Please enter a valid Canadian postal code']
+      },
       country: {
         type: String,
-        default: 'Canada'
+        default: 'Canada',
+        enum: ['Canada']
       }
     },
-    // Time information
-    deliveryTime: String, // e.g., "14:30" for 2:30 PM
-    pickupTime: String, // e.g., "14:30" for 2:30 PM
-    // Pickup location reference (if pickup method)
-    pickupLocationId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'PickupLocation'
+    // Date and time
+    date: {
+      type: Date,
+      required: [true, 'Date is required'],
+      validate: {
+        validator: function(value) {
+          return value > new Date();
+        },
+        message: 'Date must be in the future'
+      }
+    },
+    time: {
+      type: String,
+      required: [true, 'Time is required'],
+      match: [/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Please enter a valid time in 24-hour format (HH:MM)']
+    },
+    // Delivery specific fields
+    instructions: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Delivery instructions cannot exceed 500 characters']
+    },
+    buzzerCode: {
+      type: String,
+      trim: true,
+      maxlength: [20, 'Buzzer code cannot exceed 20 characters']
+    },
+    // Pickup specific fields
+    pickupStoreAddress: {
+      type: String,
+      default: '1208 Crescent St, Montreal, Quebec H3G 2A9',
+      required: [
+        function() { return this.parent().method === 'pickup'; },
+        'Pickup store address is required for pickup orders'
+      ]
     },
     // Contact information
     contactPhone: {
       type: String,
-      required: true
+      required: [true, 'Contact phone is required'],
+      trim: true,
+      match: [/^[\d\s\-\+\(\)]{10,}$/, 'Please enter a valid phone number']
     },
     contactEmail: {
       type: String,
-      required: true
+      required: [true, 'Contact email is required'],
+      trim: true,
+      lowercase: true,
+      match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address']
     },
     // Special instructions
-    specialInstructions: String,
-    // Estimated times
+    specialInstructions: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Special instructions cannot exceed 500 characters']
+    },
+    // Estimated times (set by system)
     estimatedDelivery: Date,
     estimatedPickup: Date
   },

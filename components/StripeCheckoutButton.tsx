@@ -10,16 +10,37 @@ interface StripeCheckoutButtonProps {
   shopId: string;
   deliveryInfo: {
     deliveryOption: 'delivery' | 'pickup';
-    address?: {
-      street: string;
-      city: string;
-      province: string;
-      postalCode: string;
-      country: string;
+    // Recipient information
+    recipient: {
+      name: string;
+      phone: string;
+      email: string;
     };
-    deliveryTime?: string;
-    pickupTime?: string;
-    pickupLocationId?: string;
+    // Optional occasion and card message
+    occasion?: string;
+    cardMessage?: string;
+    // Delivery specific fields
+    delivery?: {
+      address: {
+        company?: string;
+        street: string;
+        city: string;
+        province: string;
+        postalCode: string;
+        country: string;
+      };
+      date: string;
+      time: string;
+      instructions?: string;
+      buzzerCode?: string;
+    };
+    // Pickup specific fields
+    pickup?: {
+      date: string;
+      time: string;
+      storeAddress: string;
+    };
+    // Common fields
     specialInstructions?: string;
     contactPhone: string;
     contactEmail: string;
@@ -59,6 +80,14 @@ export default function StripeCheckoutButton({
       }
 
       // Validate required fields before proceeding
+      // Validate recipient information
+      if (!deliveryInfo.recipient.name || !deliveryInfo.recipient.phone || !deliveryInfo.recipient.email) {
+        setError('Recipient name, phone, and email are required');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Validate contact information
       if (!deliveryInfo.contactPhone || !deliveryInfo.contactEmail) {
         setError('Contact phone and email are required');
         setIsProcessing(false);
@@ -66,25 +95,20 @@ export default function StripeCheckoutButton({
       }
 
       if (deliveryInfo.deliveryOption === 'delivery') {
-        if (!deliveryInfo.address?.street || !deliveryInfo.address?.city || 
-            !deliveryInfo.address?.province || !deliveryInfo.address?.postalCode) {
+        if (!deliveryInfo.delivery?.address.street || !deliveryInfo.delivery?.address.city || 
+            !deliveryInfo.delivery?.address.province || !deliveryInfo.delivery?.address.postalCode) {
           setError('Complete delivery address is required');
           setIsProcessing(false);
           return;
         }
-        if (!deliveryInfo.deliveryTime) {
-          setError('Delivery time is required');
+        if (!deliveryInfo.delivery.date || !deliveryInfo.delivery.time) {
+          setError('Delivery date and time are required');
           setIsProcessing(false);
           return;
         }
       } else if (deliveryInfo.deliveryOption === 'pickup') {
-        if (!deliveryInfo.pickupTime) {
-          setError('Pickup time is required');
-          setIsProcessing(false);
-          return;
-        }
-        if (!deliveryInfo.pickupLocationId) {
-          setError('Pickup location is required');
+        if (!deliveryInfo.pickup?.date || !deliveryInfo.pickup?.time) {
+          setError('Pickup date and time are required');
           setIsProcessing(false);
           return;
         }
