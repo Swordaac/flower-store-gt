@@ -168,53 +168,152 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
     
     // Validate and process items
     let subtotal = 0;
-    const processedItems = [];
-    
-    for (const item of items) {
-      const product = await Product.findById(item.productId);
-      if (!product || product.shopId.toString() !== shopId) {
-        return res.status(400).json({
-          success: false,
-          error: `Product ${item.productId} not found or not available from this shop`
-        });
-      }
+      const processedItems = [];
       
-      if (product.stock < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          error: `Insufficient stock for ${product.name}. Available: ${product.stock}`
-        });
-      }
+      // Helper function to sanitize object for JSON
+      const sanitizeForJSON = (obj) => {
+        const seen = new WeakSet();
+        return JSON.parse(JSON.stringify(obj, (key, value) => {
+          if (typeof value === 'object' && value !== null) {
+            if (seen.has(value)) {
+              return '[Circular]';
+            }
+            seen.add(value);
+          }
+          // Convert MongoDB ObjectId to string
+          if (value && value._bsontype === 'ObjectId') {
+            return value.toString();
+          }
+          return value;
+        }));
+      };
       
-      // Handle tiered pricing - use variants first, fallback to legacy price
+      for (const item of items) {
+        const product = await Product.findById(item.productId);
+        if (!product || product.shopId.toString() !== shopId) {
+          return res.status(400).json({
+            success: false,
+            error: `Product ${item.productId} not found or not available from this shop`
+          });
+        }
+        
+        if (product.stock < item.quantity) {
+          return res.status(400).json({
+            success: false,
+            error: `Insufficient stock for ${product.name}. Available: ${product.stock}`
+          });
+        }
+        
+        // Sanitize product data
+        const sanitizedProduct = sanitizeForJSON(product);
+      
+      // Handle tiered pricing based on cart selection
       let productPrice = 0;
-      console.log(`Processing product ${product._id}:`, {
-        name: product.name,
-        variants: product.variants,
-        legacyPrice: product.price
+      console.log(`Processing product ${sanitizedProduct._id}:`, {
+        name: sanitizedProduct.name,
+        variants: sanitizedProduct.variants,
+        legacyPrice: sanitizedProduct.price,
+        selectedTier: item.selectedTier,
+        selectedSize: item.selectedSize,
+        cartPrice: item.price
       });
       
-      if (product.variants && product.variants.length > 0) {
-        // Use the first active variant's price
+      // First try to use the price from cart item, but validate it
+      if (item.price) {
+        let expectedPrice = 0;
+        
+        // Calculate expected price based on selection
+        if (item.selectedTier) {
+          // Prefer variants when tier provided
+          const tierVariant = Array.isArray(product.variants) 
+            ? product.variants.find(v => v.tierName === item.selectedTier && v.isActive)
+            : null;
+          expectedPrice = (tierVariant && tierVariant.price) || (product.price && product.price[item.selectedTier]) || 0;
+        } else if (item.selectedSize) {
+          expectedPrice = item.selectedSize;
+        } else if (product.variants && product.variants.length > 0) {
+          const activeVariant = product.variants.find(v => v.isActive && v.stock > 0);
+          expectedPrice = activeVariant ? activeVariant.price : 0;
+        } else {
+          expectedPrice = product.price.standard || product.price.deluxe || product.price.premium || 0;
+        }
+        
+        // Compare cart price with expected price
+        if (expectedPrice !== item.price) {
+          console.error(`Price mismatch for ${product.name}:`, {
+            cartPrice: item.price,
+            expectedPrice,
+            selectedTier: item.selectedTier,
+            selectedSize: item.selectedSize
+          });
+          return res.status(400).json({
+            success: false,
+            error: `Price mismatch for ${product.name}. Please try adding the item to cart again.`
+          });
+        }
+        
+        productPrice = item.price;
+        console.log(`Validated cart price: ${productPrice}`);
+      }
+      // If no cart price, calculate based on selection
+      else if (item.selectedTier) {
+        const tierVariant = Array.isArray(product.variants) 
+          ? product.variants.find(v => v.tierName === item.selectedTier && v.isActive)
+          : null;
+        productPrice = (tierVariant && tierVariant.price) || (product.price && product.price[item.selectedTier]) || 0;
+        console.log(`Using selected tier price: ${productPrice} for tier ${item.selectedTier}`);
+      }
+      else if (item.selectedSize) {
+        productPrice = item.selectedSize; // selectedSize is already in cents
+        console.log(`Using selected size price: ${productPrice}`);
+      }
+      else if (product.variants && product.variants.length > 0) {
         const activeVariant = product.variants.find(v => v.isActive && v.stock > 0);
         productPrice = activeVariant ? activeVariant.price : 0;
         console.log(`Using variant price: ${productPrice} from variant:`, activeVariant);
-      } else {
+      }
+      else {
         // Fallback to legacy price structure
         productPrice = product.price.standard || product.price.deluxe || product.price.premium || 0;
         console.log(`Using legacy price: ${productPrice}`);
       }
+
+      // Validate that we have a valid price
+      if (productPrice <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid price for product ${product.name}`
+        });
+      }
+
       const itemTotal = productPrice * item.quantity;
       subtotal += itemTotal;
       
-      processedItems.push({
-        productId: product._id,
-        name: product.name,
+      // Create a clean item object without any circular references
+      const processedItem = {
+        productId: sanitizedProduct._id,
+        name: `${sanitizedProduct.name}${item.selectedTier ? ` (${item.selectedTier})` : ''}`,
         price: productPrice,
         quantity: item.quantity,
         total: itemTotal,
-        image: product.images && product.images.length > 0 ? product.images[0] : null
-      });
+        image: sanitizedProduct.images && sanitizedProduct.images.length > 0 ? 
+          (typeof sanitizedProduct.images[0] === 'string' ? sanitizedProduct.images[0] : sanitizedProduct.images[0].url) : 
+          null
+      };
+      
+      // Verify the object can be serialized
+      try {
+        JSON.stringify(processedItem);
+        processedItems.push(processedItem);
+      } catch (error) {
+        console.error('Failed to serialize processed item:', error);
+        console.error('Problematic item:', processedItem);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to process item data',
+          details: error.message
+        });
+      }
     }
     
     // Calculate totals with Québec tax (14.975% on products + delivery)
@@ -269,26 +368,72 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
       }
     }
     
-    // Create Stripe checkout session
-    // Build Stripe line items: products + delivery fee + tax
-    const stripeItems = [
-      ...processedItems,
-      ...(computedDeliveryFee > 0 ? [{ name: 'Delivery fee', price: computedDeliveryFee, quantity: 1 }] : []),
-      ...(taxAmount > 0 ? [{ name: 'Tax', price: taxAmount, quantity: 1 }] : [])
-    ];
+    // Debug log all pricing components
+    console.log('=== FINAL PRICING BREAKDOWN ===');
+    console.log('Processed Items:', processedItems.map(item => ({
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      total: item.total
+    })));
+    console.log('Subtotal:', subtotal);
+    console.log('Delivery Fee:', computedDeliveryFee);
+    console.log('Tax Amount:', taxAmount);
+    console.log('Total:', total);
 
+    // Calculate final total including all fees and taxes
+    const finalTotal = total; // total is already calculated including tax and delivery
+
+    // Create a single line item with the final total
+    const stripeItems = [{
+      name: 'Order Total',
+      price: finalTotal,
+      quantity: 1,
+      description: `${processedItems.length} items, including taxes and ${delivery.method === 'delivery' ? 'delivery' : 'pickup'}`
+    }];
+
+    // Debug log the final line items
+    console.log('=== STRIPE LINE ITEMS (Pre-conversion) ===');
+    stripeItems.forEach(item => {
+      console.log(`Item: ${item.name}`);
+      console.log(`  Price: ${item.price} cents`);
+      console.log(`  Quantity: ${item.quantity}`);
+      console.log(`  Total: ${item.price * item.quantity} cents`);
+    });
+    
+    // Debug log Stripe line items
+    console.log('=== STRIPE LINE ITEMS ===');
+    console.log(JSON.stringify(stripeItems, null, 2));
+
+    // Prepare and validate session data
     const sessionData = {
-      orderId: savedOrder._id,
-      items: stripeItems,
+      orderId: savedOrder._id.toString(), // Convert ObjectId to string
+      items: stripeItems.map(item => ({
+        ...item,
+        productId: item.productId ? item.productId.toString() : undefined // Convert ObjectId to string if present
+      })),
       total,
       customerEmail: delivery.contactEmail,
       deliveryMethod: delivery.method,
-      deliveryAddress: delivery.address,
+      deliveryAddress: delivery.address ? sanitizeForJSON(delivery.address) : undefined,
       metadata: {
         shopId: shopId.toString(),
-        customerId: req.user._id.toString()
+        customerId: req.user._id.toString(),
+        orderNumber: savedOrder.orderNumber
       }
     };
+
+    // Verify the session data can be serialized
+    try {
+      JSON.stringify(sessionData);
+    } catch (error) {
+      console.error('Failed to serialize session data:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to prepare checkout data',
+        details: error.message
+      });
+    }
     
     console.log('Creating Stripe session with data:', JSON.stringify(sessionData, null, 2));
     

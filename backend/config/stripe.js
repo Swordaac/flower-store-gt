@@ -39,17 +39,39 @@ const STRIPE_CONFIG = {
 
 // Helper function to create line items for Stripe checkout
 const createLineItems = (items) => {
-  return items.map(item => ({
+  // Calculate total amount for all items
+  const totalAmount = items.reduce((total, item) => {
+    if (!item.price || item.price <= 0) {
+      throw new Error(`Invalid price for item ${item.name}: ${item.price}`);
+    }
+    return total + (item.price * (item.quantity || 1));
+  }, 0);
+
+  console.log('Creating single line item with total:', {
+    totalAmount,
+    itemCount: items.length,
+    breakdown: items.map(item => ({
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      subtotal: item.price * item.quantity
+    }))
+  });
+
+  // Create a single line item with the total amount
+  return [{
     price_data: {
       currency: STRIPE_CONFIG.currency,
       product_data: {
-        name: item.name,
-        images: item.image && item.image.url ? [item.image.url] : [], // Only use URL string
+        name: `Order Total (${items.length} items)`,
+        description: items.map(item => 
+          `${item.name} x${item.quantity}`
+        ).join(', ')
       },
-      unit_amount: item.price, // Price in cents
+      unit_amount: totalAmount,
     },
-    quantity: item.quantity,
-  }));
+    quantity: 1,
+  }];
 };
 
 // Helper function to create Stripe checkout session

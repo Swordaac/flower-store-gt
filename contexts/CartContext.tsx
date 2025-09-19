@@ -240,7 +240,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         shopId,
         items: items.map(item => ({
           productId: item.productId,
-          quantity: item.quantity
+          quantity: item.quantity,
+          selectedTier: item.selectedTier,
+          selectedSize: item.selectedSize,
+          price: item.selectedSize || item.price
         })),
         // Move recipient to root level
         recipient: {
@@ -362,7 +365,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         shopId,
         items: items.map(item => ({
           productId: item.productId,
-          quantity: item.quantity
+          quantity: item.quantity,
+          selectedTier: item.selectedTier,
+          selectedSize: item.selectedSize,
+          price: item.selectedSize || item.price
         })),
         // Move recipient to root level
         recipient: {
@@ -406,7 +412,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
       console.log('=== DEBUG: Final Payload ===');
       console.log('Full orderData:', JSON.stringify(orderData, null, 2));
-      console.log('Recipient Info:', JSON.stringify(orderData.delivery.recipient, null, 2));
+      // Note: recipient is on root, not inside delivery
+      console.log('Recipient Info:', JSON.stringify(orderData.recipient, null, 2));
       console.log('Delivery Method:', orderData.delivery.method);
 
       const response = await fetch('http://localhost:5001/api/stripe/create-checkout-session', {
