@@ -7,6 +7,7 @@ const {
   constructWebhookEvent,
   stripe 
 } = require('../config/stripe');
+const { calculateDeliveryFee } = require('../utils/deliveryFeeCalculator');
 const Order = require('../models/Order');
 const Payment = require('../models/Payment');
 const Product = require('../models/Product');
@@ -134,6 +135,20 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
     // Debug logging
     console.log('Received delivery data:', JSON.stringify(delivery, null, 2));
     
+    // Compute delivery fee based on postal code lookup (in cents)
+    let computedDeliveryFee = 0;
+    if (delivery.method === 'delivery') {
+      const feeResult = calculateDeliveryFee(delivery.address.postalCode);
+      if (!feeResult.success) {
+        return res.status(400).json({
+          success: false,
+          error: feeResult.error || 'Delivery is not available for the provided postal code'
+        });
+      }
+      // Lookup table returns dollars; convert to cents
+      computedDeliveryFee = Math.round(feeResult.fee * 100);
+    }
+    
     // Verify shop exists and is active
     console.log('Looking for shop with ID:', shopId);
     const shop = await Shop.findById(shopId);
@@ -202,10 +217,11 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
       });
     }
     
-    // Calculate totals
-    const taxAmount = Math.round(subtotal * shop.taxRate);
-    const deliveryFee = delivery.method === 'delivery' ? shop.deliveryOptions.deliveryFee : 0;
-    const total = subtotal + taxAmount + deliveryFee;
+    // Calculate totals with Québec tax (14.975% on products + delivery)
+    const QUEBEC_TAX_RATE = 0.14975; // Combined GST (5%) + QST (9.975%)
+    const taxableAmount = subtotal + computedDeliveryFee;
+    const taxAmount = Math.round(taxableAmount * QUEBEC_TAX_RATE);
+    const total = taxableAmount + taxAmount;
     
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -222,7 +238,7 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
       items: processedItems,
       subtotal,
       taxAmount,
-      deliveryFee,
+      deliveryFee: computedDeliveryFee,
       total,
       recipient: {
         name: recipientData.name,
@@ -254,9 +270,16 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
     }
     
     // Create Stripe checkout session
+    // Build Stripe line items: products + delivery fee + tax
+    const stripeItems = [
+      ...processedItems,
+      ...(computedDeliveryFee > 0 ? [{ name: 'Delivery fee', price: computedDeliveryFee, quantity: 1 }] : []),
+      ...(taxAmount > 0 ? [{ name: 'Tax', price: taxAmount, quantity: 1 }] : [])
+    ];
+
     const sessionData = {
       orderId: savedOrder._id,
-      items: processedItems,
+      items: stripeItems,
       total,
       customerEmail: delivery.contactEmail,
       deliveryMethod: delivery.method,
