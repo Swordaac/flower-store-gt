@@ -66,19 +66,52 @@ router.get('/', async (req, res) => {
     }
     
     // Price filtering - check both variants and legacy prices
+    console.log('🔍 Main products - Price filtering debug:', { minPrice, maxPrice, filterBefore: filter });
     if (minPrice || maxPrice) {
-      const priceFilter = {};
-      if (minPrice) priceFilter.$gte = parseInt(minPrice);
-      if (maxPrice) priceFilter.$lte = parseInt(maxPrice);
+      const priceConditions = [];
       
-      // Check against variants and legacy prices
-      filter.$or = [
-        { 'variants.price': priceFilter },
-        { 'price.standard': priceFilter },
-        { 'price.deluxe': priceFilter },
-        { 'price.premium': priceFilter }
-      ];
+      if (minPrice && maxPrice) {
+        // Both min and max: standard >= min AND premium <= max
+        priceConditions.push({
+          $and: [
+            {
+              $or: [
+                { 'variants.tierName': 'standard', 'variants.price': { $gte: parseInt(minPrice) } },
+                { 'price.standard': { $gte: parseInt(minPrice) } }
+              ]
+            },
+            {
+              $or: [
+                { 'variants.tierName': 'premium', 'variants.price': { $lte: parseInt(maxPrice) } },
+                { 'price.premium': { $lte: parseInt(maxPrice) } }
+              ]
+            }
+          ]
+        });
+      } else if (minPrice) {
+        // Only min: standard >= min
+        priceConditions.push({
+          $or: [
+            { 'variants.tierName': 'standard', 'variants.price': { $gte: parseInt(minPrice) } },
+            { 'price.standard': { $gte: parseInt(minPrice) } }
+          ]
+        });
+      } else if (maxPrice) {
+        // Only max: premium <= max
+        priceConditions.push({
+          $or: [
+            { 'variants.tierName': 'premium', 'variants.price': { $lte: parseInt(maxPrice) } },
+            { 'price.premium': { $lte: parseInt(maxPrice) } }
+          ]
+        });
+      }
+      
+      if (priceConditions.length > 0) {
+        filter.$or = priceConditions;
+        console.log('🔍 Applied price filters:', priceConditions);
+      }
     }
+    console.log('🔍 Main products - Final filter:', filter);
     
     // Stock filtering - check variants only
     if (inStock !== undefined) {
@@ -681,7 +714,9 @@ router.get('/shop/:shopId', async (req, res) => {
       occasions,
       color, 
       inStock,
-      bestSeller 
+      bestSeller,
+      minPrice,
+      maxPrice
     } = req.query;
     
     // Verify shop exists and is active
@@ -722,6 +757,53 @@ router.get('/shop/:shopId', async (req, res) => {
       const colorArray = Array.isArray(color) ? color : [color];
       filter.color = { $in: colorArray };
     }
+    
+    // Price filtering - check both variants and legacy prices
+    console.log('🔍 Shop products - Price filtering debug:', { minPrice, maxPrice, filterBefore: filter });
+    if (minPrice || maxPrice) {
+      const priceConditions = [];
+      
+      // Convert input prices from dollars to cents
+      const minPriceCents = minPrice ? parseInt(minPrice) * 100 : null;
+      const maxPriceCents = maxPrice ? parseInt(maxPrice) * 100 : null;
+      
+      if (minPriceCents !== null || maxPriceCents !== null) {
+        // Filter for variants
+        const variantConditions = {
+          'variants.isActive': true,
+          'variants.stock': { $gt: 0 }
+        };
+        
+        if (minPriceCents !== null) {
+          variantConditions['variants.price'] = { $gte: minPriceCents };
+        }
+        if (maxPriceCents !== null) {
+          variantConditions['variants.price'] = {
+            ...(variantConditions['variants.price'] || {}),
+            $lte: maxPriceCents
+          };
+        }
+        
+        priceConditions.push(variantConditions);
+        
+        // Also check legacy price structure
+        const legacyConditions = {};
+        if (minPriceCents !== null) {
+          legacyConditions['price.standard'] = { $gte: minPriceCents };
+        }
+        if (maxPriceCents !== null) {
+          legacyConditions['price.premium'] = { $lte: maxPriceCents };
+        }
+        
+        priceConditions.push(legacyConditions);
+      }
+      
+      if (priceConditions.length > 0) {
+        filter.$or = priceConditions;
+        console.log('🔍 Applied price filters:', priceConditions);
+      }
+    }
+    console.log('🔍 Shop products - Final filter:', filter);
     
     // Best seller filtering
     if (bestSeller !== undefined) {

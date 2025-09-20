@@ -34,6 +34,7 @@ const theme = {
 interface Product {
   _id: string;
   name: string;
+  color: string;
   description: string;
   price: {
     standard: number;
@@ -111,12 +112,17 @@ export default function BestSellersPage() {
   const [error, setError] = useState<string | null>(null)
   const [productTypes, setProductTypes] = useState<ProductType[]>([])
   const [occasions, setOccasions] = useState<Occasion[]>([])
+  const [colors, setColors] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
   const [currentFilters, setCurrentFilters] = useState<FilterState>({
     selectedProductTypes: [],
     selectedOccasions: [],
     selectedPriceRange: null,
-    searchQuery: ''
+    searchQuery: '',
+    selectedColors: [],
+    bestSeller: false,
+    minPrice: null,
+    maxPrice: null
   })
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
 
@@ -197,11 +203,16 @@ export default function BestSellersPage() {
             return product.stock > 0
           })
           console.log('📦 Products loaded:', productsWithStock.length, 'out of', data.data?.length || 0)
-          setProducts(productsWithStock)
-          setFilteredProducts(productsWithStock)
-        } else {
-          throw new Error(data.error || 'Failed to fetch products')
-        }
+            setProducts(productsWithStock)
+            setFilteredProducts(productsWithStock)
+            
+            // Extract unique colors from products
+            const uniqueColors = [...new Set(productsWithStock.map((product: any) => product.color).filter(Boolean))]
+            setColors(uniqueColors as string[])
+            console.log('✅ Colors extracted:', uniqueColors)
+          } else {
+            throw new Error(data.error || 'Failed to fetch products')
+          }
       } catch (err) {
         console.error('Error fetching products:', err)
         setError(err instanceof Error ? err.message : 'Failed to fetch products')
@@ -239,7 +250,7 @@ export default function BestSellersPage() {
           });
         }
 
-        // Add price range filters
+        // Add price range filters (legacy)
         if (currentFilters.selectedPriceRange) {
           const priceRange = getPriceRangeFromLabel(currentFilters.selectedPriceRange)
           if (priceRange) {
@@ -250,6 +261,26 @@ export default function BestSellersPage() {
               url += `&maxPrice=${priceRange.max}`
             }
           }
+        }
+
+        // Add new price filters (min/max inputs)
+        if (currentFilters.minPrice !== null) {
+          url += `&minPrice=${currentFilters.minPrice}`
+        }
+        if (currentFilters.maxPrice !== null) {
+          url += `&maxPrice=${currentFilters.maxPrice}`
+        }
+
+        // Add color filters
+        if (currentFilters.selectedColors.length > 0) {
+          currentFilters.selectedColors.forEach(color => {
+            url += `&color[]=${encodeURIComponent(color)}`
+          });
+        }
+
+        // Add best seller filter
+        if (currentFilters.bestSeller) {
+          url += `&bestSeller=true`
         }
 
         // Add search query (use debounced version)
@@ -304,6 +335,14 @@ export default function BestSellersPage() {
             product.occasions?.some(occasion => currentFilters.selectedOccasions.includes(occasion._id))
           )
         }
+        if (currentFilters.selectedColors.length > 0) {
+          filtered = filtered.filter(product => 
+            currentFilters.selectedColors.includes(product.color)
+          )
+        }
+        if (currentFilters.bestSeller) {
+          filtered = filtered.filter(product => product.isBestSeller)
+        }
         if (currentFilters.selectedPriceRange) {
           const priceRange = getPriceRangeFromLabel(currentFilters.selectedPriceRange)
           if (priceRange) {
@@ -312,6 +351,44 @@ export default function BestSellersPage() {
               return productPrice >= priceRange.min && productPrice <= priceRange.max
             })
           }
+        }
+        // Handle simplified price filtering: standard >= min AND premium <= max
+        if (currentFilters.minPrice !== null || currentFilters.maxPrice !== null) {
+          filtered = filtered.filter(product => {
+            // Convert input prices from dollars to cents
+            const minPriceCents = currentFilters.minPrice !== null ? currentFilters.minPrice * 100 : null;
+            const maxPriceCents = currentFilters.maxPrice !== null ? currentFilters.maxPrice * 100 : null;
+            
+            // Get min and max prices from variants
+            let minVariantPrice = Infinity;
+            let maxVariantPrice = 0;
+            
+            if (product.variants && product.variants.length > 0) {
+              product.variants.forEach(variant => {
+                if (variant.isActive && variant.stock > 0) {
+                  minVariantPrice = Math.min(minVariantPrice, variant.price);
+                  maxVariantPrice = Math.max(maxVariantPrice, variant.price);
+                }
+              });
+            } else {
+              // Fallback to legacy price structure
+              const prices = [product.price.standard, product.price.deluxe, product.price.premium].filter(p => p > 0);
+              if (prices.length > 0) {
+                minVariantPrice = Math.min(...prices);
+                maxVariantPrice = Math.max(...prices);
+              }
+            }
+            
+            // If no valid prices found, exclude the product
+            if (minVariantPrice === Infinity || maxVariantPrice === 0) {
+              return false;
+            }
+            
+            const matchesMin = minPriceCents === null || minVariantPrice >= minPriceCents;
+            const matchesMax = maxPriceCents === null || maxVariantPrice <= maxPriceCents;
+            
+            return matchesMin && matchesMax;
+          })
         }
         if (currentFilters.searchQuery.trim()) {
           const query = currentFilters.searchQuery.toLowerCase()
@@ -332,7 +409,11 @@ export default function BestSellersPage() {
     const hasFilters = currentFilters.selectedProductTypes.length > 0 || 
                       currentFilters.selectedOccasions.length > 0 || 
                       currentFilters.selectedPriceRange !== null ||
-                      debouncedSearchQuery.trim() !== ''
+                      debouncedSearchQuery.trim() !== '' ||
+                      currentFilters.selectedColors.length > 0 ||
+                      currentFilters.bestSeller ||
+                      currentFilters.minPrice !== null ||
+                      currentFilters.maxPrice !== null
 
     console.log('🔍 Filter check - hasFilters:', hasFilters, 'currentFilters:', currentFilters)
 
@@ -343,7 +424,16 @@ export default function BestSellersPage() {
       console.log('📦 Using existing products (no filters)')
       setFilteredProducts(products)
     }
-  }, [currentFilters, debouncedSearchQuery, products])
+  }, [currentFilters, debouncedSearchQuery])
+
+  // Handle local filtering when products change (for non-API filters)
+  useEffect(() => {
+    if (products.length > 0) {
+      console.log('🔄 Products changed, applying local filters')
+      // Apply local filtering logic here if needed
+      // This will be handled by the main filtering useEffect
+    }
+  }, [products])
 
   // Helper function to get price range from label
   const getPriceRangeFromLabel = (label: string) => {
@@ -376,6 +466,38 @@ export default function BestSellersPage() {
     }
     
     return 0
+  }
+
+  // Helper function to get price range for a product
+  const getProductPriceRange = (product: Product) => {
+    if (product.variants && product.variants.length > 0) {
+      const activeVariants = product.variants.filter(v => v.isActive)
+      if (activeVariants.length === 0) return { min: 0, max: 0 }
+      
+      const prices = activeVariants.map(v => v.price)
+      return {
+        min: Math.min(...prices),
+        max: Math.max(...prices)
+      }
+    } else {
+      // Fallback to legacy price structure
+      const prices = [product.price.standard, product.price.deluxe, product.price.premium]
+      return {
+        min: Math.min(...prices),
+        max: Math.max(...prices)
+      }
+    }
+  }
+
+  // Helper function to get price for specific tier
+  const getProductPriceForTier = (product: Product, tier: 'standard' | 'deluxe' | 'premium') => {
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.find(v => v.tierName === tier && v.isActive)
+      return variant ? variant.price : 0
+    } else {
+      // Fallback to legacy price structure
+      return product.price[tier] || 0
+    }
   }
 
   useEffect(() => {
@@ -413,9 +535,29 @@ export default function BestSellersPage() {
   }
 
   const handleFilterChange = (filters: FilterState) => {
-    console.log('🔄 Filter changed in main page:', filters)
-    console.log('🔄 Previous filters:', currentFilters)
-    setCurrentFilters(filters)
+    // Use a memoized comparison to prevent unnecessary state updates
+    const prevFiltersStr = JSON.stringify(currentFilters);
+    const newFiltersStr = JSON.stringify(filters);
+    
+    if (prevFiltersStr === newFiltersStr) {
+      return;
+    }
+    
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 Filters updated:', {
+        productTypes: filters.selectedProductTypes.length,
+        occasions: filters.selectedOccasions.length,
+        colors: filters.selectedColors.length,
+        priceRange: filters.selectedPriceRange,
+        minPrice: filters.minPrice,
+        maxPrice: filters.maxPrice,
+        bestSeller: filters.bestSeller,
+        hasSearch: !!filters.searchQuery.trim()
+      });
+    }
+    
+    setCurrentFilters(filters);
   }
 
   const handleClearFilters = () => {
@@ -423,7 +565,11 @@ export default function BestSellersPage() {
       selectedProductTypes: [],
       selectedOccasions: [],
       selectedPriceRange: null,
-      searchQuery: ''
+      searchQuery: '',
+      selectedColors: [],
+      bestSeller: false,
+      minPrice: null,
+      maxPrice: null
     })
   }
 
@@ -729,6 +875,8 @@ export default function BestSellersPage() {
               <FilterComponent
                 productTypes={productTypes}
                 occasions={occasions}
+                products={products}
+                colors={colors}
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
                 isVisible={showFilters}

@@ -37,6 +37,20 @@ interface Product {
   name: string;
   color: string;
   description: string;
+  // New variants structure
+  variants: Array<{
+    tierName: 'standard' | 'deluxe' | 'premium';
+    price: number;
+    stock: number;
+    images: Array<{
+      size: string;
+      url: string;
+      alt: string;
+      isPrimary: boolean;
+    }>;
+    isActive: boolean;
+  }>;
+  // Legacy price structure for backwards compatibility
   price: {
     standard: number;
     deluxe: number;
@@ -719,6 +733,9 @@ interface ProductFilters {
   productTypes: string[];
   colors: string[];
   bestSeller: boolean;
+  minPrice: number | null;
+  maxPrice: number | null;
+  priceTier: 'all' | 'standard' | 'deluxe' | 'premium';
 }
 
 function ProductsTab({ 
@@ -738,7 +755,10 @@ function ProductsTab({
     occasions: [],
     productTypes: [],
     colors: [],
-    bestSeller: false
+    bestSeller: false,
+    minPrice: null,
+    maxPrice: null,
+    priceTier: 'all'
   });
   const [availableFilters, setAvailableFilters] = useState<{
     occasions: any[];
@@ -780,6 +800,38 @@ function ProductsTab({
     fetchFilters();
   }, [products]);
 
+  // Helper function to get price range for a product
+  const getProductPriceRange = (product: Product) => {
+    if (product.variants && product.variants.length > 0) {
+      const activeVariants = product.variants.filter(v => v.isActive);
+      if (activeVariants.length === 0) return { min: 0, max: 0 };
+      
+      const prices = activeVariants.map(v => v.price);
+      return {
+        min: Math.min(...prices),
+        max: Math.max(...prices)
+      };
+    } else {
+      // Fallback to legacy price structure
+      const prices = [product.price.standard, product.price.deluxe, product.price.premium];
+      return {
+        min: Math.min(...prices),
+        max: Math.max(...prices)
+      };
+    }
+  };
+
+  // Helper function to get price for specific tier
+  const getProductPriceForTier = (product: Product, tier: 'standard' | 'deluxe' | 'premium') => {
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.find(v => v.tierName === tier && v.isActive);
+      return variant ? variant.price : 0;
+    } else {
+      // Fallback to legacy price structure
+      return product.price[tier] || 0;
+    }
+  };
+
   // Filter products
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
@@ -794,23 +846,49 @@ function ProductsTab({
       
       const matchesBestSeller = !filters.bestSeller || product.isBestSeller;
 
-      return matchesOccasions && matchesProductTypes && matchesColors && matchesBestSeller;
+      // Price filtering
+      let matchesPrice = true;
+      if (filters.minPrice !== null || filters.maxPrice !== null || filters.priceTier !== 'all') {
+        if (filters.priceTier === 'all') {
+          // Check if any tier falls within the price range
+          const priceRange = getProductPriceRange(product);
+          matchesPrice = (filters.minPrice === null || priceRange.max >= filters.minPrice) &&
+                        (filters.maxPrice === null || priceRange.min <= filters.maxPrice);
+        } else {
+          // Check specific tier price
+          const tierPrice = getProductPriceForTier(product, filters.priceTier as 'standard' | 'deluxe' | 'premium');
+          matchesPrice = (filters.minPrice === null || tierPrice >= filters.minPrice) &&
+                        (filters.maxPrice === null || tierPrice <= filters.maxPrice);
+        }
+      }
+
+      return matchesOccasions && matchesProductTypes && matchesColors && matchesBestSeller && matchesPrice;
     });
   }, [products, filters]);
 
   // Handle filter changes
-  const handleFilterChange = (filterType: keyof ProductFilters, value: string) => {
+  const handleFilterChange = (filterType: keyof ProductFilters, value: string | number) => {
     if (filterType === 'bestSeller') {
       setFilters(prev => ({
         ...prev,
         bestSeller: !prev.bestSeller
       }));
+    } else if (filterType === 'minPrice' || filterType === 'maxPrice') {
+      setFilters(prev => ({
+        ...prev,
+        [filterType]: value === '' ? null : Number(value)
+      }));
+    } else if (filterType === 'priceTier') {
+      setFilters(prev => ({
+        ...prev,
+        priceTier: value as 'all' | 'standard' | 'deluxe' | 'premium'
+      }));
     } else {
       setFilters(prev => {
         const currentValues = prev[filterType] as string[];
-        const newValues = currentValues.includes(value)
+        const newValues = currentValues.includes(value as string)
           ? currentValues.filter(v => v !== value)
-          : [...currentValues, value];
+          : [...currentValues, value as string];
         
         return {
           ...prev,
@@ -826,7 +904,10 @@ function ProductsTab({
       occasions: [],
       productTypes: [],
       colors: [],
-      bestSeller: false
+      bestSeller: false,
+      minPrice: null,
+      maxPrice: null,
+      priceTier: 'all'
     });
   };
   return (
@@ -855,7 +936,7 @@ function ProductsTab({
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">Filters</h3>
-            {(filters.occasions.length > 0 || filters.productTypes.length > 0 || filters.colors.length > 0) && (
+            {(filters.occasions.length > 0 || filters.productTypes.length > 0 || filters.colors.length > 0 || filters.minPrice !== null || filters.maxPrice !== null || filters.priceTier !== 'all') && (
               <button
                 onClick={clearFilters}
                 className="text-sm text-indigo-600 hover:text-indigo-800"
@@ -941,6 +1022,74 @@ function ProductsTab({
                 />
                 <span className="ml-2 text-sm text-gray-600">Show only best sellers</span>
               </label>
+            </div>
+          </div>
+
+          {/* Price Range Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Price Range (CAD)
+            </label>
+            <div className="space-y-3">
+              {/* Price Tier Selection */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Price Tier
+                </label>
+                <select
+                  value={filters.priceTier}
+                  onChange={(e) => handleFilterChange('priceTier', e.target.value)}
+                  className="block w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="all">All Tiers</option>
+                  <option value="standard">Standard</option>
+                  <option value="deluxe">Deluxe</option>
+                  <option value="premium">Premium</option>
+                </select>
+              </div>
+              
+              {/* Min/Max Price Inputs */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Min Price
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 text-sm">$</span>
+                    </div>
+                    <input
+                      type="number"
+                      value={filters.minPrice || ''}
+                      onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      step="0.01"
+                      className="pl-7 block w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Max Price
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 text-sm">$</span>
+                    </div>
+                    <input
+                      type="number"
+                      value={filters.maxPrice || ''}
+                      onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+                      placeholder="No limit"
+                      min="0"
+                      step="0.01"
+                      className="pl-7 block w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1037,15 +1186,39 @@ function ProductsTab({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="space-y-1">
-                        <div className="text-xs text-gray-500">Standard: ${(product.price?.standard / 100).toFixed(2)}</div>
-                        <div className="text-xs text-gray-500">Deluxe: ${(product.price?.deluxe / 100).toFixed(2)}</div>
-                        <div className="text-xs text-gray-500">Premium: ${(product.price?.premium / 100).toFixed(2)}</div>
+                        {product.variants && product.variants.length > 0 ? (
+                          product.variants
+                            .filter(v => v.isActive)
+                            .map(variant => (
+                              <div key={variant.tierName} className="text-xs text-gray-500">
+                                {variant.tierName.charAt(0).toUpperCase() + variant.tierName.slice(1)}: ${(variant.price / 100).toFixed(2)}
+                              </div>
+                            ))
+                        ) : (
+                          <>
+                            <div className="text-xs text-gray-500">Standard: ${(product.price?.standard / 100).toFixed(2)}</div>
+                            <div className="text-xs text-gray-500">Deluxe: ${(product.price?.deluxe / 100).toFixed(2)}</div>
+                            <div className="text-xs text-gray-500">Premium: ${(product.price?.premium / 100).toFixed(2)}</div>
+                          </>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="flex items-center">
-                        <span className="mr-2">{product.stock}</span>
-                        <span className="text-xs text-gray-500">({product.color})</span>
+                      <div className="space-y-1">
+                        {product.variants && product.variants.length > 0 ? (
+                          product.variants
+                            .filter(v => v.isActive)
+                            .map(variant => (
+                              <div key={variant.tierName} className="text-xs text-gray-500">
+                                {variant.tierName.charAt(0).toUpperCase() + variant.tierName.slice(1)}: {variant.stock}
+                              </div>
+                            ))
+                        ) : (
+                          <div className="text-xs text-gray-500">
+                            Total: {product.stock}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-400">({product.color})</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
