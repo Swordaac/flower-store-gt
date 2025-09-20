@@ -57,6 +57,12 @@ const occasionSchema = new mongoose.Schema({
   
   seasonalEnd: {
     type: Date
+  },
+  
+  // Nested sympathy categories
+  sympathy: {
+    type: [String],
+    default: []
   }
 }, {
   timestamps: true,

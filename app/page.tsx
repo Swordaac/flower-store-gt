@@ -41,7 +41,6 @@ interface Product {
     premium: number;
   };
   stock: number;
-  category: string[];
   productTypes: Array<{
     _id: string;
     name: string;
@@ -76,6 +75,7 @@ interface Product {
   }>;
   isActive: boolean;
   isFeatured: boolean;
+  isBestSeller: boolean;
   shopId: string;
   createdAt: string;
   updatedAt: string;
@@ -92,6 +92,7 @@ interface Occasion extends FilterOption {
   isActive: boolean;
   isSeasonal: boolean;
   sortOrder: number;
+  sympathy?: string[];
 }
 
 export default function BestSellersPage() {
@@ -226,12 +227,16 @@ export default function BestSellersPage() {
         
         // Add product type filters
         if (currentFilters.selectedProductTypes.length > 0) {
-          url += `&productTypes=${currentFilters.selectedProductTypes.join(',')}`
+          currentFilters.selectedProductTypes.forEach(type => {
+            url += `&productTypes[]=${type}`
+          });
         }
         
         // Add occasion filters
         if (currentFilters.selectedOccasions.length > 0) {
-          url += `&occasions=${currentFilters.selectedOccasions.join(',')}`
+          currentFilters.selectedOccasions.forEach(occasion => {
+            url += `&occasions[]=${occasion}`
+          });
         }
 
         // Add price range filters

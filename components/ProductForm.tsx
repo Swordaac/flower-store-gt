@@ -29,7 +29,6 @@ interface ProductFormData {
     deluxe: string;
     premium: string;
   };
-  category: string[];
   tags: string[];
   isActive: boolean;
   isFeatured: boolean;
@@ -60,19 +59,6 @@ interface ProductFormProps {
   shopId?: string; // Required for image uploads
 }
 
-// Legacy categories for backwards compatibility
-const categories = [
-  'bouquet',
-  'single-flower',
-  'plant',
-  'gift-basket',
-  'seasonal',
-  'wedding',
-  'funeral',
-  'anniversary',
-  'birthday',
-  'other'
-];
 
 const colors = [
   'red',
@@ -138,7 +124,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       deluxe: '',
       premium: ''
     },
-    category: [],
     tags: [],
     isActive: true,
     isFeatured: false,
@@ -271,7 +256,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           deluxe: product.price?.deluxe ? (product.price.deluxe / 100).toString() : '',
           premium: product.price?.premium ? (product.price.premium / 100).toString() : ''
         },
-        category: product.category || [],
         tags: product.tags || [],
         isActive: product.isActive !== undefined ? product.isActive : true,
         isFeatured: product.isFeatured || false,
@@ -302,14 +286,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }));
   };
 
-  const handleCategoryChange = (category: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      category: checked 
-        ? [...prev.category, category]
-        : prev.category.filter(c => c !== category)
-    }));
-  };
 
   const handleProductTypeChange = (productTypeId: string, checked: boolean) => {
     setFormData(prev => ({
@@ -700,30 +676,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             )}
           </div>
 
-          {/* Categories */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Categories * (Select at least one)
-            </label>
-            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {categories.map(category => (
-                <label key={category} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.category.includes(category)}
-                    onChange={(e) => handleCategoryChange(category, e.target.checked)}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  />
-                  <span className="ml-2 text-sm text-gray-900">
-                    {category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ')}
-                  </span>
-                </label>
-              ))}
-            </div>
-            {formData.category.length === 0 && (
-              <p className="mt-1 text-sm text-red-600">Please select at least one category</p>
-            )}
-          </div>
 
           {/* Product Variants */}
           <div>

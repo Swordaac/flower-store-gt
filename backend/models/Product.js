@@ -116,17 +116,6 @@ const productSchema = new mongoose.Schema({
   
   // Legacy stock field removed - use variants.stock instead
   
-  // Legacy category array (deprecated - use productTypes instead)
-  category: {
-    type: [String],
-    validate: {
-      validator: function(v) {
-        return !v || v.length === 0 || (v && v.length > 0);
-      },
-      message: 'If provided, at least one category is required'
-    }
-  },
-  
   tags: [{
     type: String,
     trim: true
@@ -191,6 +180,11 @@ const productSchema = new mongoose.Schema({
   },
   
   isFeatured: {
+    type: Boolean,
+    default: false
+  },
+  
+  isBestSeller: {
     type: Boolean,
     default: false
   },
@@ -392,12 +386,11 @@ productSchema.index({ 'variants.tierName': 1, 'variants.isActive': 1 });
 productSchema.index({ 'variants.stock': 1, 'variants.isActive': 1 });
 // slug index is automatically created by unique: true
 productSchema.index({ isFeatured: 1, sortOrder: 1 });
+productSchema.index({ isBestSeller: 1, sortOrder: 1 });
 productSchema.index({ 'price.standard': 1, 'price.deluxe': 1, 'price.premium': 1 });
 
 // Text index for search
 productSchema.index({ name: 'text', description: 'text' });
 
-// Legacy category index (deprecated)
-productSchema.index({ category: 1 });
 
 module.exports = mongoose.model('Product', productSchema);

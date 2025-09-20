@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { UserProfile } from '@/components/auth/UserProfile';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -43,7 +43,6 @@ interface Product {
     premium: number;
   };
   stock: number;
-  category: string[];
   tags: string[];
   images: Array<{
     size: string;
@@ -61,7 +60,19 @@ interface Product {
   };
   isActive: boolean;
   isFeatured: boolean;
+  isBestSeller: boolean;
   createdAt: string;
+  occasions?: Array<{
+    _id: string;
+    name: string;
+    sympathy?: string[];
+  }>;
+  productTypes?: Array<{
+    _id: string;
+    name: string;
+    color: string;
+    icon?: string;
+  }>;
 }
 
 interface Order {
@@ -703,6 +714,13 @@ function ShopTab({ shop }: { shop: any }) {
 }
 
 // Products Tab Component
+interface ProductFilters {
+  occasions: string[];
+  productTypes: string[];
+  colors: string[];
+  bestSeller: boolean;
+}
+
 function ProductsTab({ 
   products, 
   loading, 
@@ -716,6 +734,101 @@ function ProductsTab({
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
 }) {
+  const [filters, setFilters] = useState<ProductFilters>({
+    occasions: [],
+    productTypes: [],
+    colors: [],
+    bestSeller: false
+  });
+  const [availableFilters, setAvailableFilters] = useState<{
+    occasions: any[];
+    productTypes: any[];
+    colors: string[];
+  }>({
+    occasions: [],
+    productTypes: [],
+    colors: []
+  });
+
+  // Fetch available filters
+  useEffect(() => {
+    const fetchFilters = async () => {
+      try {
+        const [occasionsRes, productTypesRes] = await Promise.all([
+          fetch('http://localhost:5001/api/products/occasions'),
+          fetch('http://localhost:5001/api/products/types')
+        ]);
+
+        const [occasionsData, productTypesData] = await Promise.all([
+          occasionsRes.json(),
+          productTypesRes.json()
+        ]);
+
+        // Get unique colors from products
+        const uniqueColors = Array.from(new Set(products.map(p => p.color))).filter(Boolean);
+
+        setAvailableFilters({
+          occasions: occasionsData.data || [],
+          productTypes: productTypesData.data || [],
+          colors: uniqueColors
+        });
+      } catch (error) {
+        console.error('Error fetching filters:', error);
+      }
+    };
+
+    fetchFilters();
+  }, [products]);
+
+  // Filter products
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const matchesOccasions = filters.occasions.length === 0 || 
+        product.occasions?.some((o: { _id: string }) => filters.occasions.includes(o._id));
+      
+      const matchesProductTypes = filters.productTypes.length === 0 || 
+        product.productTypes?.some((pt: { _id: string }) => filters.productTypes.includes(pt._id));
+      
+      const matchesColors = filters.colors.length === 0 || 
+        filters.colors.includes(product.color);
+      
+      const matchesBestSeller = !filters.bestSeller || product.isBestSeller;
+
+      return matchesOccasions && matchesProductTypes && matchesColors && matchesBestSeller;
+    });
+  }, [products, filters]);
+
+  // Handle filter changes
+  const handleFilterChange = (filterType: keyof ProductFilters, value: string) => {
+    if (filterType === 'bestSeller') {
+      setFilters(prev => ({
+        ...prev,
+        bestSeller: !prev.bestSeller
+      }));
+    } else {
+      setFilters(prev => {
+        const currentValues = prev[filterType] as string[];
+        const newValues = currentValues.includes(value)
+          ? currentValues.filter(v => v !== value)
+          : [...currentValues, value];
+        
+        return {
+          ...prev,
+          [filterType]: newValues
+        };
+      });
+    }
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      occasions: [],
+      productTypes: [],
+      colors: [],
+      bestSeller: false
+    });
+  };
   return (
     <div>
       <div className="mb-8">
@@ -737,9 +850,111 @@ function ProductsTab({
       </div>
 
       {/* Products Table */}
+      {/* Filters */}
+      <div className="bg-white shadow rounded-lg mb-6">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-gray-900">Filters</h3>
+            {(filters.occasions.length > 0 || filters.productTypes.length > 0 || filters.colors.length > 0) && (
+              <button
+                onClick={clearFilters}
+                className="text-sm text-indigo-600 hover:text-indigo-800"
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Occasions Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Occasions
+            </label>
+            <div className="space-y-2">
+              {availableFilters.occasions.map(occasion => (
+                <label key={occasion._id} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={filters.occasions.includes(occasion._id)}
+                    onChange={() => handleFilterChange('occasions', occasion._id)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm text-gray-600">{occasion.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Product Types Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Product Types
+            </label>
+            <div className="space-y-2">
+              {availableFilters.productTypes.map(type => (
+                <label key={type._id} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={filters.productTypes.includes(type._id)}
+                    onChange={() => handleFilterChange('productTypes', type._id)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm text-gray-600">{type.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Colors Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Colors
+            </label>
+            <div className="space-y-2">
+              {availableFilters.colors.map(color => (
+                <label key={color} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={filters.colors.includes(color)}
+                    onChange={() => handleFilterChange('colors', color)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm text-gray-600">{color}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Best Seller Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Best Seller
+            </label>
+            <div className="space-y-2">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={filters.bestSeller}
+                  onChange={() => setFilters(prev => ({ ...prev, bestSeller: !prev.bestSeller }))}
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <span className="ml-2 text-sm text-gray-600">Show only best sellers</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Products Table */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Product List</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-gray-900">Product List</h3>
+            <span className="text-sm text-gray-500">
+              {filteredProducts.length} products
+            </span>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -749,7 +964,7 @@ function ProductsTab({
                   Product
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
+                  Product Type
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Price
@@ -775,14 +990,14 @@ function ProductsTab({
                     Loading products...
                   </td>
                 </tr>
-              ) : products.length === 0 ? (
+              ) : filteredProducts.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     No products found. Add your first product to get started!
                   </td>
                 </tr>
               ) : (
-                products.map((product) => (
+                filteredProducts.map((product) => (
                   <tr key={product._id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -806,9 +1021,16 @@ function ProductsTab({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="flex flex-wrap gap-1">
-                        {product.category?.map((cat, index) => (
-                          <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                            {cat}
+                        {product.productTypes?.map((type) => (
+                          <span 
+                            key={type._id} 
+                            className="px-2 py-1 rounded-full text-xs"
+                            style={{ 
+                              backgroundColor: type.color + '20', 
+                              color: type.color 
+                            }}
+                          >
+                            {type.name}
                           </span>
                         ))}
                       </div>

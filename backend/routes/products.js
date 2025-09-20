@@ -24,6 +24,7 @@ router.get('/', async (req, res) => {
       maxPrice, 
       inStock, 
       search,
+      bestSeller,
       sortBy = 'createdAt',
       sortOrder = 'desc'
     } = req.query;
@@ -33,21 +34,25 @@ router.get('/', async (req, res) => {
     
     if (shopId) filter.shopId = shopId;
     
-    // Handle legacy category filter
-    if (category) {
-      const categoryArray = Array.isArray(category) ? category : [category];
-      filter.category = { $in: categoryArray };
-    }
-    
     // Handle new productTypes filter
     if (productTypes) {
-      const productTypeArray = Array.isArray(productTypes) ? productTypes : [productTypes];
+      // Handle both array format and comma-separated string
+      const productTypeArray = Array.isArray(productTypes) 
+        ? productTypes 
+        : typeof productTypes === 'string'
+          ? productTypes.split(',')
+          : [productTypes];
       filter.productTypes = { $in: productTypeArray };
     }
     
     // Handle occasions filter
     if (occasions) {
-      const occasionArray = Array.isArray(occasions) ? occasions : [occasions];
+      // Handle both array format and comma-separated string
+      const occasionArray = Array.isArray(occasions)
+        ? occasions
+        : typeof occasions === 'string'
+          ? occasions.split(',')
+          : [occasions];
       filter.occasions = { $in: occasionArray };
     }
     
@@ -93,6 +98,11 @@ router.get('/', async (req, res) => {
     if (search) {
       // Use text search
       filter.$text = { $search: search };
+    }
+    
+    // Best seller filtering
+    if (bestSeller !== undefined) {
+      filter.isBestSeller = bestSeller === 'true';
     }
     
     // Build sort
@@ -233,7 +243,6 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       color,
       description,
       price,
-      category,
       productTypes,
       occasions,
       variants,
@@ -250,7 +259,6 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
     console.log('- color:', color);
     console.log('- description:', description);
     console.log('- price:', price);
-    console.log('- category:', category);
     console.log('- productTypes:', productTypes);
     console.log('- occasions:', occasions);
     console.log('- variants:', variants);
@@ -353,13 +361,6 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       });
     }
     
-    // Validate legacy category if provided (for backwards compatibility)
-    if (category && (!Array.isArray(category) || category.length === 0)) {
-      return res.status(400).json({
-        success: false,
-        error: 'If provided, at least one category is required'
-      });
-    }
     
     // Check if user owns a shop (unless admin)
     let shopId = req.body.shopId;
@@ -395,7 +396,6 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       variants: productVariants,
       // Legacy fields for backwards compatibility
       price: legacyPrice,
-      category,
       tags,
       images,
       deluxeImage,
@@ -680,7 +680,8 @@ router.get('/shop/:shopId', async (req, res) => {
       productTypes,
       occasions,
       color, 
-      inStock 
+      inStock,
+      bestSeller 
     } = req.query;
     
     // Verify shop exists and is active
@@ -695,27 +696,36 @@ router.get('/shop/:shopId', async (req, res) => {
     // Build filter
     let filter = { shopId, isActive: true };
     
-    // Handle legacy category filter
-    if (category) {
-      const categoryArray = Array.isArray(category) ? category : [category];
-      filter.category = { $in: categoryArray };
-    }
-    
     // Handle new productTypes filter
     if (productTypes) {
-      const productTypeArray = Array.isArray(productTypes) ? productTypes : [productTypes];
+      // Handle both array format and comma-separated string
+      const productTypeArray = Array.isArray(productTypes) 
+        ? productTypes 
+        : typeof productTypes === 'string'
+          ? productTypes.split(',')
+          : [productTypes];
       filter.productTypes = { $in: productTypeArray };
     }
     
     // Handle occasions filter
     if (occasions) {
-      const occasionArray = Array.isArray(occasions) ? occasions : [occasions];
+      // Handle both array format and comma-separated string
+      const occasionArray = Array.isArray(occasions)
+        ? occasions
+        : typeof occasions === 'string'
+          ? occasions.split(',')
+          : [occasions];
       filter.occasions = { $in: occasionArray };
     }
     
     if (color) {
       const colorArray = Array.isArray(color) ? color : [color];
       filter.color = { $in: colorArray };
+    }
+    
+    // Best seller filtering
+    if (bestSeller !== undefined) {
+      filter.isBestSeller = bestSeller === 'true';
     }
     
     // Stock filtering - check variants only
