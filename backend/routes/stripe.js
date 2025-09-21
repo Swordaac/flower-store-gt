@@ -378,32 +378,54 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
     console.log('Order created with ID:', savedOrder._id);
     console.log('Order customer ID:', savedOrder.customerId, 'Type:', typeof savedOrder.customerId);
     
-    // Reduce stock immediately in development (since webhooks can't reach localhost)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Development mode: Reducing stock immediately');
-      for (const item of processedItems) {
-        if (item.selectedTier) {
-          // Decrement specific variant stock if sufficient stock remains
-          const updateResult = await Product.updateOne(
-            { 
-              _id: item.productId,
-              variants: { 
-                $elemMatch: { 
-                  tierName: item.selectedTier, 
-                  isActive: true,
-                  stock: { $gte: item.quantity }
-                } 
+    // Atomically reserve stock per tier now to prevent race conditions
+    // We do this immediately after order creation; mark order as stockReserved on success
+    let allReserved = true;
+    for (const item of processedItems) {
+      if (item.selectedTier) {
+        const updateResult = await Product.updateOne(
+          {
+            _id: item.productId,
+            variants: {
+              $elemMatch: {
+                tierName: item.selectedTier,
+                isActive: true,
+                stock: { $gte: item.quantity }
               }
-            },
-            { $inc: { 'variants.$.stock': -item.quantity } }
-          );
-          console.log(`Reduced stock for product ${item.productId} tier ${item.selectedTier} by ${item.quantity}. Matched: ${updateResult.matchedCount}, Modified: ${updateResult.modifiedCount}`);
-          if (!updateResult.modifiedCount) {
-            console.warn(`Stock reduction skipped for ${item.productId} (${item.selectedTier}) due to insufficient stock at commit time.`);
-          }
+            }
+          },
+          { $inc: { 'variants.$.stock': -item.quantity } }
+        );
+        if (!updateResult.modifiedCount) {
+          allReserved = false;
+          break;
         }
       }
     }
+
+    if (!allReserved) {
+      // Roll back any partial reservations
+      for (const item of processedItems) {
+        if (item.selectedTier) {
+          await Product.updateOne(
+            { _id: item.productId, 'variants.tierName': item.selectedTier },
+            { $inc: { 'variants.$.stock': item.quantity } }
+          );
+        }
+      }
+      // Cancel order and inform client
+      savedOrder.status = 'cancelled';
+      savedOrder.cancelledAt = new Date();
+      await savedOrder.save();
+      return res.status(409).json({
+        success: false,
+        error: 'One or more items just went out of stock. Your cart has been updated. Please review and try again.'
+      });
+    }
+
+    // Mark reservation on order
+    savedOrder.stockReserved = true;
+    await savedOrder.save();
     
     // Debug log all pricing components
     console.log('=== FINAL PRICING BREAKDOWN ===');
@@ -723,26 +745,9 @@ async function handleCheckoutSessionCompleted(session) {
     
     await payment.save();
     
-    // Update product stock (skip in development since it was already reduced)
-    if (process.env.NODE_ENV !== 'development') {
-      for (const item of order.items) {
-        if (item.selectedTier) {
-          // Decrement specific variant stock by selected tier with guard
-          const updateResult = await Product.updateOne(
-            { 
-              _id: item.productId, 
-              variants: { $elemMatch: { tierName: item.selectedTier, isActive: true, stock: { $gte: item.quantity } } } 
-            },
-            { $inc: { 'variants.$.stock': -item.quantity } }
-          );
-          console.log(`Webhook: Reduced stock for product ${item.productId} tier ${item.selectedTier} by ${item.quantity}. Matched: ${updateResult.matchedCount}, Modified: ${updateResult.modifiedCount}`);
-          if (!updateResult.modifiedCount) {
-            console.error(`Webhook: Failed to reduce stock for ${item.productId} (${item.selectedTier}) due to insufficient stock.`);
-          }
-        }
-      }
-    } else {
-      console.log('Development mode: Skipping stock reduction in webhook (already reduced)');
+    // Guard against double-decrement: stock was already reserved at session creation
+    if (!order.stockReserved) {
+      console.warn('Order not marked as stockReserved during session creation; skipping additional stock update to avoid inconsistencies.');
     }
     
     console.log('Order confirmed and payment recorded:', order._id);
@@ -795,6 +800,20 @@ async function handlePaymentIntentFailed(paymentIntent) {
         order.status = 'cancelled';
         order.cancelledAt = new Date();
         await order.save();
+
+        // Release reserved stock if previously reserved
+        if (order.stockReserved) {
+          for (const item of order.items) {
+            if (item.selectedTier) {
+              await Product.updateOne(
+                { _id: item.productId, 'variants.tierName': item.selectedTier },
+                { $inc: { 'variants.$.stock': item.quantity } }
+              );
+            }
+          }
+          order.stockReserved = false;
+          await order.save();
+        }
       }
     }
     

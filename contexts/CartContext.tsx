@@ -57,16 +57,17 @@ interface CartContextType {
   items: CartItem[];
   totalItems: number;
   totalPrice: number; // in cents
+  isUpdating: boolean; // Track async operations
   
   // Cart actions
-  addToCart: (item: Omit<CartItem, 'quantity'>, quantity?: number) => void;
-  removeFromCart: (productId: string, selectedSize?: number) => void;
-  updateQuantity: (productId: string, quantity: number, selectedSize?: number) => void;
+  addToCart: (item: Omit<CartItem, 'quantity'>, quantity?: number) => Promise<boolean>;
+  removeFromCart: (productId: string, selectedSize?: number, selectedTier?: 'standard' | 'deluxe' | 'premium') => void;
+  updateQuantity: (productId: string, quantity: number, selectedSize?: number, selectedTier?: 'standard' | 'deluxe' | 'premium') => void;
   clearCart: () => void;
   
   // Cart utilities
-  getItemQuantity: (productId: string, selectedSize?: number) => number;
-  isInCart: (productId: string, selectedSize?: number) => boolean;
+  getItemQuantity: (productId: string, selectedSize?: number, selectedTier?: 'standard' | 'deluxe' | 'premium') => number;
+  isInCart: (productId: string, selectedSize?: number, selectedTier?: 'standard' | 'deluxe' | 'premium') => boolean;
   
   // Order submission
   submitOrder: (shopId: string, deliveryInfo: OrderInfo) => Promise<{ success: boolean; orderId?: string; error?: string }>;
@@ -94,7 +95,71 @@ interface CartProviderProps {
 
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isUpdating, setIsUpdating] = useState(false);
   const { currentUser, session } = useUser();
+
+  // Helper: validate items against server stock
+  const validateItemsAgainstStock = useCallback(async (itemsToValidate: CartItem[]): Promise<CartItem[]> => {
+    try {
+      console.log('🔍 Validating items against stock:', {
+        itemCount: itemsToValidate.length,
+        items: itemsToValidate.map(i => ({
+          id: i.productId,
+          tier: i.selectedTier,
+          qty: i.quantity,
+          name: i.name
+        }))
+      });
+      
+      if (itemsToValidate.length === 0) return itemsToValidate;
+      const payload = {
+        items: itemsToValidate.map(i => ({
+          productId: i.productId,
+          selectedTier: i.selectedTier,
+          quantity: i.quantity
+        }))
+      };
+      const res = await fetch('http://localhost:5001/api/products/validate-stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      console.log('📦 Stock validation response:', {
+        success: json?.success,
+        data: json?.data,
+        error: json?.error
+      });
+      
+      if (!json?.success) {
+        console.warn('❌ Stock validation failed:', json?.error);
+        return itemsToValidate;
+      }
+      
+      const byKey: Record<string, { allowed: number } > = {};
+      for (const r of json.data.items) {
+        const key = `${r.productId}|${r.selectedTier || ''}`;
+        byKey[key] = { allowed: r.allowed };
+        console.log(`📊 Stock result for ${r.productId}:`, {
+          tier: r.selectedTier,
+          requested: r.requested,
+          allowed: r.allowed,
+          status: r.status
+        });
+      }
+      return itemsToValidate.map(i => {
+        const key = `${i.productId}|${i.selectedTier || ''}`;
+        const allowed = byKey[key]?.allowed;
+        if (typeof allowed === 'number') {
+          return { ...i, quantity: Math.max(0, Math.min(i.quantity, allowed)) };
+        }
+        return i;
+      }).filter(i => i.quantity > 0);
+    } catch (e) {
+      console.warn('Stock validation failed, keeping existing quantities');
+      return itemsToValidate;
+    }
+  }, []);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -102,13 +167,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
-        setItems(parsedCart);
+        // Validate against server on initial load to clamp stale quantities
+        validateItemsAgainstStock(parsedCart).then(clamped => setItems(clamped));
       } catch (error) {
         console.error('Error loading cart from localStorage:', error);
         localStorage.removeItem('flower-store-cart');
       }
     }
-  }, []);
+  }, [validateItemsAgainstStock]);
 
   // Save cart to localStorage whenever items change
   useEffect(() => {
@@ -124,9 +190,21 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     return total + (itemPrice * item.quantity);
   }, 0);
 
-  // Add item to cart
-  const addToCart = useCallback((newItem: Omit<CartItem, 'quantity'>, quantity: number = 1) => {
-    setItems(prevItems => {
+  // Add item to cart (server-validated)
+  const addToCart = useCallback(async (newItem: Omit<CartItem, 'quantity'>, quantity: number = 1): Promise<boolean> => {
+    try {
+      console.log('🛒 Adding to cart:', {
+        product: {
+          id: newItem.productId,
+          name: newItem.name,
+          tier: newItem.selectedTier
+        },
+        quantity,
+        currentCartSize: items.length
+      });
+      
+      setIsUpdating(true);
+      const prevItems = items;
       const existingItemIndex = prevItems.findIndex(
         item => item.productId === newItem.productId && 
                 item.selectedSize === newItem.selectedSize &&
@@ -134,42 +212,105 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
                 JSON.stringify(item.orderInfo) === JSON.stringify(newItem.orderInfo)
       );
 
+      const draft = [...prevItems];
       if (existingItemIndex > -1) {
-        // Update existing item quantity
-        const updatedItems = [...prevItems];
-        updatedItems[existingItemIndex].quantity += quantity;
-        return updatedItems;
+        draft[existingItemIndex] = { ...draft[existingItemIndex], quantity: draft[existingItemIndex].quantity + quantity };
       } else {
-        // Add new item
-        return [...prevItems, { ...newItem, quantity }];
+        draft.push({ ...newItem, quantity });
       }
-    });
-  }, []);
+      // Validate the updated specific line against server
+      const toValidate = existingItemIndex > -1 ? [draft[existingItemIndex]] : [draft[draft.length - 1]];
+      const [clamped] = await validateItemsAgainstStock(toValidate);
+      console.log('🔄 Stock validation result:', {
+        productId: newItem.productId,
+        requestedQty: quantity,
+        clampedQty: clamped?.quantity,
+        success: !!clamped && clamped.quantity > 0
+      });
+      
+      if (!clamped || clamped.quantity === 0) {
+        console.warn('❌ Item validation failed or quantity clamped to 0:', {
+          productId: newItem.productId,
+          tier: newItem.selectedTier,
+          requested: quantity
+        });
+        return false;
+      }
+      
+      // For new items, just add the validated item
+      if (existingItemIndex === -1) {
+        setItems(current => {
+          const updated = [...current, clamped];
+          console.log('✅ Cart updated - new item:', {
+            previousSize: current.length,
+            newSize: updated.length,
+            items: updated.map(i => ({
+              id: i.productId,
+              name: i.name,
+              qty: i.quantity,
+              tier: i.selectedTier
+            }))
+          });
+          return updated;
+        });
+      } else {
+        // For existing items, update the quantity
+        setItems(current => {
+          const updated = current.map((it, idx) => 
+            idx === existingItemIndex 
+              ? { ...it, quantity: it.quantity + clamped.quantity }
+              : it
+          );
+          console.log('✅ Cart updated - existing item:', {
+            previousSize: current.length,
+            newSize: updated.length,
+            items: updated.map(i => ({
+              id: i.productId,
+              name: i.name,
+              qty: i.quantity,
+              tier: i.selectedTier
+            }))
+          });
+          return updated;
+        });
+      }
+      return true;
+    } catch (error) {
+      console.error('Error adding item to cart:', error);
+      return false;
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [items, validateItemsAgainstStock]);
 
   // Remove item from cart
-  const removeFromCart = useCallback((productId: string, selectedSize?: number) => {
+  const removeFromCart = useCallback((productId: string, selectedSize?: number, selectedTier?: 'standard' | 'deluxe' | 'premium') => {
     setItems(prevItems => 
       prevItems.filter(
-        item => !(item.productId === productId && item.selectedSize === selectedSize)
+        item => !(item.productId === productId && item.selectedSize === selectedSize && item.selectedTier === selectedTier)
       )
     );
   }, []);
 
   // Update item quantity
-  const updateQuantity = useCallback((productId: string, quantity: number, selectedSize?: number) => {
+  const updateQuantity = useCallback((productId: string, quantity: number, selectedSize?: number, selectedTier?: 'standard' | 'deluxe' | 'premium') => {
     if (quantity <= 0) {
-      removeFromCart(productId, selectedSize);
+      removeFromCart(productId, selectedSize, selectedTier);
       return;
     }
 
-    setItems(prevItems => 
-      prevItems.map(item => 
-        item.productId === productId && item.selectedSize === selectedSize
-          ? { ...item, quantity }
-          : item
-      )
-    );
-  }, [removeFromCart]);
+    setItems(prevItems => {
+      const index = prevItems.findIndex(it => it.productId === productId && it.selectedSize === selectedSize && it.selectedTier === selectedTier);
+      if (index === -1) return prevItems;
+      const next = [...prevItems];
+      next[index] = { ...next[index], quantity };
+      // Validate just this line
+      validateItemsAgainstStock([next[index]]).then(([clamped]) => {
+        setItems(current => current.map((it, idx) => idx === index ? (clamped || it) : it).filter(i => i.quantity > 0));
+      });
+      return prevItems;
+    });
+  }, [removeFromCart, validateItemsAgainstStock]);
 
   // Clear entire cart
   const clearCart = useCallback(() => {
@@ -183,19 +324,42 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   }, []);
 
   // Get quantity of specific item
-  const getItemQuantity = useCallback((productId: string, selectedSize?: number): number => {
+  const getItemQuantity = useCallback((productId: string, selectedSize?: number, selectedTier?: 'standard' | 'deluxe' | 'premium'): number => {
     const item = items.find(
-      item => item.productId === productId && item.selectedSize === selectedSize
+      item => item.productId === productId && item.selectedSize === selectedSize && item.selectedTier === selectedTier
     );
     return item ? item.quantity : 0;
   }, [items]);
 
   // Check if item is in cart
-  const isInCart = useCallback((productId: string, selectedSize?: number): boolean => {
+  const isInCart = useCallback((productId: string, selectedSize?: number, selectedTier?: 'standard' | 'deluxe' | 'premium'): boolean => {
     return items.some(
-      item => item.productId === productId && item.selectedSize === selectedSize
+      item => item.productId === productId && item.selectedSize === selectedSize && item.selectedTier === selectedTier
     );
   }, [items]);
+
+  // Handle browser BFCache/pageshow/visibilitychange and window focus to revalidate stock
+  useEffect(() => {
+    const revalidate = async () => {
+      setItems(prev => {
+        validateItemsAgainstStock(prev).then(clamped => setItems(clamped));
+        return prev;
+      });
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) revalidate();
+    };
+    window.addEventListener('pageshow', onPageShow as any);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') revalidate();
+    });
+    window.addEventListener('focus', revalidate);
+    return () => {
+      window.removeEventListener('pageshow', onPageShow as any);
+      document.removeEventListener('visibilitychange', revalidate as any);
+      window.removeEventListener('focus', revalidate);
+    };
+  }, [validateItemsAgainstStock]);
 
   // Submit order to API
   const submitOrder = useCallback(async (shopId: string, deliveryInfo: OrderInfo): Promise<{ success: boolean; orderId?: string; error?: string }> => {
@@ -456,6 +620,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     items,
     totalItems,
     totalPrice,
+    isUpdating,
     addToCart,
     removeFromCart,
     updateQuantity,
@@ -469,6 +634,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     items,
     totalItems,
     totalPrice,
+    isUpdating,
     addToCart,
     removeFromCart,
     updateQuantity,

@@ -950,4 +950,115 @@ router.post('/occasions', authenticateToken, requireRole(['admin']), async (req,
   }
 });
 
+/**
+ * POST /api/products/validate-stock - Validate requested quantities against variant stock (public)
+ * Body: { items: [{ productId, selectedTier, quantity }] }
+ */
+router.post('/validate-stock', async (req, res) => {
+  try {
+    console.log('🔍 Stock validation request:', {
+      body: req.body,
+      headers: {
+        'content-type': req.headers['content-type'],
+        'content-length': req.headers['content-length']
+      }
+    });
+    
+    const { items } = req.body || {};
+    if (!Array.isArray(items) || items.length === 0) {
+      console.warn('❌ Invalid request: items array missing or empty');
+      return res.status(400).json({ success: false, error: 'Items array is required' });
+    }
+
+    const results = [];
+    for (const item of items) {
+      const { productId, selectedTier, quantity } = item || {};
+      console.log('📦 Validating item:', { productId, selectedTier, quantity });
+      
+      if (!productId || typeof quantity !== 'number' || quantity <= 0) {
+        console.warn('❌ Invalid item parameters:', { productId, selectedTier, quantity });
+        results.push({ productId, selectedTier, requested: quantity || 0, available: 0, allowed: 0, status: 'invalid' });
+        continue;
+      }
+
+      const product = await Product.findById(productId).select('name variants isActive');
+      console.log('🔎 Found product:', {
+        id: productId,
+        name: product?.name,
+        active: product?.isActive,
+        variantCount: product?.variants?.length
+      });
+      
+      if (!product || !product.isActive) {
+        console.warn('❌ Product not found or inactive:', { productId });
+        results.push({ productId, selectedTier, requested: quantity, available: 0, allowed: 0, status: 'unavailable' });
+        continue;
+      }
+
+      let available = 0;
+      let resolvedTier = selectedTier || null;
+      if (Array.isArray(product.variants) && product.variants.length > 0) {
+        console.log('🔍 Checking variants:', {
+          productId,
+          requestedTier: resolvedTier,
+          variants: product.variants.map(v => ({
+            tier: v.tierName,
+            active: v.isActive,
+            stock: v.stock
+          }))
+        });
+        
+        if (resolvedTier) {
+          const v = product.variants.find(v => v.tierName === resolvedTier && v.isActive);
+          available = v ? Math.max(0, v.stock) : 0;
+          console.log('📊 Found specific tier:', {
+            tier: resolvedTier,
+            found: !!v,
+            active: v?.isActive,
+            stock: v?.stock,
+            available
+          });
+        } else {
+          const v = product.variants.find(v => v.isActive && v.stock > 0) || null;
+          available = v ? Math.max(0, v.stock) : 0;
+          resolvedTier = v ? v.tierName : null;
+          console.log('📊 Found default tier:', {
+            foundTier: resolvedTier,
+            active: v?.isActive,
+            stock: v?.stock,
+            available
+          });
+        }
+      }
+
+      const allowed = Math.max(0, Math.min(quantity, available));
+      const status = allowed === quantity ? 'ok' : (available > 0 ? 'clamped' : 'out_of_stock');
+      
+      console.log('✅ Stock validation result:', {
+        productId,
+        name: product.name,
+        tier: resolvedTier,
+        requested: quantity,
+        available,
+        allowed,
+        status
+      });
+      
+      results.push({ 
+        productId, 
+        selectedTier: resolvedTier || undefined, 
+        requested: quantity, 
+        available, 
+        allowed, 
+        status 
+      });
+    }
+
+    return res.json({ success: true, data: { items: results } });
+  } catch (error) {
+    console.error('Error validating stock:', error);
+    return res.status(500).json({ success: false, error: 'Failed to validate stock' });
+  }
+});
+
 module.exports = router;

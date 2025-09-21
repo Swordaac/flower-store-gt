@@ -285,6 +285,13 @@ const orderSchema = new mongoose.Schema({
     }
   },
   
+  // Inventory reservation state
+  stockReserved: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  
   // Customer notes
   notes: {
     type: String,

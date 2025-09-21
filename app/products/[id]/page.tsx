@@ -283,27 +283,44 @@ export default function ProductDetailPage() {
   }
 
 
-  const handleAddToCart = () => {
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [addToCartError, setAddToCartError] = useState<string | null>(null);
+
+  const handleAddToCart = async () => {
     if (!product) return;
     
-    // Validate stock availability
-    const maxQty = getMaxQuantity()
-    if (quantity > maxQty) {
-      alert(`Sorry, only ${maxQty} items available for the selected tier.`);
-      return;
+    try {
+      setAddingToCart(true);
+      setAddToCartError(null);
+      
+      // Validate stock availability
+      const maxQty = getMaxQuantity()
+      if (quantity > maxQty) {
+        setAddToCartError(`Sorry, only ${maxQty} items available for the selected tier.`);
+        return;
+      }
+
+      // Add the item to cart
+      const success = await addToCart({
+        productId: product._id,
+        name: `${product.name} (${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)})`,
+        price: getCurrentPrice(),
+        image: getCurrentImage(),
+        selectedTier: selectedTier
+      }, quantity);
+
+      if (success) {
+        // Show success message
+        alert('Product added to cart!');
+      } else {
+        setAddToCartError('Failed to add product to cart. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      setAddToCartError('An error occurred while adding to cart. Please try again.');
+    } finally {
+      setAddingToCart(false);
     }
-
-    // Add the item to cart
-    addToCart({
-      productId: product._id,
-      name: `${product.name} (${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)})`,
-      price: getCurrentPrice(),
-      image: getCurrentImage(),
-      selectedTier: selectedTier
-    }, quantity);
-
-    // Show success message
-    alert('Product added to cart!');
   }
 
 
@@ -561,12 +578,20 @@ export default function ProductDetailPage() {
               <div className="mb-8">
                 <Button
                   onClick={handleAddToCart}
-                  className="w-full py-3 text-lg font-medium"
-                  disabled={!isTierAvailable(selectedTier) || getMaxQuantity() === 0}
+                  className="w-full py-3 text-lg font-medium relative"
+                  disabled={!isTierAvailable(selectedTier) || getMaxQuantity() === 0 || addingToCart}
                   style={{ backgroundColor: theme.colors.text.secondary, color: theme.colors.white }}
                 >
-                  {isTierAvailable(selectedTier) ? 'Add to cart' : 'Out of stock'}
+                  {addingToCart ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
+                      Adding...
+                    </div>
+                  ) : isTierAvailable(selectedTier) ? 'Add to cart' : 'Out of stock'}
                 </Button>
+                {addToCartError && (
+                  <p className="mt-2 text-sm text-red-600">{addToCartError}</p>
+                )}
               </div>
 
               {/* Expandable Sections */}
