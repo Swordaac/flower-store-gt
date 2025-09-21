@@ -70,40 +70,22 @@ router.get('/', async (req, res) => {
     if (minPrice || maxPrice) {
       const priceConditions = [];
       
-      if (minPrice && maxPrice) {
-        // Both min and max: standard >= min AND premium <= max
-        priceConditions.push({
-          $and: [
-            {
-              $or: [
-                { 'variants.tierName': 'standard', 'variants.price': { $gte: parseInt(minPrice) } },
-                { 'price.standard': { $gte: parseInt(minPrice) } }
-              ]
-            },
-            {
-              $or: [
-                { 'variants.tierName': 'premium', 'variants.price': { $lte: parseInt(maxPrice) } },
-                { 'price.premium': { $lte: parseInt(maxPrice) } }
-              ]
-            }
-          ]
-        });
-      } else if (minPrice) {
-        // Only min: standard >= min
-        priceConditions.push({
-          $or: [
-            { 'variants.tierName': 'standard', 'variants.price': { $gte: parseInt(minPrice) } },
-            { 'price.standard': { $gte: parseInt(minPrice) } }
-          ]
-        });
-      } else if (maxPrice) {
-        // Only max: premium <= max
-        priceConditions.push({
-          $or: [
-            { 'variants.tierName': 'premium', 'variants.price': { $lte: parseInt(maxPrice) } },
-            { 'price.premium': { $lte: parseInt(maxPrice) } }
-          ]
-        });
+      // Convert input prices from dollars to cents
+      const minPriceCents = minPrice ? parseInt(minPrice) * 100 : null;
+      const maxPriceCents = maxPrice ? parseInt(maxPrice) * 100 : null;
+      
+      if (minPriceCents !== null || maxPriceCents !== null) {
+        // Variants: require a single variant to satisfy both bounds (if provided)
+        const elemMatch = { isActive: true };
+        if (minPriceCents !== null) elemMatch.price = { $gte: minPriceCents };
+        if (maxPriceCents !== null) elemMatch.price = { ...(elemMatch.price || {}), $lte: maxPriceCents };
+        priceConditions.push({ variants: { $elemMatch: elemMatch } });
+        
+        // Legacy prices fallback
+        const legacyAnd = [];
+        if (minPriceCents !== null) legacyAnd.push({ 'price.standard': { $gte: minPriceCents } });
+        if (maxPriceCents !== null) legacyAnd.push({ 'price.premium': { $lte: maxPriceCents } });
+        if (legacyAnd.length > 0) priceConditions.push({ $and: legacyAnd });
       }
       
       if (priceConditions.length > 0) {
@@ -116,12 +98,10 @@ router.get('/', async (req, res) => {
     // Stock filtering - check variants only
     if (inStock !== undefined) {
       if (inStock === 'true') {
-        filter['variants.stock'] = { $gt: 0 };
-        filter['variants.isActive'] = true;
+        filter.variants = { $elemMatch: { isActive: true, stock: { $gt: 0 } } };
       } else {
         filter.$or = [
-          { 'variants.stock': { $lte: 0 } },
-          { 'variants.isActive': false },
+          { variants: { $not: { $elemMatch: { isActive: true, stock: { $gt: 0 } } } } },
           { variants: { $exists: false } },
           { variants: { $size: 0 } }
         ];

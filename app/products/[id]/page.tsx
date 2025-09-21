@@ -151,12 +151,54 @@ export default function ProductDetailPage() {
     
     // Try to get price from variants first (new structure)
     if (product.variants && product.variants.length > 0) {
-      const variant = product.variants.find(v => v.tierName === selectedTier && v.isActive)
+      const variant = product.variants.find(v => v.tierName === selectedTier && v.isActive && v.stock > 0)
       if (variant) return variant.price
     }
     
     // Fallback to legacy price structure
     return product.price[selectedTier] || 0
+  }
+
+  // Helper function to get stock for a specific tier
+  const getTierStock = (tier: 'standard' | 'deluxe' | 'premium') => {
+    if (!product) return 0
+    
+    // Try to get stock from variants first (new structure)
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.find(v => v.tierName === tier && v.isActive)
+      return variant ? variant.stock : 0
+    }
+    
+    // Fallback to legacy stock structure
+    return product.stock || 0
+  }
+
+  // Helper function to check if a tier is available
+  const isTierAvailable = (tier: 'standard' | 'deluxe' | 'premium') => {
+    if (!product) return false
+    
+    // Check variants first (new structure)
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.find(v => v.tierName === tier && v.isActive)
+      return variant ? variant.stock > 0 : false
+    }
+    
+    // Fallback to legacy structure
+    return product.stock > 0
+  }
+
+  // Helper function to get maximum available quantity for current tier
+  const getMaxQuantity = () => {
+    if (!product) return 0
+    
+    // Check variants first (new structure)
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.find(v => v.tierName === selectedTier && v.isActive)
+      return variant ? variant.stock : 0
+    }
+    
+    // Fallback to legacy structure
+    return product.stock || 0
   }
 
   // Helper function to get current image based on selected tier
@@ -234,7 +276,8 @@ export default function ProductDetailPage() {
 
   const handleQuantityChange = (change: number) => {
     const newQuantity = quantity + change
-    if (newQuantity >= 1) {
+    const maxQty = getMaxQuantity()
+    if (newQuantity >= 1 && newQuantity <= maxQty) {
       setQuantity(newQuantity)
     }
   }
@@ -242,6 +285,13 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!product) return;
+    
+    // Validate stock availability
+    const maxQty = getMaxQuantity()
+    if (quantity > maxQty) {
+      alert(`Sorry, only ${maxQty} items available for the selected tier.`);
+      return;
+    }
 
     // Add the item to cart
     addToCart({
@@ -436,24 +486,31 @@ export default function ProductDetailPage() {
                 </label>
                 <div className="grid grid-cols-1 gap-3">
                   {tierOptions.map((option) => (
-                    <button
-                      key={option.key}
-                      onClick={() => setSelectedTier(option.key)}
-                      className={`p-4 text-left border rounded-lg transition-colors ${
-                        selectedTier === option.key
-                          ? 'border-indigo-500 bg-indigo-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      style={{ 
-                        color: theme.colors.text.secondary,
-                        backgroundColor: selectedTier === option.key ? '#f0f9ff' : 'transparent'
-                      }}
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">{option.label}</span>
-                        <span className="text-lg font-semibold">{formatPrice(option.price)}</span>
-                      </div>
-                    </button>
+                    <div key={option.key}>
+                      <button
+                        onClick={() => setSelectedTier(option.key)}
+                        className={`p-4 text-left border rounded-lg transition-colors w-full ${
+                          selectedTier === option.key
+                            ? 'border-indigo-500 bg-indigo-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        } ${!isTierAvailable(option.key) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        style={{ 
+                          color: theme.colors.text.secondary,
+                          backgroundColor: selectedTier === option.key ? '#f0f9ff' : 'transparent'
+                        }}
+                        disabled={!isTierAvailable(option.key)}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">{option.label}</span>
+                          <span className="text-lg font-semibold">{formatPrice(option.price)}</span>
+                        </div>
+                        <div className="mt-1 text-sm" style={{ color: theme.colors.text.light }}>
+                          {isTierAvailable(option.key) 
+                            ? `${getTierStock(option.key)} available` 
+                            : 'Out of stock'}
+                        </div>
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -461,27 +518,39 @@ export default function ProductDetailPage() {
               {/* Quantity Selector */}
               <div className="mb-6">
                 <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text.secondary }}>
-                  Quantity:
+                  Quantity: ({getMaxQuantity()} available)
                 </label>
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={() => handleQuantityChange(-1)}
-                    className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50"
+                    className={`w-8 h-8 flex items-center justify-center border border-gray-300 rounded ${
+                      quantity > 1 ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'
+                    }`}
                     style={{ color: theme.colors.text.secondary }}
+                    disabled={quantity <= 1}
                   >
                     <Minus className="h-4 w-4" />
                   </button>
                   <input
                     type="number"
                     value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      const maxQty = getMaxQuantity();
+                      setQuantity(Math.min(Math.max(1, val), maxQty));
+                    }}
                     className="w-16 text-center border border-gray-300 rounded py-2"
                     style={{ color: theme.colors.text.secondary }}
+                    min="1"
+                    max={getMaxQuantity()}
                   />
                   <button
                     onClick={() => handleQuantityChange(1)}
-                    className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50"
+                    className={`w-8 h-8 flex items-center justify-center border border-gray-300 rounded ${
+                      quantity < getMaxQuantity() ? 'hover:bg-gray-50' : 'opacity-50 cursor-not-allowed'
+                    }`}
                     style={{ color: theme.colors.text.secondary }}
+                    disabled={quantity >= getMaxQuantity()}
                   >
                     <Plus className="h-4 w-4" />
                   </button>
@@ -493,9 +562,10 @@ export default function ProductDetailPage() {
                 <Button
                   onClick={handleAddToCart}
                   className="w-full py-3 text-lg font-medium"
+                  disabled={!isTierAvailable(selectedTier) || getMaxQuantity() === 0}
                   style={{ backgroundColor: theme.colors.text.secondary, color: theme.colors.white }}
                 >
-                  Add to cart
+                  {isTierAvailable(selectedTier) ? 'Add to cart' : 'Out of stock'}
                 </Button>
               </div>
 

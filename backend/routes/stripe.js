@@ -197,11 +197,31 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
           });
         }
         
-        if (product.stock < item.quantity) {
-          return res.status(400).json({
-            success: false,
-            error: `Insufficient stock for ${product.name}. Available: ${product.stock}`
-          });
+        // Determine selected variant and validate stock per tier
+        let chosenVariant = null;
+        let resolvedSelectedTier = item.selectedTier || null;
+        
+        if (Array.isArray(product.variants) && product.variants.length > 0) {
+          if (resolvedSelectedTier) {
+            chosenVariant = product.variants.find(v => v.tierName === resolvedSelectedTier && v.isActive);
+            if (!chosenVariant) {
+              return res.status(400).json({
+                success: false,
+                error: `Selected tier ${resolvedSelectedTier} not available for ${product.name}`
+              });
+            }
+          } else {
+            // Default to any active variant with stock
+            chosenVariant = product.variants.find(v => v.isActive && v.stock > 0) || null;
+            resolvedSelectedTier = chosenVariant ? chosenVariant.tierName : null;
+          }
+          
+          if (!chosenVariant || chosenVariant.stock <= 0 || chosenVariant.stock < item.quantity) {
+            return res.status(400).json({
+              success: false,
+              error: `Insufficient stock for ${product.name}${resolvedSelectedTier ? ` (${resolvedSelectedTier})` : ''}. Available: ${chosenVariant ? chosenVariant.stock : 0}`
+            });
+          }
         }
         
         // Sanitize product data
@@ -293,6 +313,7 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
       const processedItem = {
         productId: sanitizedProduct._id,
         name: `${sanitizedProduct.name}${item.selectedTier ? ` (${item.selectedTier})` : ''}`,
+        selectedTier: item.selectedTier || resolvedSelectedTier || undefined,
         price: productPrice,
         quantity: item.quantity,
         total: itemTotal,
@@ -360,11 +381,27 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
     // Reduce stock immediately in development (since webhooks can't reach localhost)
     if (process.env.NODE_ENV === 'development') {
       console.log('Development mode: Reducing stock immediately');
-      for (const item of items) {
-        await Product.findByIdAndUpdate(item.productId, {
-          $inc: { stock: -item.quantity }
-        });
-        console.log(`Reduced stock for product ${item.productId} by ${item.quantity}`);
+      for (const item of processedItems) {
+        if (item.selectedTier) {
+          // Decrement specific variant stock if sufficient stock remains
+          const updateResult = await Product.updateOne(
+            { 
+              _id: item.productId,
+              variants: { 
+                $elemMatch: { 
+                  tierName: item.selectedTier, 
+                  isActive: true,
+                  stock: { $gte: item.quantity }
+                } 
+              }
+            },
+            { $inc: { 'variants.$.stock': -item.quantity } }
+          );
+          console.log(`Reduced stock for product ${item.productId} tier ${item.selectedTier} by ${item.quantity}. Matched: ${updateResult.matchedCount}, Modified: ${updateResult.modifiedCount}`);
+          if (!updateResult.modifiedCount) {
+            console.warn(`Stock reduction skipped for ${item.productId} (${item.selectedTier}) due to insufficient stock at commit time.`);
+          }
+        }
       }
     }
     
@@ -689,9 +726,20 @@ async function handleCheckoutSessionCompleted(session) {
     // Update product stock (skip in development since it was already reduced)
     if (process.env.NODE_ENV !== 'development') {
       for (const item of order.items) {
-        await Product.findByIdAndUpdate(item.productId, {
-          $inc: { stock: -item.quantity }
-        });
+        if (item.selectedTier) {
+          // Decrement specific variant stock by selected tier with guard
+          const updateResult = await Product.updateOne(
+            { 
+              _id: item.productId, 
+              variants: { $elemMatch: { tierName: item.selectedTier, isActive: true, stock: { $gte: item.quantity } } } 
+            },
+            { $inc: { 'variants.$.stock': -item.quantity } }
+          );
+          console.log(`Webhook: Reduced stock for product ${item.productId} tier ${item.selectedTier} by ${item.quantity}. Matched: ${updateResult.matchedCount}, Modified: ${updateResult.modifiedCount}`);
+          if (!updateResult.modifiedCount) {
+            console.error(`Webhook: Failed to reduce stock for ${item.productId} (${item.selectedTier}) due to insufficient stock.`);
+          }
+        }
       }
     } else {
       console.log('Development mode: Skipping stock reduction in webhook (already reduced)');

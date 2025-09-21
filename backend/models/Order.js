@@ -71,6 +71,12 @@ const orderSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    // Selected tier for variant-based products (standard, deluxe, premium)
+    selectedTier: {
+      type: String,
+      enum: ['standard', 'deluxe', 'premium'],
+      required: false
+    },
     price: {
       type: Number, // in cents
       required: true,
