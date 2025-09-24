@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { Navigation } from '@/components/Navigation';
 import { useUser } from '@/contexts/UserContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -126,7 +125,7 @@ export default function OrdersPage() {
     return (
       <ProtectedRoute>
         <div className="min-h-screen bg-gray-50">
-          <Navigation />
+          
           <div className="py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-center items-center py-12">
@@ -143,7 +142,7 @@ export default function OrdersPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
-        <Navigation />
+        
         <div className="py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-8">

@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Navigation } from '@/components/Navigation';
 import { MapPin, Heart, Coffee, Palette, Sparkles } from 'lucide-react';
 
 // Reusable theme object matching the landing page
@@ -29,7 +28,7 @@ const theme = {
 export default function AboutPage() {
   return (
     <div className="min-h-screen relative" style={{ backgroundColor: theme.colors.background }}>
-      <Navigation />
+      
       
       {/* Hero Section */}
       <section className="relative w-full h-96 md:h-[500px] lg:h-[600px] overflow-hidden">

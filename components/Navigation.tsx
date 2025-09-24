@@ -34,6 +34,7 @@ export const Navigation: React.FC = () => {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -91,20 +92,167 @@ export const Navigation: React.FC = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
-            <div className="flex items-center space-x-1 cursor-pointer" style={{ color: theme.colors.text.primary }}>
-              <span>Shop</span>
-              <ChevronDown className="h-4 w-4" />
+            {/* Shop Dropdown */}
+            <div className="relative">
+              <div 
+                className="flex items-center space-x-1 cursor-pointer" 
+                style={{ color: theme.colors.text.primary }}
+                onClick={() => setIsShopDropdownOpen(!isShopDropdownOpen)}
+              >
+                <span>Shop</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isShopDropdownOpen ? 'rotate-180' : ''}`} />
+              </div>
+              
+              {/* Shop Dropdown Menu */}
+              {isShopDropdownOpen && (
+                <div 
+                  className="absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg border"
+                  style={{ 
+                    backgroundColor: theme.colors.white,
+                    borderColor: theme.colors.border,
+                    zIndex: 99999 
+                  }}
+                >
+                  <div className="p-4">
+                    {/* Popular */}
+                    <div className="mb-4">
+                      <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Popular</h3>
+                      <div className="space-y-1">
+                        <Link 
+                          href="/collections/best-sellers" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Best Sellers
+                        </Link>
+                        <Link 
+                          href="/collections/bouquets" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Bouquets
+                        </Link>
+                        <Link 
+                          href="/collections/orchids" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Orchids
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Occasions */}
+                    <div className="mb-4">
+                      <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Occasions</h3>
+                      <div className="space-y-1">
+                        <Link 
+                          href="/collections/birthday" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Birthday
+                        </Link>
+                        <Link 
+                          href="/collections/get-well-soon" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Get Well Soon
+                        </Link>
+                        <Link 
+                          href="/collections/anniversary" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Anniversary
+                        </Link>
+                        <Link 
+                          href="/collections/sympathy" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Sympathy
+                        </Link>
+                        <Link 
+                          href="/collections/congratulation" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Congratulation
+                        </Link>
+                        <Link 
+                          href="/collections/wedding" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Wedding
+                        </Link>
+                        <Link 
+                          href="/collections/new-baby" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          New Baby
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Plants & Flowers */}
+                    <div className="mb-4">
+                      <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Plants & Flowers</h3>
+                      <div className="space-y-1">
+                        <Link 
+                          href="/collections/orchid" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Orchid
+                        </Link>
+                        <Link 
+                          href="/collections/rose-only" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Rose Only
+                        </Link>
+                        <Link 
+                          href="/collections/indoor-plant" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Indoor Plant
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            <Link href="/" className="font-medium" style={{ color: theme.colors.text.primary }}>
+
+            <Link href="/collections/best-sellers" className="font-medium" style={{ color: theme.colors.text.primary }}>
               Best Sellers
             </Link>
             <Link href="/about" className="hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
               About Us
             </Link>
-            <Link href="#" className="hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
+            <Link href="/store-location" className="hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
               Store Locator
             </Link>
-            <Link href="#" className="hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
+            <Link href="/contact" className="hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
               Contact
             </Link>
           </nav>
@@ -212,38 +360,126 @@ export const Navigation: React.FC = () => {
       {isMobileMenuOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-200" style={{ backgroundColor: theme.colors.white }}>
-            <Link
-              href="/"
-              className="block px-3 py-2 text-base font-medium hover:text-gray-900 hover:bg-gray-50"
-              style={{ color: theme.colors.text.primary }}
-              onClick={closeMobileMenu}
-            >
-              Best Sellers
-            </Link>
-            <Link
-              href="/about"
-              className="block px-3 py-2 text-base font-medium hover:text-gray-900 hover:bg-gray-50"
-              style={{ color: theme.colors.text.primary }}
-              onClick={closeMobileMenu}
-            >
-              About Us
-            </Link>
-            <Link
-              href="#"
-              className="block px-3 py-2 text-base font-medium hover:text-gray-900 hover:bg-gray-50"
-              style={{ color: theme.colors.text.primary }}
-              onClick={closeMobileMenu}
-            >
-              Store Locator
-            </Link>
-            <Link
-              href="#"
-              className="block px-3 py-2 text-base font-medium hover:text-gray-900 hover:bg-gray-50"
-              style={{ color: theme.colors.text.primary }}
-              onClick={closeMobileMenu}
-            >
-              Contact
-            </Link>
+            {/* Popular */}
+            <div className="px-3 py-2">
+              <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Popular</h3>
+              <div className="space-y-1 ml-2">
+                <Link
+                  href="/collections/best-sellers"
+                  className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-1"
+                  style={{ color: theme.colors.text.light }}
+                  onClick={closeMobileMenu}
+                >
+                  Best Sellers
+                </Link>
+                <Link
+                  href="/collections/bouquets"
+                  className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-1"
+                  style={{ color: theme.colors.text.light }}
+                  onClick={closeMobileMenu}
+                >
+                  Bouquets
+                </Link>
+                <Link
+                  href="/collections/orchids"
+                  className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-1"
+                  style={{ color: theme.colors.text.light }}
+                  onClick={closeMobileMenu}
+                >
+                  Orchids
+                </Link>
+              </div>
+            </div>
+
+            {/* Occasions */}
+            <div className="px-3 py-2 border-t border-gray-100">
+              <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Occasions</h3>
+              <div className="space-y-1 ml-2">
+                <Link
+                  href="/collections/birthday"
+                  className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-1"
+                  style={{ color: theme.colors.text.light }}
+                  onClick={closeMobileMenu}
+                >
+                  Birthday
+                </Link>
+                <Link
+                  href="/collections/anniversary"
+                  className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-1"
+                  style={{ color: theme.colors.text.light }}
+                  onClick={closeMobileMenu}
+                >
+                  Anniversary
+                </Link>
+                <Link
+                  href="/collections/sympathy"
+                  className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-1"
+                  style={{ color: theme.colors.text.light }}
+                  onClick={closeMobileMenu}
+                >
+                  Sympathy
+                </Link>
+              </div>
+            </div>
+
+            {/* Plants & Flowers */}
+            <div className="px-3 py-2 border-t border-gray-100">
+              <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Plants & Flowers</h3>
+              <div className="space-y-1 ml-2">
+                <Link
+                  href="/collections/indoor-plants"
+                  className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-1"
+                  style={{ color: theme.colors.text.light }}
+                  onClick={closeMobileMenu}
+                >
+                  Indoor Plants
+                </Link>
+                <Link
+                  href="/collections/roses"
+                  className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-1"
+                  style={{ color: theme.colors.text.light }}
+                  onClick={closeMobileMenu}
+                >
+                  Roses
+                </Link>
+                <Link
+                  href="/collections/sunflowers"
+                  className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-1"
+                  style={{ color: theme.colors.text.light }}
+                  onClick={closeMobileMenu}
+                >
+                  Sunflowers
+                </Link>
+              </div>
+            </div>
+
+            {/* Main Links */}
+            <div className="px-3 py-2 border-t border-gray-100">
+              <Link
+                href="/about"
+                className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-2"
+                style={{ color: theme.colors.text.primary }}
+                onClick={closeMobileMenu}
+              >
+                About Us
+              </Link>
+              <Link
+                href="/store-location"
+                className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-2"
+                style={{ color: theme.colors.text.primary }}
+                onClick={closeMobileMenu}
+              >
+                Store Locator
+              </Link>
+              <Link
+                href="/contact"
+                className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-2"
+                style={{ color: theme.colors.text.primary }}
+                onClick={closeMobileMenu}
+              >
+                Contact
+              </Link>
+            </div>
             
             {/* Mobile User Menu */}
             {user ? (
@@ -311,12 +547,13 @@ export const Navigation: React.FC = () => {
       )}
 
       {/* Click outside to close dropdowns */}
-      {(isUserMenuOpen || isMobileMenuOpen) && (
+      {(isUserMenuOpen || isMobileMenuOpen || isShopDropdownOpen) && (
         <div
           className="fixed inset-0 z-40"
           onClick={() => {
             setIsUserMenuOpen(false);
             setIsMobileMenuOpen(false);
+            setIsShopDropdownOpen(false);
           }}
         />
       )}

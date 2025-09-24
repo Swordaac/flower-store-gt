@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { ThemeProvider } from '@/components/theme-provider';
+import { Navigation } from '@/components/Navigation';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -30,6 +31,7 @@ export default function RootLayout({
           <AuthProvider>
             <UserProvider>
               <CartProvider>
+                <Navigation />
                 {children}
               </CartProvider>
             </UserProvider>

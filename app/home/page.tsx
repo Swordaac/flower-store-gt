@@ -2,7 +2,6 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
-import { Navigation } from '@/components/Navigation';
 
 export default function HomePage() {
   const { user, loading } = useAuth();
@@ -17,8 +16,7 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
-      {/* Navigation */}
-      <Navigation />
+      {/* Navigation now provided by root layout */}
 
       {/* Hero Section */}
       <div className="relative overflow-hidden">

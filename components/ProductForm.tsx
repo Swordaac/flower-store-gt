@@ -32,6 +32,7 @@ interface ProductFormData {
   tags: string[];
   isActive: boolean;
   isFeatured: boolean;
+  isBestSeller: boolean;
   images: Array<{
     size: string;
     publicId?: string;
@@ -127,6 +128,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     tags: [],
     isActive: true,
     isFeatured: false,
+    isBestSeller: false,
     images: [],
     deluxeImage: {
       publicId: '',
@@ -259,6 +261,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         tags: product.tags || [],
         isActive: product.isActive !== undefined ? product.isActive : true,
         isFeatured: product.isFeatured || false,
+        isBestSeller: product.isBestSeller || false,
         images: product.images || [],
         deluxeImage: product.deluxeImage || { publicId: '', url: '', alt: '' },
         premiumImage: product.premiumImage || { publicId: '', url: '', alt: '' }
@@ -1063,6 +1066,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               />
               <label className="ml-2 block text-sm text-gray-900">
                 Featured
+              </label>
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                name="isBestSeller"
+                checked={formData.isBestSeller}
+                onChange={handleInputChange}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              />
+              <label className="ml-2 block text-sm text-gray-900">
+                Best Seller
               </label>
             </div>
           </div>

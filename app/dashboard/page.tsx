@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { UserProfile } from '@/components/auth/UserProfile';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { Navigation } from '@/components/Navigation';
 import { ProductForm } from '@/components/ProductForm';
 import { OrderManagement } from '@/components/OrderManagement';
 import { AdminShopCreation } from '@/components/AdminShopCreation';
@@ -461,7 +460,7 @@ export default function DashboardPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
-        <Navigation />
+        
         <div className="flex">
           {/* Sidebar */}
           <div className="w-64 bg-white shadow-lg min-h-screen">
