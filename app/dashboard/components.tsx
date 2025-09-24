@@ -213,14 +213,8 @@ export function OverviewTab({ stats, onAddProduct, userShop, isShopOwner }: {
             <PlusIcon className="h-5 w-5 mr-2" />
             Add New Product
           </button>
-          <button className="flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-            <EyeIcon className="h-5 w-5 mr-2" />
-            View Orders
-          </button>
-          <button className="flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-            <ChartBarIcon className="h-5 w-5 mr-2" />
-            View Analytics
-          </button>
+
+
         </div>
       </div>
     </div>

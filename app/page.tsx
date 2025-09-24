@@ -849,8 +849,7 @@ export default function BestSellersPage() {
             <div className="relative">
               <img src="/placeholder-wrj8y.png" alt="Sunflowers" className="w-full h-full object-cover rounded-lg" />
               <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3">
-                <h3 className="font-medium" style={{ color: theme.colors.text.secondary }}>12 Sunflowers</h3>
-                <p className="text-sm" style={{ color: theme.colors.text.secondary }}>$130.00 CAD</p>
+
               </div>
             </div>
           </div>

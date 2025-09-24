@@ -353,55 +353,6 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.colors.background }}>
-      {/* Header */}
-      <header style={{ backgroundColor: theme.colors.background, zIndex: 9999 }} className="backdrop-blur-sm border-b border-gray-200 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex-shrink-0">
-              <div className="text-xl font-serif tracking-wider" style={{ color: theme.colors.text.primary }}>Flower</div>
-              <div className="text-xs tracking-widest" style={{ color: theme.colors.text.primary }}>FLORIST</div>
-            </div>
-
-            {/* Navigation */}
-            <nav className="hidden md:flex space-x-8">
-              <a href="#" className="text-gray-700 hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
-                Shop
-              </a>
-              <a href="#" className="text-gray-700 hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
-                Best Sellers
-              </a>
-              <a href="#" className="text-gray-700 hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
-                About Us
-              </a>
-              <a href="#" className="text-gray-700 hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
-                Store Location
-              </a>
-              <a href="#" className="text-gray-700 hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
-                Contact
-              </a>
-            </nav>
-
-            {/* Right side icons and auth */}
-            <div className="flex items-center space-x-4">
-              <Search className="h-5 w-5 cursor-pointer" style={{ color: theme.colors.text.primary }} />
-              <CartIcon style={{ color: theme.colors.text.primary }} />
-              
-              {/* Authentication Links */}
-              <div className="flex items-center space-x-3">
-                <a href="/auth/signin" className="hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition-colors" style={{ color: theme.colors.text.primary }}>
-                  Sign In
-                </a>
-                <a href="/auth/signup" className="hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors" style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}>
-                  Sign Up
-                </a>
-              </div>
-              
-              <span className="text-sm" style={{ color: theme.colors.text.primary }}>EN</span>
-            </div>
-          </div>
-        </div>
-      </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

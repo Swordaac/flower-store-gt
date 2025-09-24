@@ -84,10 +84,7 @@ export default function DashboardPage() {
     { id: 'shop', name: 'My Shop', icon: BuildingStorefrontIcon, show: isShopOwner && hasShop },
     { id: 'products', name: 'Products', icon: CubeIcon, show: isShopOwner && hasShop },
     { id: 'orders', name: 'Orders', icon: ShoppingCartIcon, show: isShopOwner && hasShop },
-    { id: 'pickup-locations', name: 'Pickup Locations', icon: MapPinIcon, show: isShopOwner && hasShop },
-    { id: 'customers', name: 'Customers', icon: UserGroupIcon, show: isShopOwner && hasShop },
     { id: 'contact-messages', name: 'Contact Messages', icon: MailIcon, show: isShopOwner && hasShop },
-    { id: 'analytics', name: 'Analytics', icon: ChartBarIcon, show: isShopOwner && hasShop },
     { id: 'admin', name: 'Admin Panel', icon: CogIcon, show: isAdmin },
     { id: 'settings', name: 'Settings', icon: CogIcon, show: true },
   ];
@@ -350,14 +347,10 @@ export default function DashboardPage() {
             onViewOrder={setSelectedOrder}
           />
         );
-      case 'pickup-locations':
-        return <PickupLocationManagement shopId={userShop?._id} />;
-      case 'customers':
-        return <CustomersTab />;
+
       case 'contact-messages':
         return <ContactMessagesTab userShop={userShop} />;
-      case 'analytics':
-        return <AnalyticsTab />;
+
       case 'admin':
         return (
           <AdminTab 
