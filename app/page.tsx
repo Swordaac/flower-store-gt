@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { ShoppingCart, Eye } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { ChevronDown, Filter, Search, ShoppingCart, User } from "lucide-react"
+import { ChevronDown, Filter, Search, User } from "lucide-react"
 import { CartIcon } from "@/components/CartIcon"
 import { useCart } from "@/contexts/CartContext"
 import FilterComponent, { FilterState, FilterOption } from "@/components/FilterComponent"
@@ -95,6 +96,55 @@ interface Occasion extends FilterOption {
   sortOrder: number;
   sympathy?: string[];
 }
+
+interface ProductCardProps {
+  product: Product;
+  theme: typeof theme;
+  getPrimaryImage: (product: Product) => string;
+  formatPrice: (product: Product) => string;
+}
+
+const ProductCard = ({ product, theme, getPrimaryImage, formatPrice }: ProductCardProps) => {
+  return (
+    <a 
+      href={`/products/${product._id}`}
+      className="block group relative rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-300"
+    >
+      <div className="aspect-square overflow-hidden">
+        <img
+          src={getPrimaryImage(product)}
+          alt={product.name}
+          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+        />
+      </div>
+
+      <div className="p-4">
+        <h3 className="text-sm font-medium mb-1 line-clamp-2 group-hover:text-primary transition-colors" style={{ color: theme.colors.text.secondary }}>
+          {product.name}
+        </h3>
+        <p className="text-sm font-semibold" style={{ color: theme.colors.text.primary }}>
+          {formatPrice(product)}
+        </p>
+        
+        {/* Product types and occasions */}
+        <div className="mt-2 flex flex-wrap gap-1">
+          {product.productTypes?.slice(0, 2).map((pt) => (
+            <span 
+              key={pt._id} 
+              className="text-xs px-2 py-1 rounded-full"
+              style={{ backgroundColor: pt.color + '20', color: pt.color }}
+            >
+              {pt.icon} {pt.name}
+            </span>
+          ))}
+          {product.productTypes?.length > 2 && (
+            <span className="text-xs text-gray-500">+{product.productTypes.length - 2} more</span>
+          )}
+        </div>
+      </div>
+    </a>
+  );
+};
 
 export default function BestSellersPage() {
   const searchParams = useSearchParams()
@@ -449,7 +499,7 @@ export default function BestSellersPage() {
   }
 
   // Helper function to get minimum price from product
-  const getProductMinPrice = (product: Product) => {
+  const getProductMinPrice = (product: Product): number => {
     if (product.variants && product.variants.length > 0) {
       const activeVariants = product.variants.filter(v => v.isActive && v.stock > 0)
       if (activeVariants.length > 0) {
@@ -709,55 +759,10 @@ export default function BestSellersPage() {
                 filteredCount={filteredProducts.length}
               />
               
-              {/* Test Button */}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  console.log('🧪 Test button clicked - setting filter for Bouquets');
-                  const bouquetType = productTypes.find(pt => pt.name.toLowerCase() === 'bouquets');
-                  if (bouquetType) {
-                    setCurrentFilters(prev => ({
-                      ...prev,
-                      selectedProductTypes: [bouquetType._id],
-                      selectedOccasions: [],
-                      selectedPriceRange: null,
-                      searchQuery: ''
-                    }));
-                  }
-                }}
-                style={{ borderColor: theme.colors.border, color: theme.colors.text.primary }}
-              >
-                🧪 Test Filter
-              </Button>
               
-              {/* Quick Filter for Bouquets */}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center space-x-2 bg-transparent" 
-                style={{ borderColor: theme.colors.border, color: theme.colors.text.primary }}
-                onClick={() => {
-                  const bouquetType = productTypes.find(pt => pt.name.toLowerCase() === 'bouquets')
-                  if (bouquetType) {
-                    setCurrentFilters(prev => ({
-                      ...prev,
-                      selectedProductTypes: [bouquetType._id],
-                      selectedOccasions: [],
-                      selectedPriceRange: null,
-                      searchQuery: ''
-                    }))
-                  }
-                }}
-              >
-                🌸 Bouquets
-              </Button>
-              <div className="flex items-center space-x-2 text-sm">
-                <span style={{ color: theme.colors.text.primary }}>Sort by:</span>
-                <select className="border-none bg-transparent focus:outline-none" style={{ color: theme.colors.text.primary }}>
-                  <option>Featured</option>
-                </select>
-              </div>
+              
+              
+              
             </div>
           </div>
 
@@ -797,40 +802,84 @@ export default function BestSellersPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-              {filteredProducts.map((product) => (
-                <a key={product._id} href={`/products/${product._id}`} className="block">
-                  <div className="cursor-pointer hover:opacity-90 transition-opacity">
-                    <div className="w-full overflow-hidden rounded-lg">
-                      <img
-                        src={getPrimaryImage(product)}
-                        alt={product.name}
-                        className="w-full h-auto object-cover hover:scale-105 transition-transform duration-300"
-                        style={{ width: '463.992px', height: '463.992px' }}
-                      />
-                    </div>
-                    <div className="mt-4">
-                      <h3 className="text-sm mb-1 line-clamp-2" style={{ color: theme.colors.text.secondary }}>{product.name}</h3>
-                      <p className="text-sm" style={{ color: theme.colors.text.secondary }}>{formatPrice(product)}</p>
-                      {/* Show product types and occasions */}
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {product.productTypes?.slice(0, 2).map((pt) => (
-                          <span 
-                            key={pt._id} 
-                            className="text-xs px-2 py-1 rounded-full"
-                            style={{ backgroundColor: pt.color + '20', color: pt.color }}
-                          >
-                            {pt.icon} {pt.name}
-                          </span>
-                        ))}
-                        {product.productTypes?.length > 2 && (
-                          <span className="text-xs text-gray-500">+{product.productTypes.length - 2} more</span>
-                        )}
-                      </div>
-                    </div>
+            <div className="space-y-8">
+              {/* Row 1: First 3 products */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProducts.slice(0, 3).map((product) => (
+                  <ProductCard key={product._id} product={product} theme={theme} getPrimaryImage={getPrimaryImage} formatPrice={formatPrice} />
+                ))}
+              </div>
+
+              {/* Row 2: Banner (2 cols) + 1 product */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 rounded-lg p-8 relative overflow-hidden group" 
+                  style={{ backgroundColor: theme.colors.primary + '10' }}>
+                  <div className="relative z-10">
+                    <h2 className="text-3xl md:text-4xl font-light mb-4" style={{ color: theme.colors.text.primary }}>
+                      Seasonal Collections
+                    </h2>
+                    <p className="text-lg mb-6" style={{ color: theme.colors.text.secondary }}>
+                      Discover our handpicked selection of seasonal blooms, perfect for every occasion.
+                    </p>
+                    <Button 
+                      className="hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}
+                    >
+                      Explore Collection
+                    </Button>
                   </div>
-                </a>
-              ))}
+                  <div className="absolute right-0 bottom-0 w-32 h-32 opacity-10 transform rotate-45">
+                    {/* Decorative floral pattern */}
+                    <img src="/placeholder-logo.svg" alt="" className="w-full h-full object-contain" />
+                  </div>
+                </div>
+                {filteredProducts[3] && (
+                  <ProductCard product={filteredProducts[3]} theme={theme} getPrimaryImage={getPrimaryImage} formatPrice={formatPrice} />
+                )}
+              </div>
+
+              {/* Row 3: Next 3 products */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProducts.slice(4, 7).map((product) => (
+                  <ProductCard key={product._id} product={product} theme={theme} getPrimaryImage={getPrimaryImage} formatPrice={formatPrice} />
+                ))}
+              </div>
+
+              {/* Row 4: Banner (2 cols) + 1 product */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 rounded-lg p-8 relative overflow-hidden group" 
+                  style={{ backgroundColor: theme.colors.secondary + '10' }}>
+                  <div className="relative z-10">
+                    <h2 className="text-3xl md:text-4xl font-light mb-4" style={{ color: theme.colors.text.primary }}>
+                      Custom Arrangements
+                    </h2>
+                    <p className="text-lg mb-6" style={{ color: theme.colors.text.secondary }}>
+                      Let us create something unique for your special moments.
+                    </p>
+                    <Button 
+                      className="hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: theme.colors.secondary, color: theme.colors.text.white }}
+                    >
+                      Start Creating
+                    </Button>
+                  </div>
+                  <div className="absolute right-0 bottom-0 w-32 h-32 opacity-10 transform -rotate-45">
+                    <img src="/placeholder-logo.svg" alt="" className="w-full h-full object-contain" />
+                  </div>
+                </div>
+                {filteredProducts[7] && (
+                  <ProductCard product={filteredProducts[7]} theme={theme} getPrimaryImage={getPrimaryImage} formatPrice={formatPrice} />
+                )}
+              </div>
+
+              {/* Remaining products in rows of 3 */}
+              {filteredProducts.length > 8 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredProducts.slice(8).map((product) => (
+                    <ProductCard key={product._id} product={product} theme={theme} getPrimaryImage={getPrimaryImage} formatPrice={formatPrice} />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -849,14 +898,11 @@ export default function BestSellersPage() {
             <div className="relative">
               <img src="/placeholder-wrj8y.png" alt="Sunflowers" className="w-full h-full object-cover rounded-lg" />
               <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3">
-
               </div>
             </div>
           </div>
-
-
         </main>
       </div>
     </div>
-  )
+  );
 }
