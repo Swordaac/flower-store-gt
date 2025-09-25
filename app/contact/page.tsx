@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Phone, Mail, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
 
 const theme = {
@@ -71,16 +72,23 @@ const ContactPage = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <div className="relative h-64 overflow-hidden">
+      <section className="relative w-full h-96 md:h-[500px] lg:h-[600px] overflow-hidden">
         <img
           src="/flowerstore-hero.jpg"
-          alt="Contact us hero"
+          alt="Beautiful flower arrangements and bouquets"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <h1 className="text-4xl font-serif text-white">Contact Us</h1>
+        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+          <div className="text-center text-white max-w-4xl px-4">
+            <h1 className="text-4xl md:text-6xl font-light mb-4">
+              About <span style={{ color: theme.colors.text.primary }}>Atelier Floral</span>
+            </h1>
+            <p className="text-xl md:text-2xl font-light mb-8">
+              Where flowers meet art, coffee, and community in the heart of Montreal
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">

@@ -250,7 +250,7 @@ export const Navigation: React.FC = () => {
               About Us
             </Link>
             <Link href="/store-location" className="hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
-              Store Locator
+              Store Location
             </Link>
             <Link href="/contact" className="hover:text-gray-900" style={{ color: theme.colors.text.primary }}>
               Contact
@@ -469,7 +469,7 @@ export const Navigation: React.FC = () => {
                 style={{ color: theme.colors.text.primary }}
                 onClick={closeMobileMenu}
               >
-                Store Locator
+                Store Location
               </Link>
               <Link
                 href="/contact"
