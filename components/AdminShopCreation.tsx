@@ -121,7 +121,7 @@ export const AdminShopCreation: React.FC<AdminShopCreationProps> = ({
       setFormData(prev => ({
         ...prev,
         [section]: {
-          ...prev[section as keyof ShopFormData],
+          ...(prev[section as keyof ShopFormData] as Record<string, string | number | boolean>),
           [field]: value
         }
       }));

@@ -4,25 +4,44 @@ import React, { useState, useEffect, useRef } from 'react';
 import { XMarkIcon, PlusIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { useUser } from '@/contexts/UserContext';
 
+interface ProductImage {
+  size: string;
+  publicId?: string;
+  url: string;
+  alt: string;
+  isPrimary: boolean;
+}
+
+interface BaseVariant {
+  price: string;
+  stock: string;
+  images: ProductImage[];
+  isActive: boolean;
+}
+
+interface StandardVariant extends BaseVariant {
+  tierName: 'standard';
+}
+
+interface DeluxeVariant extends BaseVariant {
+  tierName: 'deluxe';
+}
+
+interface PremiumVariant extends BaseVariant {
+  tierName: 'premium';
+}
+
+type ProductVariant = StandardVariant | DeluxeVariant | PremiumVariant;
+
+type ProductVariantList = Array<StandardVariant | DeluxeVariant | PremiumVariant>;
+
 interface ProductFormData {
   name: string;
   color: string;
   description: string;
   productTypes: string[];
   occasions: string[];
-  variants: Array<{
-    tierName: 'standard' | 'deluxe' | 'premium';
-    price: string;
-    stock: string;
-    images: Array<{
-      size: string;
-      publicId?: string;
-      url: string;
-      alt: string;
-      isPrimary: boolean;
-    }>;
-    isActive: boolean;
-  }>;
+  variants: ProductVariantList;
   // Legacy fields for backwards compatibility
   price: {
     standard: string;
@@ -33,13 +52,7 @@ interface ProductFormData {
   isActive: boolean;
   isFeatured: boolean;
   isBestSeller: boolean;
-  images: Array<{
-    size: string;
-    publicId?: string;
-    url: string;
-    alt: string;
-    isPrimary: boolean;
-  }>;
+  images: ProductImage[];
   deluxeImage: {
     publicId?: string;
     url: string;
@@ -75,6 +88,48 @@ const colors = [
 ];
 
 const tierNames = ['standard', 'deluxe', 'premium'] as const;
+
+const convertToProductImage = (image: { publicId?: string; url: string; alt: string }): ProductImage => ({
+  ...image,
+  size: 'large',
+  isPrimary: true
+});
+
+const createStandardVariant = (
+  price: string,
+  stock: string,
+  images: ProductImage[]
+): StandardVariant => ({
+  tierName: 'standard',
+  price,
+  stock,
+  images,
+  isActive: true
+});
+
+const createDeluxeVariant = (
+  price: string,
+  stock: string,
+  images: ProductImage[]
+): DeluxeVariant => ({
+  tierName: 'deluxe',
+  price,
+  stock,
+  images,
+  isActive: true
+});
+
+const createPremiumVariant = (
+  price: string,
+  stock: string,
+  images: ProductImage[]
+): PremiumVariant => ({
+  tierName: 'premium',
+  price,
+  stock,
+  images,
+  isActive: true
+});
 
 const imageSizes = [
   { value: 'small', label: 'Small' },
@@ -221,27 +276,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       } else if (product.price) {
         // Convert legacy price structure to variants
         variants = [
-          {
-            tierName: 'standard' as const,
-            price: product.price.standard ? (product.price.standard / 100).toString() : '',
-            stock: product.stock?.toString() || '',
-            images: product.images || [],
-            isActive: true
-          },
-          {
-            tierName: 'deluxe' as const,
-            price: product.price.deluxe ? (product.price.deluxe / 100).toString() : '',
-            stock: product.stock?.toString() || '',
-            images: product.deluxeImage ? [product.deluxeImage] : [],
-            isActive: true
-          },
-          {
-            tierName: 'premium' as const,
-            price: product.price.premium ? (product.price.premium / 100).toString() : '',
-            stock: product.stock?.toString() || '',
-            images: product.premiumImage ? [product.premiumImage] : [],
-            isActive: true
-          }
+          createStandardVariant(
+            product.price.standard ? (product.price.standard / 100).toString() : '',
+            product.stock?.toString() || '',
+            product.images || []
+          ),
+          createDeluxeVariant(
+            product.price.deluxe ? (product.price.deluxe / 100).toString() : '',
+            product.stock?.toString() || '',
+            product.deluxeImage ? [convertToProductImage(product.deluxeImage)] : []
+          ),
+          createPremiumVariant(
+            product.price.premium ? (product.price.premium / 100).toString() : '',
+            product.stock?.toString() || '',
+            product.premiumImage ? [convertToProductImage(product.premiumImage)] : []
+          )
         ];
       }
 

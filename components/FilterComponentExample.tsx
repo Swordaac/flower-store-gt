@@ -12,7 +12,11 @@ export const FilterComponentExample: React.FC = () => {
     selectedProductTypes: [],
     selectedOccasions: [],
     selectedPriceRange: null,
-    searchQuery: ''
+    searchQuery: '',
+    selectedColors: [],
+    bestSeller: false,
+    minPrice: null,
+    maxPrice: null
   });
 
   // Mock data - in real app, this would come from API
@@ -43,7 +47,11 @@ export const FilterComponentExample: React.FC = () => {
       selectedProductTypes: [],
       selectedOccasions: [],
       selectedPriceRange: null,
-      searchQuery: ''
+      searchQuery: '',
+      selectedColors: [],
+      bestSeller: false,
+      minPrice: null,
+      maxPrice: null
     });
     console.log('Filters cleared');
   };

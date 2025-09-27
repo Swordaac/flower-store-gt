@@ -43,7 +43,7 @@ export const UserProfile: React.FC = () => {
             {user.email}
           </p>
           <p className="text-xs text-gray-400">
-            Member since {new Date(user.created_at).toLocaleDateString()}
+            Member since {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
           </p>
         </div>
         <div className="flex-shrink-0">
@@ -78,7 +78,7 @@ export const UserProfile: React.FC = () => {
           <div>
             <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
             <dd className="mt-1 text-sm text-gray-900">
-              {new Date(user.updated_at).toLocaleString()}
+              {user.updated_at ? new Date(user.updated_at).toLocaleString() : 'Never'}
             </dd>
           </div>
           <div>

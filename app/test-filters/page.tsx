@@ -11,7 +11,11 @@ export default function TestFiltersPage() {
     selectedProductTypes: [],
     selectedOccasions: [],
     selectedPriceRange: null,
-    searchQuery: ''
+    searchQuery: '',
+    selectedColors: [],
+    bestSeller: false,
+    minPrice: null,
+    maxPrice: null
   });
 
   // Load filter data
@@ -54,7 +58,11 @@ export default function TestFiltersPage() {
       selectedProductTypes: [],
       selectedOccasions: [],
       selectedPriceRange: null,
-      searchQuery: ''
+      searchQuery: '',
+      selectedColors: [],
+      bestSeller: false,
+      minPrice: null,
+      maxPrice: null
     });
   };
 

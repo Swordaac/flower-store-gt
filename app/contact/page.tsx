@@ -188,8 +188,7 @@ const ContactPage = () => {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-offset-2"
-                  style={{ focusRing: theme.colors.primary }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 />
               </div>
 
@@ -203,8 +202,7 @@ const ContactPage = () => {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-offset-2"
-                  style={{ focusRing: theme.colors.primary }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 />
               </div>
 
@@ -217,8 +215,7 @@ const ContactPage = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-offset-2"
-                  style={{ focusRing: theme.colors.primary }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 />
               </div>
 
@@ -231,8 +228,7 @@ const ContactPage = () => {
                   value={formData.subject}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-offset-2"
-                  style={{ focusRing: theme.colors.primary }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
                   <option value="">Select a subject</option>
                   <option value="general">General Inquiry</option>
@@ -253,18 +249,13 @@ const ContactPage = () => {
                   onChange={handleChange}
                   required
                   rows={6}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-offset-2"
-                  style={{ focusRing: theme.colors.primary }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full px-6 py-3 text-white rounded-md transition-colors"
-                style={{ 
-                  backgroundColor: theme.colors.primary,
-                  hover: { backgroundColor: '#7d5b46' }
-                }}
+                className="w-full px-6 py-3 text-white rounded-md transition-colors bg-primary hover:bg-[#7d5b46]"
               >
                 Send Message
               </button>

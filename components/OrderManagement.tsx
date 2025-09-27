@@ -101,7 +101,7 @@ const statusConfig = {
   }
 };
 
-const nextStatusMap = {
+const nextStatusMap: Record<Order['status'], Array<Order['status']>> = {
   pending: ['confirmed', 'cancelled'],
   confirmed: ['preparing', 'cancelled'],
   preparing: ['ready', 'cancelled'],
