@@ -17,6 +17,7 @@ interface BaseVariant {
   stock: string;
   images: ProductImage[];
   isActive: boolean;
+  tierName?: string;
 }
 
 interface StandardVariant extends BaseVariant {
@@ -33,7 +34,7 @@ interface PremiumVariant extends BaseVariant {
 
 type ProductVariant = StandardVariant | DeluxeVariant | PremiumVariant;
 
-type ProductVariantList = Array<StandardVariant | DeluxeVariant | PremiumVariant>;
+type ProductVariantList = (StandardVariant | DeluxeVariant | PremiumVariant)[];
 
 interface ProductFormData {
   name: string;
@@ -100,10 +101,10 @@ const createStandardVariant = (
   stock: string,
   images: ProductImage[]
 ): StandardVariant => ({
-  tierName: 'standard',
+  tierName: 'standard' as const,
   price,
   stock,
-  images,
+  images: images as ProductImage[],
   isActive: true
 });
 
@@ -112,10 +113,10 @@ const createDeluxeVariant = (
   stock: string,
   images: ProductImage[]
 ): DeluxeVariant => ({
-  tierName: 'deluxe',
+  tierName: 'deluxe' as const,
   price,
   stock,
-  images,
+  images: images as ProductImage[],
   isActive: true
 });
 
@@ -124,10 +125,10 @@ const createPremiumVariant = (
   stock: string,
   images: ProductImage[]
 ): PremiumVariant => ({
-  tierName: 'premium',
+  tierName: 'premium' as const,
   price,
   stock,
-  images,
+  images: images as ProductImage[],
   isActive: true
 });
 
@@ -153,27 +154,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     occasions: [],
     variants: [
       {
-        tierName: 'standard',
+        tierName: 'standard' as const,
         price: '',
         stock: '',
-        images: [],
+        images: [] as ProductImage[],
         isActive: true
       },
       {
-        tierName: 'deluxe',
+        tierName: 'deluxe' as const,
         price: '',
         stock: '',
-        images: [],
+        images: [] as ProductImage[],
         isActive: true
       },
       {
-        tierName: 'premium',
+        tierName: 'premium' as const,
         price: '',
         stock: '',
-        images: [],
+        images: [] as ProductImage[],
         isActive: true
       }
-    ],
+    ] as ProductVariantList,
     // Legacy fields for backwards compatibility
     price: {
       standard: '',
@@ -240,39 +241,42 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   useEffect(() => {
     if (product) {
       // Convert variants to form data if they exist
-      let variants = [
+      let variants: ProductVariantList = [
         {
           tierName: 'standard' as const,
           price: '',
           stock: '',
-          images: [],
+          images: [] as ProductImage[],
           isActive: true
         },
         {
           tierName: 'deluxe' as const,
           price: '',
           stock: '',
-          images: [],
+          images: [] as ProductImage[],
           isActive: true
         },
         {
           tierName: 'premium' as const,
           price: '',
           stock: '',
-          images: [],
+          images: [] as ProductImage[],
           isActive: true
         }
       ];
 
       if (product.variants && product.variants.length > 0) {
         // Use new variant structure
-        variants = product.variants.map((variant: any) => ({
-          tierName: variant.tierName,
-          price: variant.price ? (variant.price / 100).toString() : '',
-          stock: variant.stock?.toString() || '',
-          images: variant.images || [],
-          isActive: variant.isActive !== false
-        }));
+        variants = product.variants.map((variant: any) => {
+          const tierName = variant.tierName as 'standard' | 'deluxe' | 'premium';
+          return {
+            tierName,
+            price: variant.price ? (variant.price / 100).toString() : '',
+            stock: variant.stock?.toString() || '',
+            images: (variant.images || []) as ProductImage[],
+            isActive: variant.isActive !== false
+          } as ProductVariant;
+        }) as ProductVariantList;
       } else if (product.price) {
         // Convert legacy price structure to variants
         variants = [
@@ -547,19 +551,55 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     
     try {
       // Convert variants to the correct format
-      const variants = formData.variants.map(variant => ({
-        tierName: variant.tierName,
-        price: Math.round(parseFloat(variant.price || '0') * 100), // Convert to cents
-        stock: parseInt(variant.stock || '0'),
-        images: variant.images.filter(img => img.publicId), // Only send uploaded images
-        isActive: variant.isActive
-      }));
+      const variants = formData.variants.map(variant => {
+        const price = variant.price || '0';
+        const stock = variant.stock || '0';
+        const images = variant.images.filter(img => img.publicId);
+        const tierName = variant.tierName as 'standard' | 'deluxe' | 'premium';
+        
+        switch (tierName) {
+          case 'standard':
+            return {
+              tierName: 'standard' as const,
+              price: price,
+              stock: stock,
+              images: images,
+              isActive: variant.isActive
+            } as StandardVariant;
+          case 'deluxe':
+            return {
+              tierName: 'deluxe' as const,
+              price: price,
+              stock: stock,
+              images: images,
+              isActive: variant.isActive
+            } as DeluxeVariant;
+          case 'premium':
+            return {
+              tierName: 'premium' as const,
+              price: price,
+              stock: stock,
+              images: images,
+              isActive: variant.isActive
+            } as PremiumVariant;
+          default:
+            throw new Error(`Invalid variant type: ${tierName}`);
+        }
+      }) as ProductVariantList;
       
       // Convert variant prices to legacy price structure for backwards compatibility
+      const getVariantPrice = (tierName: 'standard' | 'deluxe' | 'premium'): string => {
+        const variant = variants.find(v => v.tierName === tierName);
+        const price = variant?.price || '0';
+        const priceFloat = Number(price);
+        const cents = Math.round(priceFloat * 100);
+        return cents.toString();
+      };
+
       const priceInCents = {
-        standard: Math.round(parseFloat(variants.find(v => v.tierName === 'standard')?.price || '0') * 100),
-        deluxe: Math.round(parseFloat(variants.find(v => v.tierName === 'deluxe')?.price || '0') * 100),
-        premium: Math.round(parseFloat(variants.find(v => v.tierName === 'premium')?.price || '0') * 100)
+        standard: getVariantPrice('standard'),
+        deluxe: getVariantPrice('deluxe'),
+        premium: getVariantPrice('premium')
       };
       
       const submitData = {
