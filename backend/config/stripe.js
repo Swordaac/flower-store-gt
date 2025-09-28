@@ -9,6 +9,7 @@ console.log('Initializing Stripe with key:', process.env.STRIPE_SECRET_KEY.subst
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Stripe configuration
+const APP_BASE = process.env.APP_BASE_URL || 'http://localhost:3000';
 const STRIPE_CONFIG = {
   // Currency settings
   currency: 'cad', // Canadian Dollar for flower store
@@ -17,13 +18,9 @@ const STRIPE_CONFIG = {
   paymentMethodTypes: ['card'],
   
   // Success and cancel URLs (will be set dynamically based on environment)
-  successUrl: process.env.NODE_ENV === 'production' 
-    ? 'https://yourdomain.com/checkout/success' 
-    : 'http://localhost:3000/checkout/success',
-    
-  cancelUrl: process.env.NODE_ENV === 'production'
-    ? 'https://yourdomain.com/checkout/cancel'
-    : 'http://localhost:3000/checkout/cancel',
+  successUrl: `${APP_BASE}/checkout/success`,
+  
+  cancelUrl: `${APP_BASE}/checkout/cancel`,
   
   // Webhook settings
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
