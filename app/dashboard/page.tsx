@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { ProductForm } from '@/components/ProductForm';
@@ -130,12 +131,12 @@ export default function DashboardPage() {
     try {
       const shopId = searchParams.get('shop') || userShop?._id;
       
-      let url = 'http://localhost:5001/api/products';
+      let url = '/api/products';
       if (isShopOwner && shopId) {
-        url = `http://localhost:5001/api/products/shop/${shopId}`;
+        url = `/api/products/shop/${shopId}`;
       }
       
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`
         }
@@ -154,12 +155,12 @@ export default function DashboardPage() {
     try {
       const shopId = searchParams.get('shop') || userShop?._id;
       
-      let url = 'http://localhost:5001/api/orders';
+      let url = '/api/orders';
       if (isShopOwner && shopId) {
-        url = `http://localhost:5001/api/orders/shop/${shopId}`;
+        url = `/api/orders/shop/${shopId}`;
       }
       
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`
         }
@@ -179,7 +180,7 @@ export default function DashboardPage() {
     
     try {
       setShopsLoading(true);
-      const response = await fetch('http://localhost:5001/api/shops/admin/all', {
+      const response = await apiFetch('/api/shops/admin/all', {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`
         }
@@ -227,12 +228,12 @@ export default function DashboardPage() {
   const handleProductSubmit = async (productData: any) => {
     try {
       const url = editingProduct 
-        ? `http://localhost:5001/api/products/${editingProduct._id}`
-        : 'http://localhost:5001/api/products';
+        ? `/api/products/${editingProduct._id}`
+        : '/api/products';
       
       const method = editingProduct ? 'PUT' : 'POST';
       
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -272,7 +273,7 @@ export default function DashboardPage() {
   const handleProductDelete = async (productId: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
       try {
-        const response = await fetch(`http://localhost:5001/api/products/${productId}`, {
+        const response = await apiFetch(`/api/products/${productId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${session?.access_token}`
@@ -298,7 +299,7 @@ export default function DashboardPage() {
 
   const handleOrderStatusUpdate = async (orderId: string, newStatus: Order['status']) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/orders/${orderId}/status`, {
+      const response = await apiFetch(`/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

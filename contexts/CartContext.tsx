@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useUser } from './UserContext';
 
 interface OrderInfo {
@@ -119,7 +120,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           quantity: i.quantity
         }))
       };
-      const res = await fetch('http://localhost:5001/api/products/validate-stock', {
+      const res = await apiFetch('/api/products/validate-stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -448,7 +449,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         }
       };
 
-      const response = await fetch('http://localhost:5001/api/orders', {
+      const response = await apiFetch('/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -580,7 +581,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       console.log('Recipient Info:', JSON.stringify(orderData.recipient, null, 2));
       console.log('Delivery Method:', orderData.delivery.method);
 
-      const response = await fetch('http://localhost:5001/api/stripe/create-checkout-session', {
+      const response = await apiFetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

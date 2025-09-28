@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { apiFetch } from '@/lib/api';
 
 interface Shop {
   _id: string;
@@ -115,7 +116,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5001/api/auth/profile', {
+      const response = await apiFetch('/api/auth/profile', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -139,7 +140,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     if (!session?.access_token) return false;
     
     try {
-      const response = await fetch('http://localhost:5001/api/auth/profile', {
+      const response = await apiFetch('/api/auth/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -167,7 +168,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     if (!session?.access_token || !isAdmin) return false;
     
     try {
-      const response = await fetch(`http://localhost:5001/api/auth/users/${userId}/role`, {
+      const response = await apiFetch(`/api/auth/users/${userId}/role`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -198,7 +199,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     
     try {
       setShopLoading(true);
-      const response = await fetch('http://localhost:5001/api/shops/my-shop', {
+      const response = await apiFetch('/api/shops/my-shop', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -227,7 +228,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       const endpoint = targetUserId ? '/api/shops' : '/api/shops/create-for-user';
       const body = targetUserId ? { ...shopData, ownerId: targetUserId } : shopData;
       
-      const response = await fetch(`http://localhost:5001${endpoint}`, {
+      const response = await apiFetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -257,7 +258,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     if (!session?.access_token || !isAdmin) return [];
     
     try {
-      const response = await fetch('http://localhost:5001/api/auth/users', {
+      const response = await apiFetch('/api/auth/users', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -281,7 +282,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     if (!session?.access_token || !isAdmin) return null;
     
     try {
-      const response = await fetch(`http://localhost:5001/api/auth/users/${userId}`, {
+      const response = await apiFetch(`/api/auth/users/${userId}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -310,7 +311,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         params.append('includeInactive', 'true');
       }
       
-      const response = await fetch(`http://localhost:5001/api/shops/admin/all?${params}`, {
+      const response = await apiFetch(`/api/shops/admin/all?${params}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -334,7 +335,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     if (!session?.access_token || !isAdmin) return [];
     
     try {
-      const response = await fetch('http://localhost:5001/api/shops/admin/shop-owners', {
+      const response = await apiFetch('/api/shops/admin/shop-owners', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
@@ -358,7 +359,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     if (!session?.access_token || !isAdmin) return false;
     
     try {
-      const response = await fetch('http://localhost:5001/api/shops/admin/create-by-email', {
+      const response = await apiFetch('/api/shops/admin/create-by-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

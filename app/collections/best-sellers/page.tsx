@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { apiFetch } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 
 interface Product {
@@ -74,9 +75,9 @@ export default function BestSellersCollectionPage() {
         setError(null)
 
         const shopId = '68c34f45ee89e0fd81c8aa4d'
-        const url = `http://localhost:5001/api/products/shop/${shopId}?inStock=true&bestSeller=true`
+        const url = `/api/products/shop/${shopId}?inStock=true&bestSeller=true`
 
-        const res = await fetch(url)
+        const res = await apiFetch(url)
         if (!res.ok) throw new Error(`Failed to fetch products: ${res.status}`)
         const data = await res.json()
         if (!data.success) throw new Error(data.error || 'Failed to fetch products')

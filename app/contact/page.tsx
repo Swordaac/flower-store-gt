@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import Image from 'next/image';
 import { Phone, Mail, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
 
@@ -38,7 +39,7 @@ const ContactPage = () => {
     e.preventDefault();
     try {
       const shopId = '68c34f45ee89e0fd81c8aa4d'; // Default shop ID
-      const response = await fetch('http://localhost:5001/api/contact', {
+      const response = await apiFetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

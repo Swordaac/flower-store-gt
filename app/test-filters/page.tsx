@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api';
 import FilterComponent, { FilterState, FilterOption } from '@/components/FilterComponent';
 
 export default function TestFiltersPage() {
@@ -25,7 +26,7 @@ export default function TestFiltersPage() {
         console.log('🔄 Loading filter data...');
         
         // Load product types
-        const productTypesResponse = await fetch('http://localhost:5001/api/products/types');
+        const productTypesResponse = await apiFetch('/api/products/types');
         if (productTypesResponse.ok) {
           const productTypesData = await productTypesResponse.json();
           console.log('✅ Product types loaded:', productTypesData.data?.length || 0);
@@ -33,7 +34,7 @@ export default function TestFiltersPage() {
         }
         
         // Load occasions
-        const occasionsResponse = await fetch('http://localhost:5001/api/products/occasions');
+        const occasionsResponse = await apiFetch('/api/products/occasions');
         if (occasionsResponse.ok) {
           const occasionsData = await occasionsResponse.json();
           console.log('✅ Occasions loaded:', occasionsData.data?.length || 0);

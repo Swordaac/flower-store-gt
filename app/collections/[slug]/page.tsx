@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { apiFetch } from "@/lib/api"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
@@ -67,8 +68,8 @@ export default function CollectionPage() {
 
         // Load reference data to resolve slug → id
         const [typesRes, occasionsRes] = await Promise.all([
-          fetch('http://localhost:5001/api/products/types'),
-          fetch('http://localhost:5001/api/products/occasions')
+          apiFetch('/api/products/types'),
+          apiFetch('/api/products/occasions')
         ])
 
         const typesData = typesRes.ok ? await typesRes.json() : { data: [] }
@@ -93,7 +94,7 @@ export default function CollectionPage() {
 
         // Build products request
         const shopId = '68c34f45ee89e0fd81c8aa4d'
-        let url = `http://localhost:5001/api/products/shop/${shopId}?inStock=true`
+        let url = `/api/products/shop/${shopId}?inStock=true`
 
         if (isBestSellers) {
           url += `&bestSeller=true`
@@ -108,7 +109,7 @@ export default function CollectionPage() {
           return
         }
 
-        const productsRes = await fetch(url)
+        const productsRes = await apiFetch(url)
         if (!productsRes.ok) throw new Error(`Failed to fetch products: ${productsRes.status}`)
         const data = await productsRes.json()
         if (!data.success) throw new Error(data.error || 'Failed to fetch products')

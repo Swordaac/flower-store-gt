@@ -13,6 +13,7 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiFetch } from '@/lib/api';
 
 interface PickupLocation {
   _id: string;
@@ -101,10 +102,10 @@ export function PickupLocationManagement({ shopId, onClose }: PickupLocationMana
     try {
       setLoading(true);
       const url = shopId 
-        ? `http://localhost:5001/api/pickup-locations?shopId=${shopId}`
-        : 'http://localhost:5001/api/pickup-locations';
+        ? `/api/pickup-locations?shopId=${shopId}`
+        : '/api/pickup-locations';
       
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`
         }
@@ -133,12 +134,12 @@ export function PickupLocationManagement({ shopId, onClose }: PickupLocationMana
     
     try {
       const url = editingLocation 
-        ? `http://localhost:5001/api/pickup-locations/${editingLocation._id}`
-        : 'http://localhost:5001/api/pickup-locations';
+        ? `/api/pickup-locations/${editingLocation._id}`
+        : '/api/pickup-locations';
       
       const method = editingLocation ? 'PUT' : 'POST';
       
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -172,7 +173,7 @@ export function PickupLocationManagement({ shopId, onClose }: PickupLocationMana
     }
     
     try {
-      const response = await fetch(`http://localhost:5001/api/pickup-locations/${id}`, {
+      const response = await apiFetch(`/api/pickup-locations/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session?.access_token}`

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useUser } from '@/contexts/UserContext';
 import { UserProfile } from '@/components/auth/UserProfile';
 import { 
@@ -690,7 +691,7 @@ export function ContactMessagesTab({ userShop }: { userShop: any }) {
   const fetchMessages = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5001/api/contact', {
+      const response = await apiFetch('/api/contact', {
         headers: {
           'Authorization': `Bearer ${session?.access_token}`
         }
@@ -709,7 +710,7 @@ export function ContactMessagesTab({ userShop }: { userShop: any }) {
 
   const handleStatusUpdate = async (messageId: string, newStatus: string) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/contact/${messageId}/status`, {
+      const response = await apiFetch(`/api/contact/${messageId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

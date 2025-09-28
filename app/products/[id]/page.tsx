@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { apiFetch } from "@/lib/api"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -111,7 +112,7 @@ export default function ProductDetailPage() {
         setLoading(true)
         setError(null)
         
-        const response = await fetch(`http://localhost:5001/api/products/${productId}`)
+        const response = await apiFetch(`/api/products/${productId}`)
         
         if (!response.ok) {
           throw new Error(`Failed to fetch product: ${response.status}`)

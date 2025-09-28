@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useUser } from '@/contexts/UserContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -63,7 +64,7 @@ export default function OrdersPage() {
         setLoading(true);
         setError(null);
         
-        const response = await fetch('http://localhost:5001/api/orders', {
+        const response = await apiFetch('/api/orders', {
           headers: {
             'Authorization': `Bearer ${session.access_token}`
           }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { supabase, type AuthUser, type AuthSession } from '@/lib/supabase';
 import { User, AuthResponse, Session } from '@supabase/supabase-js';
 
@@ -187,7 +188,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const createUserInBackend = async (token: string, userData: { email: string; fullName?: string }) => {
     try {
       // Call the backend server directly
-      const response: Response = await fetch('http://localhost:5001/api/auth/create-user', {
+      const response: Response = await apiFetch('/api/auth/create-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

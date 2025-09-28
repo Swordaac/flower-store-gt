@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { XMarkIcon, PlusIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { useUser } from '@/contexts/UserContext';
+import { apiFetch, buildApiUrl } from '@/lib/api';
 
 interface ProductImage {
   size: string;
@@ -216,14 +217,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         setLoadingData(true);
         
         // Load product types
-        const productTypesResponse = await fetch('http://localhost:5001/api/products/types');
+        const productTypesResponse = await apiFetch('/api/products/types');
         if (productTypesResponse.ok) {
           const productTypesData = await productTypesResponse.json();
           setProductTypes(productTypesData.data || []);
         }
         
         // Load occasions
-        const occasionsResponse = await fetch('http://localhost:5001/api/products/occasions');
+        const occasionsResponse = await apiFetch('/api/products/occasions');
         if (occasionsResponse.ok) {
           const occasionsData = await occasionsResponse.json();
           setOccasions(occasionsData.data || []);
@@ -464,11 +465,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       formData.append('imageSizes', JSON.stringify(sizes));
       formData.append('productId', productId);
 
-      console.log('Sending upload request to:', 'http://localhost:5001/api/images/upload/multiple');
+      console.log('Sending upload request to:', buildApiUrl('/api/images/upload/multiple'));
       console.log('Image sizes being sent:', sizes);
       console.log('Pending file sizes state:', pendingFileSizes);
 
-      const response = await fetch('http://localhost:5001/api/images/upload/multiple', {
+      const response = await apiFetch('/api/images/upload/multiple', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`

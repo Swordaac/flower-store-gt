@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { apiFetch } from "@/lib/api"
 import { ShoppingCart, Eye } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -196,14 +197,14 @@ export default function BestSellersPage() {
     const loadFilterData = async () => {
       try {
         // Load product types
-        const productTypesResponse = await fetch('http://localhost:5001/api/products/types')
+        const productTypesResponse = await apiFetch('/api/products/types')
         if (productTypesResponse.ok) {
           const productTypesData = await productTypesResponse.json()
           setProductTypes(productTypesData.data || [])
         }
         
         // Load occasions
-        const occasionsResponse = await fetch('http://localhost:5001/api/products/occasions')
+        const occasionsResponse = await apiFetch('/api/products/occasions')
         if (occasionsResponse.ok) {
           const occasionsData = await occasionsResponse.json()
           setOccasions(occasionsData.data || [])
@@ -225,7 +226,7 @@ export default function BestSellersPage() {
         
         const shopId = '68c34f45ee89e0fd81c8aa4d'
         console.log('🔍 Fetching products for shop:', shopId)
-        const response = await fetch(`http://localhost:5001/api/products/shop/${shopId}`)
+        const response = await apiFetch(`/api/products/shop/${shopId}`)
         
         if (!response.ok) {
           throw new Error(`Failed to fetch products: ${response.status}`)
@@ -309,7 +310,7 @@ export default function BestSellersPage() {
         setError(null)
         
         const shopId = '68c34f45ee89e0fd81c8aa4d'
-        let url = `http://localhost:5001/api/products/shop/${shopId}?inStock=true`
+        let url = `/api/products/shop/${shopId}?inStock=true`
         
         console.log('🔍 Fetching filtered products with filters:', currentFilters)
         
@@ -366,7 +367,7 @@ export default function BestSellersPage() {
         }
 
         console.log('🌐 Making API request to:', url)
-        const response = await fetch(url)
+        const response = await apiFetch(url)
         if (!response.ok) {
           throw new Error(`Failed to fetch products: ${response.status}`)
         }

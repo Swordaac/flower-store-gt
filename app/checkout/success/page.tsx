@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
@@ -88,7 +89,7 @@ export default function CheckoutSuccessPage() {
 
     const fetchSessionDetails = async () => {
       try {
-        const response = await fetch(`http://localhost:5001/api/stripe/checkout-session/${sessionId}`, {
+        const response = await apiFetch(`/api/stripe/checkout-session/${sessionId}`, {
           headers: {
             'Authorization': `Bearer ${userSession.access_token}`
           }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ProductForm } from './ProductForm';
 import { useUser } from '@/contexts/UserContext';
 
@@ -25,7 +26,7 @@ export const ProductFormExample: React.FC<ProductFormExampleProps> = ({
 
     try {
       // Create the product
-      const response = await fetch('http://localhost:5001/api/products', {
+      const response = await apiFetch('/api/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

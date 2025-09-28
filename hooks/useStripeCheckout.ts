@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/contexts/UserContext';
 import getStripe from '@/lib/stripe';
+import { apiFetch } from '@/lib/api';
 
 interface CheckoutSessionData {
   shopId: string;
@@ -53,7 +54,7 @@ export const useStripeCheckout = () => {
 
       console.log('Sending checkout data:', JSON.stringify(data, null, 2));
       
-      const response = await fetch('http://localhost:5001/api/stripe/create-checkout-session', {
+      const response = await apiFetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
