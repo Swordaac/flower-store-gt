@@ -126,22 +126,7 @@ export const Navigation: React.FC = () => {
                         >
                           Best Sellers
                         </Link>
-                        <Link 
-                          href="/collections/bouquets" 
-                          className="block text-sm py-1 transition-colors"
-                          style={{ color: theme.colors.text.light }}
-                          onClick={() => setIsShopDropdownOpen(false)}
-                        >
-                          Bouquets
-                        </Link>
-                        <Link 
-                          href="/collections/orchids" 
-                          className="block text-sm py-1 transition-colors"
-                          style={{ color: theme.colors.text.light }}
-                          onClick={() => setIsShopDropdownOpen(false)}
-                        >
-                          Orchids
-                        </Link>
+
                       </div>
                     </div>
 
