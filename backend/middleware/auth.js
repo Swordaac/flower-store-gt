@@ -23,13 +23,21 @@ const authenticateToken = async (req, res, next) => {
     // Development mode: Allow mock tokens for testing
     if (process.env.NODE_ENV === 'development' && (token === 'mock-token' || token === 'mock-token-for-testing')) {
       console.log('Using mock authentication for development');
-      req.user = {
-        _id: 'mock-user-id',
-        email: 'test@example.com',
-        name: 'Test User',
-        role: 'customer',
-        supabaseUserId: 'mock-supabase-user-id'
-      };
+      // Get a real user from the database for testing
+      const User = require('../models/User');
+      const testUser = await User.findOne({ email: 'buyer@mail.mcgill.ca' });
+      if (testUser) {
+        req.user = testUser;
+        console.log('Using real user for mock auth:', testUser.email);
+      } else {
+        req.user = {
+          _id: '507f1f77bcf86cd799439011', // Valid ObjectId
+          email: 'test@example.com',
+          name: 'Test User',
+          role: 'customer',
+          supabaseUserId: 'mock-supabase-user-id'
+        };
+      }
       return next();
     }
 

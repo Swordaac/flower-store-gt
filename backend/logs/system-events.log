@@ -1,0 +1,15 @@
+{"timestamp":"2025-10-03T20:36:22.066Z","event":"connection_test","message":"PrintNode connection successful","data":{"account":{"ApiKeys":[],"Tags":[],"canCreateSubAccounts":false,"childAccounts":[],"connected":[685433],"creatorEmail":null,"creatorRef":null,"credits":null,"email":"susannaq328@gmail.com","firstname":"YinYin","id":477169,"lastname":"Qiao","numComputers":1,"permissions":["Unrestricted"],"state":"active","totalPrints":0,"versions":[]}}}
+{"timestamp":"2025-10-03T20:36:54.841Z","event":"connection_test","message":"PrintNode connection successful","data":{"account":{"ApiKeys":[],"Tags":[],"canCreateSubAccounts":false,"childAccounts":[],"connected":[685433],"creatorEmail":null,"creatorRef":null,"credits":null,"email":"susannaq328@gmail.com","firstname":"YinYin","id":477169,"lastname":"Qiao","numComputers":1,"permissions":["Unrestricted"],"state":"active","totalPrints":0,"versions":[]}}}
+{"timestamp":"2025-10-03T20:36:54.932Z","event":"printers_fetched","message":"Retrieved 2 printers","data":{}}
+{"timestamp":"2025-10-03T20:36:55.099Z","event":"printers_fetched","message":"Retrieved 2 printers","data":{}}
+{"timestamp":"2025-10-03T20:36:55.099Z","event":"printer_selected","message":"Selected printer: 74717584","data":{}}
+{"timestamp":"2025-10-03T20:36:55.099Z","event":"print_job_created","message":"Print job created","data":{"orderNumber":"TEST-1759523814933","printerId":74717584,"title":"Order TEST-1759523814933 - Test Recipient"}}
+{"timestamp":"2025-10-03T20:45:45.753Z","event":"printers_fetched","message":"Retrieved 2 printers","data":{}}
+{"timestamp":"2025-10-03T20:45:45.753Z","event":"printer_selected","message":"Selected printer: 74717584","data":{}}
+{"timestamp":"2025-10-03T20:45:45.754Z","event":"print_job_created","message":"Print job created","data":{"orderNumber":"TEST-ORDER-1759524345146","printerId":74717584,"title":"Order TEST-ORDER-1759524345146 - Test Recipient"}}
+{"timestamp":"2025-10-03T20:50:04.645Z","event":"printers_fetched","message":"Retrieved 2 printers","data":{}}
+{"timestamp":"2025-10-03T20:50:04.646Z","event":"printer_selected","message":"Selected printer: 74717584","data":{}}
+{"timestamp":"2025-10-03T20:50:04.646Z","event":"print_job_created","message":"Print job created","data":{"orderNumber":"DIRECT-TEST-1759524604076","printerId":74717584,"title":"Order DIRECT-TEST-1759524604076 - Test Recipient"}}
+{"timestamp":"2025-10-03T20:51:25.574Z","event":"printers_fetched","message":"Retrieved 2 printers","data":{}}
+{"timestamp":"2025-10-03T20:51:25.576Z","event":"printer_selected","message":"Selected printer: 74717584","data":{}}
+{"timestamp":"2025-10-03T20:51:25.576Z","event":"print_job_created","message":"Print job created","data":{"orderNumber":"ORD-1759524684976-EZYXRN","printerId":74717584,"title":"Order ORD-1759524684976-EZYXRN - Test Recipient"}}

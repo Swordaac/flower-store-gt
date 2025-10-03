@@ -4,6 +4,7 @@ const { authenticateToken, requireRole, requireShopOwnership } = require('../mid
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Shop = require('../models/Shop');
+const printService = require('../services/printService');
 
 /**
  * GET /api/orders - Get orders (filtered by user role)
@@ -140,19 +141,36 @@ router.get('/:id', authenticateToken, async (req, res) => {
  * Requires customer authentication
  */
 router.post('/', authenticateToken, requireRole('customer'), async (req, res) => {
+  console.log('📝 Order creation API called');
   try {
     const {
       shopId,
       items,
       delivery,
-      notes
+      notes,
+      recipient
     } = req.body;
     
+    console.log('📝 Order data received:', {
+      shopId,
+      itemsCount: items?.length,
+      deliveryMethod: delivery?.method,
+      recipientName: recipient?.name
+    });
+    
     // Validate required fields
-    if (!shopId || !items || !delivery) {
+    if (!shopId || !items || !delivery || !recipient) {
       return res.status(400).json({
         success: false,
-        error: 'Shop ID, items, and delivery information are required'
+        error: 'Shop ID, items, delivery information, and recipient information are required'
+      });
+    }
+
+    // Validate recipient information
+    if (!recipient.name || !recipient.phone || !recipient.email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Recipient name, phone, and email are required'
       });
     }
     
@@ -269,6 +287,11 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
       customerId: req.user._id,
       shopId,
       orderNumber,
+      recipient: {
+        name: recipient.name,
+        phone: recipient.phone,
+        email: recipient.email
+      },
       items: processedItems,
       subtotal,
       taxAmount,
@@ -284,6 +307,7 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
     });
     
     const savedOrder = await order.save();
+    console.log('✅ Order saved successfully:', savedOrder.orderNumber);
     
     // Update product stock
     for (const item of items) {
@@ -291,6 +315,21 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
         $inc: { stock: -item.quantity }
       });
     }
+    console.log('✅ Product stock updated');
+
+    // Print order details asynchronously (don't wait for completion)
+    console.log(`🖨️ Triggering print job for order ${savedOrder.orderNumber}...`);
+    printService.printOrderDetails(savedOrder)
+      .then(result => {
+        if (result.success) {
+          console.log(`✅ Print job submitted successfully for order ${savedOrder.orderNumber}:`, result);
+        } else {
+          console.error(`❌ Failed to print order ${savedOrder.orderNumber}:`, result.error);
+        }
+      })
+      .catch(error => {
+        console.error(`❌ Error printing order ${savedOrder.orderNumber}:`, error);
+      });
     
     res.status(201).json({
       success: true,
@@ -504,6 +543,136 @@ router.get('/shop/:shopId', authenticateToken, requireRole(['shop_owner', 'admin
     res.status(500).json({
       success: false,
       error: 'Failed to fetch shop orders'
+    });
+  }
+});
+
+/**
+ * POST /api/orders/:id/print - Print order details
+ * Requires shop ownership or admin role
+ */
+router.post('/:id/print', authenticateToken, requireRole(['shop_owner', 'admin']), async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    
+    // Check access permissions
+    if (req.user.role === 'shop_owner') {
+      const order = await Order.findById(orderId);
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          error: 'Order not found'
+        });
+      }
+      
+      const shop = await Shop.findOne({ _id: order.shopId, ownerId: req.user._id });
+      if (!shop) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied: You can only print orders from your shops'
+        });
+      }
+    }
+
+    // Get the order with populated data
+    const order = await Order.findById(orderId)
+      .populate('shopId', 'name address.city address.state')
+      .populate('customerId', 'name email')
+      .select('-__v');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
+    // Print the order details
+    const printResult = await printService.printOrderDetails(order);
+    
+    res.json({
+      success: printResult.success,
+      message: printResult.message,
+      data: {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        printJobId: printResult.printJobId,
+        printerId: printResult.printerId
+      },
+      error: printResult.error
+    });
+
+  } catch (error) {
+    console.error('Error printing order:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to print order'
+    });
+  }
+});
+
+/**
+ * GET /api/orders/print/test - Test PrintNode connection
+ * Requires admin role
+ */
+router.get('/print/test', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const testResult = await printService.testConnection();
+    
+    res.json({
+      success: testResult.success,
+      message: testResult.message,
+      data: testResult.account,
+      error: testResult.error
+    });
+  } catch (error) {
+    console.error('Error testing PrintNode connection:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to test PrintNode connection'
+    });
+  }
+});
+
+/**
+ * GET /api/orders/print/printers - Get available printers
+ * Requires admin role
+ */
+router.get('/print/printers', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const printers = await printService.getPrinters();
+    
+    res.json({
+      success: true,
+      data: printers
+    });
+  } catch (error) {
+    console.error('Error fetching printers:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch printers'
+    });
+  }
+});
+
+/**
+ * GET /api/orders/print/stats - Get print job statistics
+ * Requires admin role
+ */
+router.get('/print/stats', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { days = 7 } = req.query;
+    const stats = printService.getPrintJobStats(parseInt(days));
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error fetching print job stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch print job statistics'
     });
   }
 });
