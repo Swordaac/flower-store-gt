@@ -58,6 +58,9 @@ export const NotificationSettings: React.FC = () => {
               <span className="ml-2 font-medium text-gray-900">{notifications.newMessages}</span>
             </div>
           </div>
+          <div className="mt-2 text-xs text-gray-500">
+            Last checked: {notifications.lastChecked ? new Date(notifications.lastChecked).toLocaleString() : 'Never'}
+          </div>
         </div>
 
         {/* Action Buttons */}

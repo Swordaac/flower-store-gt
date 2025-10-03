@@ -48,6 +48,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
   const [lastNotificationCount, setLastNotificationCount] = useState({ orders: 0, messages: 0 });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
 
   // Load sound preference from localStorage
   useEffect(() => {
@@ -111,6 +112,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       setIsLoading(true);
       setError(null);
 
+      const currentTime = new Date();
+      const lastCheck = lastCheckTime || new Date(Date.now() - 24 * 60 * 60 * 1000); // Default to 24 hours ago if no previous check
+
       const [ordersResponse, messagesResponse] = await Promise.all([
         apiFetch('/api/orders?status=pending&limit=100', {
           headers: {
@@ -124,36 +128,61 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         })
       ]);
 
+      let totalOrdersCount = 0;
+      let totalMessagesCount = 0;
       let newOrdersCount = 0;
       let newMessagesCount = 0;
 
       if (ordersResponse.ok) {
         const ordersData = await ordersResponse.json();
-        newOrdersCount = ordersData.data?.length || 0;
+        const orders = ordersData.data || [];
+        totalOrdersCount = orders.length;
+        
+        // Count orders created since last check
+        newOrdersCount = orders.filter((order: any) => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate > lastCheck;
+        }).length;
       }
 
       if (messagesResponse.ok) {
         const messagesData = await messagesResponse.json();
-        newMessagesCount = messagesData.data?.length || 0;
+        const messages = messagesData.data || [];
+        totalMessagesCount = messages.length;
+        
+        // Count messages created since last check
+        newMessagesCount = messages.filter((message: any) => {
+          const messageDate = new Date(message.createdAt);
+          return messageDate > lastCheck;
+        }).length;
       }
 
       const newNotificationData = {
-        newOrders: newOrdersCount,
-        newMessages: newMessagesCount,
-        lastChecked: new Date()
+        newOrders: totalOrdersCount,
+        newMessages: totalMessagesCount,
+        lastChecked: currentTime
       };
 
       setNotifications(newNotificationData);
 
-      // Play sound if there are new notifications
-      const totalNew = newOrdersCount + newMessagesCount;
-      const totalPrevious = lastNotificationCount.orders + lastNotificationCount.messages;
+      // Play sound only if there are genuinely new notifications since last check
+      const totalNewSinceLastCheck = newOrdersCount + newMessagesCount;
+      
+      // Debug logging
+      console.log('Notification check:', {
+        isInitialLoad,
+        totalNewSinceLastCheck,
+        newOrdersCount,
+        newMessagesCount,
+        lastCheck: lastCheck.toISOString(),
+        currentTime: currentTime.toISOString()
+      });
       
       // Play sound if:
       // 1. This is not the initial load
-      // 2. There are new notifications (totalNew > 0)
-      // 3. The count has increased from the last check
-      if (!isInitialLoad && totalNew > totalPrevious && totalNew > 0) {
+      // 2. There are genuinely new notifications since last check
+      if (!isInitialLoad && totalNewSinceLastCheck > 0) {
+        console.log('Playing notification sound for', totalNewSinceLastCheck, 'new notifications');
         playNotificationSound();
       }
 
@@ -162,7 +191,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         setIsInitialLoad(false);
       }
 
-      setLastNotificationCount({ orders: newOrdersCount, messages: newMessagesCount });
+      // Update tracking variables
+      setLastNotificationCount({ orders: totalOrdersCount, messages: totalMessagesCount });
+      setLastCheckTime(currentTime);
 
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -170,7 +201,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser, isShopOwner, isAdmin, session, playNotificationSound, lastNotificationCount]);
+  }, [currentUser, isShopOwner, isAdmin, session, playNotificationSound, lastCheckTime]);
 
   // Refresh notifications manually
   const refreshNotifications = useCallback(async () => {
@@ -183,11 +214,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       ...prev,
       newOrders: 0
     }));
-    // Update the last count to prevent sound from playing for the same notifications
-    setLastNotificationCount(prev => ({
-      ...prev,
-      orders: 0
-    }));
+    // Reset the last check time to current time so we don't get false positives
+    setLastCheckTime(new Date());
   }, []);
 
   // Mark messages as read (reset count)
@@ -196,11 +224,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       ...prev,
       newMessages: 0
     }));
-    // Update the last count to prevent sound from playing for the same notifications
-    setLastNotificationCount(prev => ({
-      ...prev,
-      messages: 0
-    }));
+    // Reset the last check time to current time so we don't get false positives
+    setLastCheckTime(new Date());
   }, []);
 
   // Set up polling for notifications
