@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Filter, X, ChevronDown, ChevronUp, Flower, Leaf, Apple, Package, Circle, Cake, Heart, Bird, PartyPopper, Church, Baby } from 'lucide-react';
 
 // Types for filter options
 export interface FilterOption {
@@ -206,6 +206,32 @@ export const FilterComponent: React.FC<FilterComponentProps> = ({
     return productTypes.filter(type => 
       type.name === 'Balloons'
     );
+  };
+
+  // Helper function to get icon for product types
+  const getProductTypeIcon = (name: string) => {
+    const iconMap: { [key: string]: React.ReactNode } = {
+      'Orchid': <Flower className="h-4 w-4" />,
+      'Indoor Plant': <Leaf className="h-4 w-4" />,
+      'Fruit Basket': <Apple className="h-4 w-4" />,
+      'Flowers Box': <Package className="h-4 w-4" />,
+      'Balloons': <Circle className="h-4 w-4" />,
+    };
+    return iconMap[name] || null;
+  };
+
+  // Helper function to get icon for occasions
+  const getOccasionIcon = (name: string) => {
+    const iconMap: { [key: string]: React.ReactNode } = {
+      'Birthday': <Cake className="h-4 w-4" />,
+      'Get Well Soon': <Heart className="h-4 w-4" />,
+      'Anniversary': <Heart className="h-4 w-4" />,
+      'Sympathy': <Bird className="h-4 w-4" />,
+      'Congratulation': <PartyPopper className="h-4 w-4" />,
+      'Wedding': <Church className="h-4 w-4" />,
+      'New Baby': <Baby className="h-4 w-4" />,
+    };
+    return iconMap[name] || null;
   };
 
   // Debounced filter update
@@ -452,7 +478,11 @@ export const FilterComponent: React.FC<FilterComponentProps> = ({
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                     />
                     <span className="text-sm flex items-center text-gray-700">
-                      {productType.icon && <span className="mr-2">{productType.icon}</span>}
+                      {getProductTypeIcon(productType.name) && (
+                        <span className="mr-2 text-gray-600">
+                          {getProductTypeIcon(productType.name)}
+                        </span>
+                      )}
                       {productType.name}
                     </span>
                   </label>
@@ -485,7 +515,11 @@ export const FilterComponent: React.FC<FilterComponentProps> = ({
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                     />
                     <span className="text-sm flex items-center text-gray-700">
-                      {occasion.icon && <span className="mr-2">{occasion.icon}</span>}
+                      {getOccasionIcon(occasion.name) && (
+                        <span className="mr-2 text-gray-600">
+                          {getOccasionIcon(occasion.name)}
+                        </span>
+                      )}
                       {occasion.name}
                       {occasion.isSeasonal && <span className="ml-1 text-xs text-orange-500">(Seasonal)</span>}
                     </span>
@@ -581,7 +615,11 @@ export const FilterComponent: React.FC<FilterComponentProps> = ({
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                     />
                     <span className="text-sm flex items-center text-gray-700">
-                      {productType.icon && <span className="mr-2">{productType.icon}</span>}
+                      {getProductTypeIcon(productType.name) && (
+                        <span className="mr-2 text-gray-600">
+                          {getProductTypeIcon(productType.name)}
+                        </span>
+                      )}
                       {productType.name}
                     </span>
                   </label>
@@ -614,7 +652,11 @@ export const FilterComponent: React.FC<FilterComponentProps> = ({
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                     />
                     <span className="text-sm flex items-center text-gray-700">
-                      {productType.icon && <span className="mr-2">{productType.icon}</span>}
+                      {getProductTypeIcon(productType.name) && (
+                        <span className="mr-2 text-gray-600">
+                          {getProductTypeIcon(productType.name)}
+                        </span>
+                      )}
                       {productType.name}
                     </span>
                   </label>

@@ -5,13 +5,13 @@ import FilterComponent, { FilterState, FilterOption } from '../FilterComponent';
 
 // Mock data
 const mockProductTypes: FilterOption[] = [
-  { _id: '1', name: 'Bouquets', color: '#FF6B6B', icon: '🌸' },
-  { _id: '2', name: 'Plants', color: '#4ECDC4', icon: '🌿' },
+  { _id: '1', name: 'Bouquets', color: '#FF6B6B' },
+  { _id: '2', name: 'Plants', color: '#4ECDC4' },
 ];
 
 const mockOccasions: FilterOption[] = [
-  { _id: '1', name: 'Birthday', color: '#45B7D1', icon: '🎂' },
-  { _id: '2', name: 'Anniversary', color: '#96CEB4', icon: '💕' },
+  { _id: '1', name: 'Birthday', color: '#45B7D1' },
+  { _id: '2', name: 'Anniversary', color: '#96CEB4' },
 ];
 
 const mockProps = {

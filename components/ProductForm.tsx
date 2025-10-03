@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { XMarkIcon, PlusIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PlusIcon, PhotoIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useUser } from '@/contexts/UserContext';
 import { apiFetch, buildApiUrl } from '@/lib/api';
 
@@ -887,8 +887,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             
             {!shopId && (
               <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                <p className="text-sm text-yellow-800">
-                  ⚠️ Image upload requires a shop. Please ensure you have a shop and are logged in.
+                <p className="text-sm text-yellow-800 flex items-center">
+                  <ExclamationTriangleIcon className="h-4 w-4 mr-2" />
+                  Image upload requires a shop. Please ensure you have a shop and are logged in.
                 </p>
               </div>
             )}

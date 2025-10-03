@@ -22,18 +22,18 @@ export const FilterComponentExample: React.FC = () => {
   // Mock data - in real app, this would come from API
   useEffect(() => {
     setProductTypes([
-      { _id: '1', name: 'Bouquets', color: '#FF6B6B', icon: '🌸' },
-      { _id: '2', name: 'Plants', color: '#4ECDC4', icon: '🌿' },
-      { _id: '3', name: 'Arrangements', color: '#45B7D1', icon: '💐' },
-      { _id: '4', name: 'Wreaths', color: '#96CEB4', icon: '🌹' },
+      { _id: '1', name: 'Bouquets', color: '#FF6B6B' },
+      { _id: '2', name: 'Plants', color: '#4ECDC4' },
+      { _id: '3', name: 'Arrangements', color: '#45B7D1' },
+      { _id: '4', name: 'Wreaths', color: '#96CEB4' },
     ]);
 
     setOccasions([
-      { _id: '1', name: 'Birthday', color: '#45B7D1', icon: '🎂' },
-      { _id: '2', name: 'Anniversary', color: '#96CEB4', icon: '💕' },
-      { _id: '3', name: 'Wedding', color: '#FECA57', icon: '💒' },
-      { _id: '4', name: 'Sympathy', color: '#A55EEA', icon: '🕊️' },
-      { _id: '5', name: 'Get Well Soon', color: '#26DE81', icon: '🌻' },
+      { _id: '1', name: 'Birthday', color: '#45B7D1' },
+      { _id: '2', name: 'Anniversary', color: '#96CEB4' },
+      { _id: '3', name: 'Wedding', color: '#FECA57' },
+      { _id: '4', name: 'Sympathy', color: '#A55EEA' },
+      { _id: '5', name: 'Get Well Soon', color: '#26DE81' },
     ]);
   }, []);
 
