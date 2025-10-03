@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { CartProvider } from '@/contexts/CartContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Navigation } from '@/components/Navigation';
 
@@ -31,8 +32,10 @@ export default function RootLayout({
           <AuthProvider>
             <UserProvider>
               <CartProvider>
-                <Navigation />
-                {children}
+                <NotificationProvider>
+                  <Navigation />
+                  {children}
+                </NotificationProvider>
               </CartProvider>
             </UserProvider>
           </AuthProvider>

@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '@/lib/api';
 import { useUser } from '@/contexts/UserContext';
 import { UserProfile } from '@/components/auth/UserProfile';
+import { NotificationSettings } from '@/components/NotificationSettings';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { 
   CubeIcon, 
   ShoppingCartIcon, 
@@ -517,6 +519,13 @@ export function OrdersTab({
   loading: boolean;
   onViewOrder: (order: Order) => void;
 }) {
+  const { markOrdersAsRead } = useNotifications();
+
+  // Mark orders as read when this tab is mounted
+  useEffect(() => {
+    markOrdersAsRead();
+  }, [markOrdersAsRead]);
+
   return (
     <div>
       <div className="mb-8">
@@ -683,10 +692,13 @@ export function ContactMessagesTab({ userShop }: { userShop: any }) {
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { session } = useUser();
+  const { markMessagesAsRead } = useNotifications();
 
   useEffect(() => {
     fetchMessages();
-  }, [userShop]);
+    // Mark messages as read when this tab is mounted
+    markMessagesAsRead();
+  }, [userShop, markMessagesAsRead]);
 
   const fetchMessages = async () => {
     try {
@@ -1056,6 +1068,11 @@ export function SettingsTab() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Notification Settings */}
+      <div className="mt-6">
+        <NotificationSettings />
       </div>
     </div>
   );

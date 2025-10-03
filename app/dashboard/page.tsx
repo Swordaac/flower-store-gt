@@ -9,6 +9,7 @@ import { OrderManagement } from '@/components/OrderManagement';
 import { AdminShopCreation } from '@/components/AdminShopCreation';
 import { PickupLocationManagement } from '@/components/PickupLocationManagement';
 import { useUser } from '@/contexts/UserContext';
+import { NotificationIcon } from '@/components/NotificationBadge';
 import { 
   HomeIcon, 
   CubeIcon, 
@@ -399,17 +400,44 @@ export default function DashboardPage() {
             <nav className="px-3">
               {tabs.filter(tab => tab.show).map((tab) => {
                 const Icon = tab.icon;
+                const isOrdersTab = tab.id === 'orders';
+                const isMessagesTab = tab.id === 'contact-messages';
+                
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      // Mark notifications as read when clicking on the tab
+                      if (isOrdersTab) {
+                        // This will be handled by the NotificationProvider
+                      } else if (isMessagesTab) {
+                        // This will be handled by the NotificationProvider
+                      }
+                    }}
                     className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md mb-1 transition-colors ${
                       activeTab === tab.id
                         ? 'bg-indigo-100 text-indigo-700'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                   >
-                    <Icon className="mr-3 h-5 w-5" />
+                    <div className="relative mr-3">
+                      {isOrdersTab ? (
+                        <NotificationIcon 
+                          icon={Icon} 
+                          type="orders" 
+                          className="h-5 w-5"
+                        />
+                      ) : isMessagesTab ? (
+                        <NotificationIcon 
+                          icon={Icon} 
+                          type="messages" 
+                          className="h-5 w-5"
+                        />
+                      ) : (
+                        <Icon className="h-5 w-5" />
+                      )}
+                    </div>
                     {tab.name}
                   </button>
                 );
