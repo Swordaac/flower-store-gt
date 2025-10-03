@@ -190,8 +190,23 @@ export const FilterComponent: React.FC<FilterComponentProps> = ({
     colors: true,
     priceRange: true,
     bestSeller: true,
-    search: false
+    search: false,
+    gift: true,
+    balloons: true
   });
+
+  // Helper functions to get specific product types
+  const getGiftProductTypes = () => {
+    return productTypes.filter(type => 
+      type.name === 'Fruit Basket' || type.name === 'Flowers Box'
+    );
+  };
+
+  const getBalloonProductTypes = () => {
+    return productTypes.filter(type => 
+      type.name === 'Balloons'
+    );
+  };
 
   // Debounced filter update
   useEffect(() => {
@@ -538,6 +553,72 @@ export const FilterComponent: React.FC<FilterComponentProps> = ({
                     Show only best sellers
                   </span>
                 </label>
+              </div>
+            )}
+          </div>
+
+          {/* Gift Filter */}
+          <div>
+            <div 
+              className="flex items-center justify-between cursor-pointer p-3 rounded-lg transition-colors hover:bg-gray-50"
+              onClick={() => toggleSection('gift')}
+            >
+              <h4 className="font-medium text-gray-900">Gift</h4>
+              {expandedSections.gift ? (
+                <ChevronUp className="h-4 w-4 text-gray-500" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              )}
+            </div>
+            {expandedSections.gift && (
+              <div className="mt-3 space-y-2 max-h-40 overflow-y-auto">
+                {getGiftProductTypes().map((productType) => (
+                  <label key={productType._id} className="flex items-center space-x-3 cursor-pointer p-2 rounded hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={filters.selectedProductTypes.includes(productType._id)}
+                      onChange={(e) => handleProductTypeChange(productType._id, e.target.checked)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <span className="text-sm flex items-center text-gray-700">
+                      {productType.icon && <span className="mr-2">{productType.icon}</span>}
+                      {productType.name}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Balloons Filter */}
+          <div>
+            <div 
+              className="flex items-center justify-between cursor-pointer p-3 rounded-lg transition-colors hover:bg-gray-50"
+              onClick={() => toggleSection('balloons')}
+            >
+              <h4 className="font-medium text-gray-900">Balloons</h4>
+              {expandedSections.balloons ? (
+                <ChevronUp className="h-4 w-4 text-gray-500" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              )}
+            </div>
+            {expandedSections.balloons && (
+              <div className="mt-3 space-y-2 max-h-40 overflow-y-auto">
+                {getBalloonProductTypes().map((productType) => (
+                  <label key={productType._id} className="flex items-center space-x-3 cursor-pointer p-2 rounded hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={filters.selectedProductTypes.includes(productType._id)}
+                      onChange={(e) => handleProductTypeChange(productType._id, e.target.checked)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <span className="text-sm flex items-center text-gray-700">
+                      {productType.icon && <span className="mr-2">{productType.icon}</span>}
+                      {productType.name}
+                    </span>
+                  </label>
+                ))}
               </div>
             )}
           </div>

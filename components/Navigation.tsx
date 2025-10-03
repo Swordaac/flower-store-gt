@@ -223,6 +223,44 @@ export const Navigation: React.FC = () => {
                         </Link>
                       </div>
                     </div>
+
+                    {/* Gift */}
+                    <div className="mb-4">
+                      <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Gift</h3>
+                      <div className="space-y-1">
+                        <Link 
+                          href="/collections/fruit-basket" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Fruit Basket
+                        </Link>
+                        <Link 
+                          href="/collections/flowers-box" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Flowers Box
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Balloons */}
+                    <div className="mb-4">
+                      <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Balloons</h3>
+                      <div className="space-y-1">
+                        <Link 
+                          href="/collections/balloons" 
+                          className="block text-sm py-1 transition-colors"
+                          style={{ color: theme.colors.text.light }}
+                          onClick={() => setIsShopDropdownOpen(false)}
+                        >
+                          Balloons
+                        </Link>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -434,6 +472,44 @@ export const Navigation: React.FC = () => {
                   onClick={closeMobileMenu}
                 >
                   Sunflowers
+                </Link>
+              </div>
+            </div>
+
+            {/* Gift */}
+            <div className="px-3 py-2 border-t border-gray-100">
+              <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Gift</h3>
+              <div className="space-y-1 ml-2">
+                <Link
+                  href="/collections/fruit-basket"
+                  className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-1"
+                  style={{ color: theme.colors.text.light }}
+                  onClick={closeMobileMenu}
+                >
+                  Fruit Basket
+                </Link>
+                <Link
+                  href="/collections/flowers-box"
+                  className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-1"
+                  style={{ color: theme.colors.text.light }}
+                  onClick={closeMobileMenu}
+                >
+                  Flowers Box
+                </Link>
+              </div>
+            </div>
+
+            {/* Balloons */}
+            <div className="px-3 py-2 border-t border-gray-100">
+              <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Balloons</h3>
+              <div className="space-y-1 ml-2">
+                <Link
+                  href="/collections/balloons"
+                  className="block text-base font-medium hover:text-gray-900 hover:bg-gray-50 py-1"
+                  style={{ color: theme.colors.text.light }}
+                  onClick={closeMobileMenu}
+                >
+                  Balloons
                 </Link>
               </div>
             </div>

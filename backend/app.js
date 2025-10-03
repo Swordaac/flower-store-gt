@@ -12,6 +12,9 @@ const PORT = process.env.PORT || 5000;
 app.use(helmet()); // Security headers
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'http://localhost:3003',
   'https://flower-store-gt.onrender.com',
   process.env.APP_BASE_URL
 ].filter(Boolean);
