@@ -99,67 +99,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const { currentUser, session } = useUser();
 
-  // Helper: validate items against server stock
+  // Helper: validate items against server stock (disabled - stock is infinite)
   const validateItemsAgainstStock = useCallback(async (itemsToValidate: CartItem[]): Promise<CartItem[]> => {
-    try {
-      console.log('🔍 Validating items against stock:', {
-        itemCount: itemsToValidate.length,
-        items: itemsToValidate.map(i => ({
-          id: i.productId,
-          tier: i.selectedTier,
-          qty: i.quantity,
-          name: i.name
-        }))
-      });
-      
-      if (itemsToValidate.length === 0) return itemsToValidate;
-      const payload = {
-        items: itemsToValidate.map(i => ({
-          productId: i.productId,
-          selectedTier: i.selectedTier,
-          quantity: i.quantity
-        }))
-      };
-      const res = await apiFetch('/api/products/validate-stock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json();
-      console.log('📦 Stock validation response:', {
-        success: json?.success,
-        data: json?.data,
-        error: json?.error
-      });
-      
-      if (!json?.success) {
-        console.warn('❌ Stock validation failed:', json?.error);
-        return itemsToValidate;
-      }
-      
-      const byKey: Record<string, { allowed: number } > = {};
-      for (const r of json.data.items) {
-        const key = `${r.productId}|${r.selectedTier || ''}`;
-        byKey[key] = { allowed: r.allowed };
-        console.log(`📊 Stock result for ${r.productId}:`, {
-          tier: r.selectedTier,
-          requested: r.requested,
-          allowed: r.allowed,
-          status: r.status
-        });
-      }
-      return itemsToValidate.map(i => {
-        const key = `${i.productId}|${i.selectedTier || ''}`;
-        const allowed = byKey[key]?.allowed;
-        if (typeof allowed === 'number') {
-          return { ...i, quantity: Math.max(0, Math.min(i.quantity, allowed)) };
-        }
-        return i;
-      }).filter(i => i.quantity > 0);
-    } catch (e) {
-      console.warn('Stock validation failed, keeping existing quantities');
-      return itemsToValidate;
-    }
+    // Stock validation disabled - always return items as-is since stock is infinite
+    return itemsToValidate;
   }, []);
 
   // Load cart from localStorage on mount

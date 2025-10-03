@@ -232,12 +232,7 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
         });
       }
       
-      if (product.stock < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          error: `Insufficient stock for ${product.name}. Available: ${product.stock}`
-        });
-      }
+      // Stock validation removed - stock is infinite
       
       // Handle tiered pricing - use variants first, fallback to legacy price
       let itemPrice = 0;

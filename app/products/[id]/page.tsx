@@ -160,46 +160,30 @@ export default function ProductDetailPage() {
     return product.price[selectedTier] || 0
   }
 
-  // Helper function to get stock for a specific tier
+  // Helper function to get stock for a specific tier (always infinite)
   const getTierStock = (tier: 'standard' | 'deluxe' | 'premium') => {
-    if (!product) return 0
-    
-    // Try to get stock from variants first (new structure)
-    if (product.variants && product.variants.length > 0) {
-      const variant = product.variants.find(v => v.tierName === tier && v.isActive)
-      return variant ? variant.stock : 0
-    }
-    
-    // Fallback to legacy stock structure
-    return product.stock || 0
+    // Stock is always infinite, return a large number for display
+    return 999999
   }
 
-  // Helper function to check if a tier is available
+  // Helper function to check if a tier is available (always true)
   const isTierAvailable = (tier: 'standard' | 'deluxe' | 'premium') => {
     if (!product) return false
     
-    // Check variants first (new structure)
+    // Check if tier exists and is active
     if (product.variants && product.variants.length > 0) {
       const variant = product.variants.find(v => v.tierName === tier && v.isActive)
-      return variant ? variant.stock > 0 : false
+      return !!variant
     }
     
-    // Fallback to legacy structure
-    return product.stock > 0
+    // Fallback to legacy structure - always available if product exists
+    return true
   }
 
-  // Helper function to get maximum available quantity for current tier
+  // Helper function to get maximum available quantity for current tier (always infinite)
   const getMaxQuantity = () => {
-    if (!product) return 0
-    
-    // Check variants first (new structure)
-    if (product.variants && product.variants.length > 0) {
-      const variant = product.variants.find(v => v.tierName === selectedTier && v.isActive)
-      return variant ? variant.stock : 0
-    }
-    
-    // Fallback to legacy structure
-    return product.stock || 0
+    // Stock is always infinite, return a large number
+    return 999999
   }
 
   // Helper function to get current image based on selected tier
@@ -293,15 +277,8 @@ export default function ProductDetailPage() {
     try {
       setAddingToCart(true);
       setAddToCartError(null);
-      
-      // Validate stock availability
-      const maxQty = getMaxQuantity()
-      if (quantity > maxQty) {
-        setAddToCartError(`Sorry, only ${maxQty} items available for the selected tier.`);
-        return;
-      }
 
-      // Add the item to cart
+      // Add the item to cart (no stock validation needed)
       const success = await addToCart({
         productId: product._id,
         name: `${product.name} (${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)})`,
@@ -475,8 +452,8 @@ export default function ProductDetailPage() {
                         </div>
                         <div className="mt-1 text-sm" style={{ color: theme.colors.text.light }}>
                           {isTierAvailable(option.key) 
-                            ? `${getTierStock(option.key)} available` 
-                            : 'Out of stock'}
+                            ? 'In stock' 
+                            : 'Not available'}
                         </div>
                       </button>
                     </div>
@@ -487,7 +464,7 @@ export default function ProductDetailPage() {
               {/* Quantity Selector */}
               <div className="mb-6">
                 <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text.secondary }}>
-                  Quantity: ({getMaxQuantity()} available)
+                  Quantity
                 </label>
                 <div className="flex items-center space-x-3">
                   <button
@@ -531,7 +508,7 @@ export default function ProductDetailPage() {
                 <Button
                   onClick={handleAddToCart}
                   className="w-full py-3 text-lg font-medium relative"
-                  disabled={!isTierAvailable(selectedTier) || getMaxQuantity() === 0 || addingToCart}
+                  disabled={!isTierAvailable(selectedTier) || addingToCart}
                   style={{ backgroundColor: theme.colors.text.secondary, color: theme.colors.white }}
                 >
                   {addingToCart ? (
@@ -539,7 +516,7 @@ export default function ProductDetailPage() {
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
                       Adding...
                     </div>
-                  ) : isTierAvailable(selectedTier) ? 'Add to cart' : 'Out of stock'}
+                  ) : isTierAvailable(selectedTier) ? 'Add to cart' : 'Not available'}
                 </Button>
                 {addToCartError && (
                   <p className="mt-2 text-sm text-red-600">{addToCartError}</p>
@@ -635,10 +612,7 @@ export default function ProductDetailPage() {
                         Color: <span className="capitalize">{product.color}</span>
                       </p>
                       <p className="text-sm mb-2" style={{ color: theme.colors.text.light }}>
-                        Stock: {product.variants && product.variants.length > 0 
-                          ? product.variants.find(v => v.tierName === selectedTier && v.isActive)?.stock || 0
-                          : product.stock || 0
-                        } available
+                        Stock: In stock
                       </p>
                       {product.tags.length > 0 && (
                         <div className="mt-3">

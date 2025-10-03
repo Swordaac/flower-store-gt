@@ -554,7 +554,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       // Convert variants to the correct format
       const variants = formData.variants.map(variant => {
         const price = variant.price || '0';
-        const stock = variant.stock || '0';
+        const stock = '999999'; // Always set stock to infinite
         const images = variant.images.filter(img => img.publicId);
         const tierName = variant.tierName as 'standard' | 'deluxe' | 'premium';
         
@@ -824,7 +824,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                         onChange={(e) => handleVariantChange(variant.tierName, 'stock', e.target.value)}
                         min="0"
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        placeholder="0"
+                        placeholder="999999"
+                        disabled
+                        title="Stock is automatically set to infinite (999999)"
                       />
                     </div>
                   </div>

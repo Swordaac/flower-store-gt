@@ -378,52 +378,8 @@ router.post('/create-checkout-session', authenticateToken, requireRole('customer
     console.log('Order created with ID:', savedOrder._id);
     console.log('Order customer ID:', savedOrder.customerId, 'Type:', typeof savedOrder.customerId);
     
-    // Atomically reserve stock per tier now to prevent race conditions
-    // We do this immediately after order creation; mark order as stockReserved on success
-    let allReserved = true;
-    for (const item of processedItems) {
-      if (item.selectedTier) {
-        const updateResult = await Product.updateOne(
-          {
-            _id: item.productId,
-            variants: {
-              $elemMatch: {
-                tierName: item.selectedTier,
-                isActive: true,
-                stock: { $gte: item.quantity }
-              }
-            }
-          },
-          { $inc: { 'variants.$.stock': -item.quantity } }
-        );
-        if (!updateResult.modifiedCount) {
-          allReserved = false;
-          break;
-        }
-      }
-    }
-
-    if (!allReserved) {
-      // Roll back any partial reservations
-      for (const item of processedItems) {
-        if (item.selectedTier) {
-          await Product.updateOne(
-            { _id: item.productId, 'variants.tierName': item.selectedTier },
-            { $inc: { 'variants.$.stock': item.quantity } }
-          );
-        }
-      }
-      // Cancel order and inform client
-      savedOrder.status = 'cancelled';
-      savedOrder.cancelledAt = new Date();
-      await savedOrder.save();
-      return res.status(409).json({
-        success: false,
-        error: 'One or more items just went out of stock. Your cart has been updated. Please review and try again.'
-      });
-    }
-
-    // Mark reservation on order
+    // Stock reservation removed - stock is infinite
+    // Mark reservation on order (for compatibility)
     savedOrder.stockReserved = true;
     await savedOrder.save();
     
@@ -745,10 +701,7 @@ async function handleCheckoutSessionCompleted(session) {
     
     await payment.save();
     
-    // Guard against double-decrement: stock was already reserved at session creation
-    if (!order.stockReserved) {
-      console.warn('Order not marked as stockReserved during session creation; skipping additional stock update to avoid inconsistencies.');
-    }
+    // Stock management removed - stock is infinite
     
     console.log('Order confirmed and payment recorded:', order._id);
     
@@ -801,19 +754,7 @@ async function handlePaymentIntentFailed(paymentIntent) {
         order.cancelledAt = new Date();
         await order.save();
 
-        // Release reserved stock if previously reserved
-        if (order.stockReserved) {
-          for (const item of order.items) {
-            if (item.selectedTier) {
-              await Product.updateOne(
-                { _id: item.productId, 'variants.tierName': item.selectedTier },
-                { $inc: { 'variants.$.stock': item.quantity } }
-              );
-            }
-          }
-          order.stockReserved = false;
-          await order.save();
-        }
+        // Stock management removed - stock is infinite
       }
     }
     
