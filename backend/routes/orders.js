@@ -4,7 +4,10 @@ const { authenticateToken, requireRole, requireShopOwnership } = require('../mid
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Shop = require('../models/Shop');
-const printService = require('../services/printService');
+// Use cloud-optimized print service for production
+const printService = process.env.NODE_ENV === 'production' || process.env.RENDER 
+  ? require('../services/printServiceCloud')
+  : require('../services/printService');
 
 /**
  * GET /api/orders - Get orders (filtered by user role)

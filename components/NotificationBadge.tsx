@@ -46,11 +46,11 @@ export const NotificationIcon: React.FC<NotificationIconProps> = ({
   onClick 
 }) => {
   return (
-    <div className="relative inline-block">
-      <Icon 
-        className={`${className} ${onClick ? 'cursor-pointer hover:text-indigo-600' : ''}`}
-        onClick={onClick}
-      />
+    <div 
+      className={`relative inline-block ${onClick ? 'cursor-pointer hover:text-indigo-600' : ''}`}
+      onClick={onClick}
+    >
+      <Icon className={className} />
       <NotificationBadge type={type} />
     </div>
   );
