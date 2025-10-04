@@ -946,7 +946,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       <p className="text-sm text-gray-500 mt-2">
                         or <span className="font-medium text-indigo-600 hover:text-indigo-500">click to browse</span>
                       </p>
-                      <p className="text-xs text-gray-500 mt-2">PNG, JPG, GIF up to 5MB each</p>
+                      <p className="text-xs text-gray-500 mt-2">PNG, JPG, GIF up to 10MB each</p>
                       <p className="text-xs text-gray-400 mt-1">Images will be uploaded when you create the product</p>
                     </div>
                   </div>
