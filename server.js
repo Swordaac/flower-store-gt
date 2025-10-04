@@ -15,7 +15,11 @@ const nextProc = spawn('pnpm', ['start'], {
 console.log(`Starting Express backend on PORT=${expressPort}`);
 const expressProc = spawn('node', ['backend/app.js'], {
   stdio: 'inherit',
-  env: { ...process.env, PORT: String(expressPort) }
+  env: { 
+    ...process.env, 
+    PORT: String(expressPort),
+    NODE_ENV: process.env.NODE_ENV || 'production'
+  }
 });
 
 const shutdown = (signal) => {
@@ -30,10 +34,29 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 
 nextProc.on('exit', (code) => {
   console.log(`Next.js process exited with code ${code}`);
+  if (code !== 0) {
+    console.error('Next.js process failed, shutting down...');
+    process.exit(1);
+  }
 });
 
 expressProc.on('exit', (code) => {
   console.log(`Express process exited with code ${code}`);
+  if (code !== 0) {
+    console.error('Express process failed, shutting down...');
+    process.exit(1);
+  }
+});
+
+// Handle process errors
+nextProc.on('error', (err) => {
+  console.error('Next.js process error:', err);
+  process.exit(1);
+});
+
+expressProc.on('error', (err) => {
+  console.error('Express process error:', err);
+  process.exit(1);
 });
 
 

@@ -8,6 +8,14 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Configure server timeouts for production
+app.use((req, res, next) => {
+  // Set timeout for all requests
+  req.setTimeout(120000); // 2 minutes
+  res.setTimeout(120000); // 2 minutes
+  next();
+});
+
 // Middleware
 app.use(helmet()); // Security headers
 const allowedOrigins = [
@@ -16,6 +24,7 @@ const allowedOrigins = [
   'http://localhost:3002',
   'http://localhost:3003',
   'https://flower-store-gt.onrender.com',
+  'https://fleuristecrescent.com',
   process.env.APP_BASE_URL
 ].filter(Boolean);
 
@@ -101,10 +110,10 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔗 Health check: http://0.0.0.0:${PORT}/health`);
 });
 
 module.exports = app;
