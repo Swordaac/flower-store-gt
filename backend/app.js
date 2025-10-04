@@ -35,6 +35,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type','Authorization']
 }));
 app.use(morgan('combined')); // HTTP request logging
+
+// Stripe webhook endpoint needs raw body for signature verification
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 

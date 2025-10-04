@@ -580,7 +580,7 @@ router.get('/checkout-session/:sessionId', authenticateToken, async (req, res) =
  * Handle Stripe webhook events
  * No authentication required (uses webhook signature verification)
  */
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
 
