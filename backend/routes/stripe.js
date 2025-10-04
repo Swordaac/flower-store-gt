@@ -12,6 +12,10 @@ const Order = require('../models/Order');
 const Payment = require('../models/Payment');
 const Product = require('../models/Product');
 const Shop = require('../models/Shop');
+// Use cloud-optimized print service for production
+const printService = process.env.NODE_ENV === 'production' || process.env.RENDER 
+  ? require('../services/printServiceCloud')
+  : require('../services/printService');
 
 /**
  * POST /api/stripe/create-checkout-session
@@ -704,6 +708,20 @@ async function handleCheckoutSessionCompleted(session) {
     // Stock management removed - stock is infinite
     
     console.log('Order confirmed and payment recorded:', order._id);
+    
+    // Print order details asynchronously (don't wait for completion)
+    console.log(`🖨️ Triggering print job for order ${order.orderNumber}...`);
+    printService.printOrderDetails(order)
+      .then(result => {
+        if (result.success) {
+          console.log(`✅ Print job submitted successfully for order ${order.orderNumber}:`, result);
+        } else {
+          console.error(`❌ Failed to print order ${order.orderNumber}:`, result.error);
+        }
+      })
+      .catch(error => {
+        console.error(`❌ Error printing order ${order.orderNumber}:`, error);
+      });
     
   } catch (error) {
     console.error('Error handling checkout session completed:', error);
