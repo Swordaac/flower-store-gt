@@ -20,8 +20,7 @@ const paymentSchema = new mongoose.Schema({
   orderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Order',
-    required: true,
-    index: true
+    required: true
   },
   
   // Customer information
@@ -69,8 +68,7 @@ const paymentSchema = new mongoose.Schema({
   
   // Stripe customer information
   stripeCustomerId: {
-    type: String,
-    index: true
+    type: String
   },
   
   // Timestamps

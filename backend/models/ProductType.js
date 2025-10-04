@@ -18,7 +18,8 @@ const productTypeSchema = new mongoose.Schema({
   slug: {
     type: String,
     unique: true,
-    sparse: true
+    sparse: true,
+    index: true
   },
   
   isActive: {
@@ -59,6 +60,6 @@ productTypeSchema.pre('save', function(next) {
 
 // Indexes
 productTypeSchema.index({ isActive: 1, sortOrder: 1 });
-productTypeSchema.index({ slug: 1 });
+// slug index is automatically created by unique: true
 
 module.exports = mongoose.model('ProductType', productTypeSchema);

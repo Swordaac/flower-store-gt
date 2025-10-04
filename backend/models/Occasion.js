@@ -18,7 +18,8 @@ const occasionSchema = new mongoose.Schema({
   slug: {
     type: String,
     unique: true,
-    sparse: true
+    sparse: true,
+    index: true
   },
   
   isActive: {
@@ -90,7 +91,7 @@ occasionSchema.virtual('isCurrentlyActive').get(function() {
 
 // Indexes
 occasionSchema.index({ isActive: 1, sortOrder: 1 });
-occasionSchema.index({ slug: 1 });
+// slug index is automatically created by unique: true
 occasionSchema.index({ isSeasonal: 1, seasonalStart: 1, seasonalEnd: 1 });
 
 module.exports = mongoose.model('Occasion', occasionSchema);
