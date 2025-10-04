@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Debug Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+        #output { background: #f5f5f5; padding: 10px; margin: 10px 0; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Authentication Debug Tool</h1>
+    
+    <div class="section">
+        <h3>1. Environment Check</h3>
+        <button onclick="checkEnvironment()">Check Environment Variables</button>
+        <div id="env-output"></div>
+    </div>
+
+    <div class="section">
+        <h3>2. Supabase Connection Test</h3>
+        <button onclick="testSupabaseConnection()">Test Supabase Connection</button>
+        <div id="supabase-output"></div>
+    </div>
+
+    <div class="section">
+        <h3>3. Authentication Test</h3>
+        <input type="email" id="email" placeholder="Email" value="test11@mcgill.ca">
+        <input type="password" id="password" placeholder="Password" value="Hhx04030726!!!!">
+        <button onclick="testSignIn()">Test Sign In</button>
+        <button onclick="testSignOut()">Test Sign Out</button>
+        <div id="auth-output"></div>
+    </div>
+
+    <div class="section">
+        <h3>4. Session Status</h3>
+        <button onclick="checkSession()">Check Current Session</button>
+        <div id="session-output"></div>
+    </div>
+
+    <div class="section">
+        <h3>5. Network Test</h3>
+        <button onclick="testNetwork()">Test Network Connectivity</button>
+        <div id="network-output"></div>
+    </div>
+
+    <div class="section">
+        <h3>6. Browser Info</h3>
+        <button onclick="showBrowserInfo()">Show Browser Information</button>
+        <div id="browser-output"></div>
+    </div>
+
+    <div class="section">
+        <h3>Debug Output</h3>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://wovbwyaevtlfxwzcwhtr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvdmJ3eWFldnRsZnh3emN3aHRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzOTU5MjYsImV4cCI6MjA3MTk3MTkyNn0.4WwxUm0_mMMj-wT9OYQrcpPVWldc8no6WMzWt4FOnZs';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            output.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function checkEnvironment() {
+            const envOutput = document.getElementById('env-output');
+            envOutput.innerHTML = '<div class="info">Checking environment variables...</div>';
+            
+            try {
+                const env = {
+                    'SUPABASE_URL': SUPABASE_URL,
+                    'SUPABASE_ANON_KEY': SUPABASE_ANON_KEY ? 'Present' : 'Missing',
+                    'User Agent': navigator.userAgent,
+                    'Current URL': window.location.href,
+                    'Protocol': window.location.protocol
+                };
+                
+                let html = '<h4>Environment Status:</h4>';
+                for (const [key, value] of Object.entries(env)) {
+                    const status = value === 'Missing' ? 'error' : 'success';
+                    html += `<div class="${status}"><strong>${key}:</strong> ${value}</div>`;
+                }
+                
+                envOutput.innerHTML = html;
+                log('Environment check completed', 'success');
+            } catch (error) {
+                envOutput.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                log(`Environment check failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSupabaseConnection() {
+            const supabaseOutput = document.getElementById('supabase-output');
+            supabaseOutput.innerHTML = '<div class="info">Testing Supabase connection...</div>';
+            
+            try {
+                const { data, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    supabaseOutput.innerHTML = `<div class="error">Supabase Error: ${error.message}</div>`;
+                    log(`Supabase connection failed: ${error.message}`, 'error');
+                } else {
+                    supabaseOutput.innerHTML = '<div class="success">✅ Supabase connection successful!</div>';
+                    log('Supabase connection successful', 'success');
+                }
+            } catch (error) {
+                supabaseOutput.innerHTML = `<div class="error">Connection Error: ${error.message}</div>`;
+                log(`Supabase connection error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSignIn() {
+            const authOutput = document.getElementById('auth-output');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            authOutput.innerHTML = '<div class="info">Attempting sign in...</div>';
+            log(`Attempting sign in for: ${email}`);
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    authOutput.innerHTML = `<div class="error">Sign In Error: ${error.message}</div>`;
+                    log(`Sign in failed: ${error.message}`, 'error');
+                } else {
+                    authOutput.innerHTML = '<div class="success">✅ Sign in successful!</div>';
+                    log(`Sign in successful for: ${email}`, 'success');
+                }
+            } catch (error) {
+                authOutput.innerHTML = `<div class="error">Sign In Exception: ${error.message}</div>`;
+                log(`Sign in exception: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSignOut() {
+            const authOutput = document.getElementById('auth-output');
+            authOutput.innerHTML = '<div class="info">Signing out...</div>';
+            
+            try {
+                const { error } = await supabase.auth.signOut();
+                
+                if (error) {
+                    authOutput.innerHTML = `<div class="error">Sign Out Error: ${error.message}</div>`;
+                    log(`Sign out failed: ${error.message}`, 'error');
+                } else {
+                    authOutput.innerHTML = '<div class="success">✅ Sign out successful!</div>';
+                    log('Sign out successful', 'success');
+                }
+            } catch (error) {
+                authOutput.innerHTML = `<div class="error">Sign Out Exception: ${error.message}</div>`;
+                log(`Sign out exception: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkSession() {
+            const sessionOutput = document.getElementById('session-output');
+            sessionOutput.innerHTML = '<div class="info">Checking session...</div>';
+            
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    sessionOutput.innerHTML = `<div class="error">Session Error: ${error.message}</div>`;
+                    log(`Session check failed: ${error.message}`, 'error');
+                } else if (session) {
+                    sessionOutput.innerHTML = `
+                        <div class="success">✅ Active session found!</div>
+                        <div class="info"><strong>User:</strong> ${session.user.email}</div>
+                        <div class="info"><strong>Expires:</strong> ${new Date(session.expires_at * 1000).toLocaleString()}</div>
+                    `;
+                    log(`Active session for: ${session.user.email}`, 'success');
+                } else {
+                    sessionOutput.innerHTML = '<div class="info">No active session</div>';
+                    log('No active session', 'info');
+                }
+            } catch (error) {
+                sessionOutput.innerHTML = `<div class="error">Session Exception: ${error.message}</div>`;
+                log(`Session check exception: ${error.message}`, 'error');
+            }
+        }
+
+        async function testNetwork() {
+            const networkOutput = document.getElementById('network-output');
+            networkOutput.innerHTML = '<div class="info">Testing network connectivity...</div>';
+            
+            try {
+                // Test Supabase API endpoint
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                
+                if (response.ok) {
+                    networkOutput.innerHTML = '<div class="success">✅ Network connectivity to Supabase successful!</div>';
+                    log('Network test successful', 'success');
+                } else {
+                    networkOutput.innerHTML = `<div class="error">Network Error: HTTP ${response.status} - ${response.statusText}</div>`;
+                    log(`Network test failed: HTTP ${response.status}`, 'error');
+                }
+            } catch (error) {
+                networkOutput.innerHTML = `<div class="error">Network Exception: ${error.message}</div>`;
+                log(`Network test exception: ${error.message}`, 'error');
+            }
+        }
+
+        function showBrowserInfo() {
+            const browserOutput = document.getElementById('browser-output');
+            
+            const info = {
+                'User Agent': navigator.userAgent,
+                'Platform': navigator.platform,
+                'Language': navigator.language,
+                'Cookies Enabled': navigator.cookieEnabled,
+                'Online Status': navigator.onLine,
+                'Screen Resolution': `${screen.width}x${screen.height}`,
+                'Viewport Size': `${window.innerWidth}x${window.innerHeight}`,
+                'Local Storage Available': typeof(Storage) !== "undefined",
+                'Session Storage Available': typeof(sessionStorage) !== "undefined"
+            };
+            
+            let html = '<h4>Browser Information:</h4>';
+            for (const [key, value] of Object.entries(info)) {
+                const status = value === true ? 'success' : value === false ? 'error' : 'info';
+                html += `<div class="${status}"><strong>${key}:</strong> ${value}</div>`;
+            }
+            
+            browserOutput.innerHTML = html;
+            log('Browser information displayed', 'info');
+        }
+
+        // Auto-run environment check on load
+        window.onload = function() {
+            log('Debug tool loaded', 'success');
+            checkEnvironment();
+        };
+    </script>
+</body>
+</html>

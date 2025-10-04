@@ -72,6 +72,7 @@ const pickupLocationRoutes = require('./routes/pickup-locations');
 const stripeRoutes = require('./routes/stripe');
 const deliveryRoutes = require('./routes/delivery');
 const contactRoutes = require('./routes/contact');
+const printConfigRoutes = require('./routes/printConfig');
 
 // Use Routes
 app.use('/api/products', productRoutes);
@@ -83,6 +84,7 @@ app.use('/api/pickup-locations', pickupLocationRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/print-config', printConfigRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -97,7 +99,8 @@ app.get('/', (req, res) => {
         orders: '/api/orders',
         images: '/api/images',
         pickupLocations: '/api/pickup-locations',
-        delivery: '/api/delivery'
+        delivery: '/api/delivery',
+        printConfig: '/api/print-config'
       }
   });
 });

@@ -330,8 +330,8 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       // Use new variant structure
       productVariants = variants.map(variant => ({
         tierName: variant.tierName,
-        price: parseInt(variant.price),
-        stock: parseInt(variant.stock) || 0,
+        price: parseInt(variant.price) || 0,
+        stock: parseInt(variant.stock) || 999999,
         images: variant.images || [],
         isActive: variant.isActive !== false
       }));
@@ -340,22 +340,22 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       productVariants = [
         {
           tierName: 'standard',
-          price: parseInt(price.standard),
-          stock: parseInt(stock) || 0,
+          price: parseInt(price.standard) || 0,
+          stock: 999999, // Default stock for legacy products
           images: images || [],
           isActive: true
         },
         {
           tierName: 'deluxe',
-          price: parseInt(price.deluxe),
-          stock: parseInt(stock) || 0,
+          price: parseInt(price.deluxe) || 0,
+          stock: 999999, // Default stock for legacy products
           images: deluxeImage ? [deluxeImage] : [],
           isActive: true
         },
         {
           tierName: 'premium',
-          price: parseInt(price.premium),
-          stock: parseInt(stock) || 0,
+          price: parseInt(price.premium) || 0,
+          stock: 999999, // Default stock for legacy products
           images: premiumImage ? [premiumImage] : [],
           isActive: true
         }
@@ -363,9 +363,9 @@ router.post('/', authenticateToken, requireRole(['shop_owner', 'admin']), async 
       
       // Keep legacy fields for backwards compatibility
       legacyPrice = {
-        standard: parseInt(price.standard),
-        deluxe: parseInt(price.deluxe),
-        premium: parseInt(price.premium)
+        standard: parseInt(price.standard) || 0,
+        deluxe: parseInt(price.deluxe) || 0,
+        premium: parseInt(price.premium) || 0
       };
     } else {
       return res.status(400).json({

@@ -297,6 +297,55 @@ const orderSchema = new mongoose.Schema({
     type: String,
     maxlength: [500, 'Notes cannot exceed 500 characters']
   },
+
+  // Print preferences
+  printPreferences: {
+    deliveryInstructionsTray: {
+      type: String,
+      default: 'default',
+      trim: true
+    },
+    cardMessageTray: {
+      type: String,
+      default: 'default',
+      trim: true
+    },
+    orderSummaryTray: {
+      type: String,
+      default: 'default',
+      trim: true
+    },
+    customLayouts: {
+      deliveryInstructions: {
+        type: Object,
+        default: null
+      },
+      cardMessage: {
+        type: Object,
+        default: null
+      },
+      orderSummary: {
+        type: Object,
+        default: null
+      }
+    },
+    printAllDocuments: {
+      type: Boolean,
+      default: true
+    },
+    printDeliveryInstructions: {
+      type: Boolean,
+      default: true
+    },
+    printCardMessage: {
+      type: Boolean,
+      default: true
+    },
+    printOrderSummary: {
+      type: Boolean,
+      default: true
+    }
+  },
   
   // Timestamps for order lifecycle
   confirmedAt: Date,
