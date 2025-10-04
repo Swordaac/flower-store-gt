@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const enhancedPrintService = require('../services/enhancedPrintService');
-const auth = require('../middleware/auth');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 
 /**
  * @route   GET /api/print-config/printers
  * @desc    Get available printers with tray information
  * @access  Private (Admin/Staff)
  */
-router.get('/printers', auth, async (req, res) => {
+router.get('/printers', authenticateToken, requireRole(['admin', 'shop_owner']), async (req, res) => {
   try {
     const printers = await enhancedPrintService.getPrintersWithTrays();
     
@@ -32,7 +32,7 @@ router.get('/printers', auth, async (req, res) => {
  * @desc    Get available print layouts
  * @access  Private (Admin/Staff)
  */
-router.get('/layouts', auth, async (req, res) => {
+router.get('/layouts', authenticateToken, requireRole(['admin', 'shop_owner']), async (req, res) => {
   try {
     const layouts = {
       deliveryInstructions: {
@@ -78,7 +78,7 @@ router.get('/layouts', auth, async (req, res) => {
  * @desc    Test print with specific configuration
  * @access  Private (Admin/Staff)
  */
-router.post('/test-print', auth, async (req, res) => {
+router.post('/test-print', authenticateToken, requireRole(['admin', 'shop_owner']), async (req, res) => {
   try {
     const {
       printType = 'deliveryInstructions',
@@ -156,7 +156,7 @@ router.post('/test-print', auth, async (req, res) => {
  * @desc    Print order with custom configuration
  * @access  Private (Admin/Staff)
  */
-router.post('/print-order', auth, async (req, res) => {
+router.post('/print-order', authenticateToken, requireRole(['admin', 'shop_owner']), async (req, res) => {
   try {
     const {
       orderId,
@@ -206,7 +206,7 @@ router.post('/print-order', auth, async (req, res) => {
  * @desc    Get print service status and statistics
  * @access  Private (Admin/Staff)
  */
-router.get('/status', auth, async (req, res) => {
+router.get('/status', authenticateToken, requireRole(['admin', 'shop_owner']), async (req, res) => {
   try {
     const connectionTest = await enhancedPrintService.testConnection();
     const printers = await enhancedPrintService.getPrintersWithTrays();
@@ -247,7 +247,7 @@ router.get('/status', auth, async (req, res) => {
  * @desc    Create or update custom print layout
  * @access  Private (Admin/Staff)
  */
-router.post('/custom-layout', auth, async (req, res) => {
+router.post('/custom-layout', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
     const {
       layoutName,
