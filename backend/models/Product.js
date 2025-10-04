@@ -359,9 +359,23 @@ productSchema.methods.isTierInStock = function(tierName) {
 };
 
 // Pre-save middleware to update slug if not provided
-productSchema.pre('save', function(next) {
+productSchema.pre('save', async function(next) {
   if (!this.slug && this.name) {
-    this.slug = this.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    let baseSlug = this.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    let slug = baseSlug;
+    let counter = 1;
+    
+    // Check for duplicates and append counter if needed
+    while (true) {
+      const existingProduct = await this.constructor.findOne({ slug: slug });
+      if (!existingProduct || existingProduct._id.toString() === this._id.toString()) {
+        break;
+      }
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    
+    this.slug = slug;
   }
   next();
 });
