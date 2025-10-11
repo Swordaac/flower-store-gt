@@ -6,7 +6,11 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate:product-types": "node scripts/migrate-product-types.js",
+    "test:migration": "node scripts/test-product-type-migration.js",
+    "remove:emojis": "node scripts/remove-product-type-emojis.js",
+    "migrate:occasions": "node scripts/migrate-occasions.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.56.0",
