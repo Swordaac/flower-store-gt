@@ -69,9 +69,9 @@ export const Navigation: React.FC = () => {
   }
 
   return (
-    <header style={{ backgroundColor: theme.colors.background, zIndex: 9999 }} className="border-b border-gray-200 relative">
+    <header style={{ backgroundColor: theme.colors.background, zIndex: 9999 }} className="border-b border-gray-200 relative overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 min-w-0">
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
@@ -199,25 +199,28 @@ export const Navigation: React.FC = () => {
           </nav>
 
           {/* Right icons */}
-          <div className="flex items-center space-x-4">
-            <Search className="h-5 w-5" style={{ color: theme.colors.text.primary }} />
+          <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
+            <Search className="h-5 w-5 flex-shrink-0" style={{ color: theme.colors.text.primary }} />
             <CartIcon style={{ color: theme.colors.text.primary }} />
-            {user ? (
-              <div className="flex items-center space-x-2">
-                <Link href="/dashboard" className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>Dashboard</Link>
-                <Link href="/profile" className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>Profile</Link>
-                <button onClick={handleSignOut} className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>Sign Out</button>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <Link href="/auth/signin" className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>Sign In</Link>
-                <Link href="/auth/signup" className="hover:opacity-80" style={{ color: theme.colors.primary }}>Sign Up</Link>
-              </div>
-            )}
+            <div className="hidden md:flex items-center space-x-2">
+              {user ? (
+                <>
+                  <Link href="/dashboard" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>Dashboard</Link>
+                  <Link href="/orders" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>Orders</Link>
+                  <Link href="/profile" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>Profile</Link>
+                  <button onClick={handleSignOut} className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>Sign Out</button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/signin" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>Sign In</Link>
+                  <Link href="/auth/signup" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.primary }}>Sign Up</Link>
+                </>
+              )}
+            </div>
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden inline-flex items-center justify-center p-2 rounded-md hover:bg-gray-100"
+              className="md:hidden inline-flex items-center justify-center p-2 rounded-md hover:bg-gray-100 flex-shrink-0"
               style={{ color: theme.colors.text.primary }}
             >
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -284,6 +287,7 @@ export const Navigation: React.FC = () => {
               {user ? (
                 <>
                   <Link href="/dashboard" className="block py-2" style={{ color: theme.colors.text.primary }}>Dashboard</Link>
+                  <Link href="/orders" className="block py-2" style={{ color: theme.colors.text.primary }}>Orders</Link>
                   <Link href="/profile" className="block py-2" style={{ color: theme.colors.text.primary }}>Profile</Link>
                   <button onClick={handleSignOut} className="block w-full text-left py-2 text-red-600">Sign Out</button>
                 </>

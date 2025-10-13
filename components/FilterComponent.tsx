@@ -362,10 +362,14 @@ export const FilterComponent: React.FC<FilterComponentProps> = ({
   if (!isVisible) {
     return (
       <Button 
-        variant="outline" 
         size="sm" 
-        className={`flex items-center space-x-2 bg-transparent ${className}`}
-        style={{ borderColor: theme.colors.border, color: theme.colors.text.primary }}
+        className={`flex items-center space-x-2 ${className}`}
+        style={{ 
+          backgroundColor: theme.colors.primary, 
+          color: theme.colors.text.white,
+          border: 'none',
+          borderRadius: '8px'
+        }}
         onClick={onToggleVisibility}
       >
         <Filter className="h-4 w-4" />
@@ -733,12 +737,24 @@ export const FilterComponent: React.FC<FilterComponentProps> = ({
         
         {/* Apply Button */}
         <div className="p-6 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={onToggleVisibility}
-            className="w-full bg-gray-800 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-900 transition-colors"
-          >
-            Apply ({activeFilterCount})
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={handleClearFilters}
+              className="flex-1 bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+            >
+              Clear All
+            </button>
+            <button
+              onClick={onToggleVisibility}
+              className="flex-1 py-3 px-4 rounded-lg font-medium transition-colors"
+              style={{ 
+                backgroundColor: theme.colors.primary, 
+                color: theme.colors.text.white 
+              }}
+            >
+              Apply ({activeFilterCount})
+            </button>
+          </div>
         </div>
       </div>
     </>

@@ -27,9 +27,7 @@ const theme = {
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen relative" style={{ backgroundColor: theme.colors.background }}>
-      
-      
+    <div className="min-h-screen w-full relative overflow-x-hidden" style={{ backgroundColor: theme.colors.background }}>
       {/* Hero Section */}
       <section className="relative w-full h-96 md:h-[500px] lg:h-[600px] overflow-hidden">
         <img
@@ -50,9 +48,9 @@ export default function AboutPage() {
       </section>
 
       {/* Main Content */}
-      <section className="py-16" style={{ backgroundColor: theme.colors.white }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section className="py-16 w-full" style={{ backgroundColor: theme.colors.white }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Text Content */}
             <div className="space-y-8">
               <div className="space-y-6">
@@ -101,8 +99,6 @@ export default function AboutPage() {
 
             {/* Image/Visual Content */}
             <div className="space-y-6">
-              
-              
               {/* Features Grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-xl p-4 text-center" style={{ backgroundColor: theme.colors.white, borderColor: theme.colors.border, border: '1px solid' }}>
@@ -143,8 +139,8 @@ export default function AboutPage() {
       </section>
 
       {/* Visit Our Store Section */}
-      <section className="py-16" style={{ backgroundColor: theme.colors.background }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-16 w-full" style={{ backgroundColor: theme.colors.background }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-light mb-4" style={{ color: theme.colors.text.primary }}>Visit Our Store</h2>
             <p className="text-lg max-w-2xl mx-auto" style={{ color: theme.colors.text.secondary }}>
@@ -152,7 +148,7 @@ export default function AboutPage() {
             </p>
           </div>
           
-          <div className="grid lg:grid-cols-2 gap-12">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
             {/* Store Information */}
             <div className="space-y-8">
               {/* Address */}
@@ -244,8 +240,8 @@ export default function AboutPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12" style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <footer className="py-12 w-full" style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="text-center">
             <div className="text-2xl font-light mb-4">Flower Store</div>
             <p className="mb-6" style={{ color: theme.colors.text.primary }}>1208 Rue Crescent, Montréal, QC H3G 2A9, Canada</p>

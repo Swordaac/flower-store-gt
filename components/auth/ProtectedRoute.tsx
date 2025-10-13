@@ -25,7 +25,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         router.push(redirectTo);
       } else if (!requireAuth && user) {
         // If user is already authenticated and we don't require auth (e.g., login page)
-        router.push('/dashboard');
+        router.push('/');
       }
     }
   }, [user, loading, requireAuth, redirectTo, router]);

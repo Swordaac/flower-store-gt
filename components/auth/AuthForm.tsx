@@ -13,7 +13,7 @@ interface AuthFormProps {
 
 export const AuthForm: React.FC<AuthFormProps> = ({ 
   defaultMode = 'signin', 
-  redirectTo = '/dashboard' 
+  redirectTo = '/' 
 }) => {
   const [mode, setMode] = useState<AuthMode>(defaultMode);
   const [email, setEmail] = useState('');
@@ -51,8 +51,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         if (result.error) {
           setError(result.error);
         } else {
-          // Success - redirect to dashboard
-          router.push('/dashboard');
+          // Success - redirect to home page
+          router.push(redirectTo);
         }
       }
     } catch (err) {
