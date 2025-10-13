@@ -238,10 +238,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     fetchNotifications();
 
     // Set up polling every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 30000);
 
     return () => clearInterval(interval);
-  }, [currentUser, isShopOwner, isAdmin, fetchNotifications]);
+  }, [currentUser, isShopOwner, isAdmin]);
 
   // Listen for visibility changes to refresh when tab becomes active
   useEffect(() => {
@@ -253,7 +255,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [currentUser, isShopOwner, isAdmin, fetchNotifications]);
+  }, [currentUser, isShopOwner, isAdmin]);
 
   const value: NotificationContextType = {
     notifications,

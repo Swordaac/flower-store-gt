@@ -141,6 +141,14 @@ export default function ProductDetailPage() {
     }
   }, [productId])
 
+  // Update selected image when tier changes
+  useEffect(() => {
+    if (product) {
+      const newImage = getCurrentImage()
+      setSelectedImage(newImage)
+    }
+  }, [selectedTier, product])
+
   // Helper function to format price
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)} CAD`
@@ -216,6 +224,18 @@ export default function ProductDetailPage() {
   const getFilteredImages = () => {
     if (!product) return []
     
+    // Try to get images from variants first (new structure)
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.find(v => v.tierName === selectedTier && v.isActive)
+      if (variant && variant.images && variant.images.length > 0) {
+        if (selectedImageSize === 'all') {
+          return variant.images
+        }
+        return variant.images.filter(img => img.size === selectedImageSize)
+      }
+    }
+    
+    // Fallback to main product images
     if (selectedImageSize === 'all') {
       return product.images || []
     }
@@ -227,6 +247,16 @@ export default function ProductDetailPage() {
   const getAvailableSizes = () => {
     if (!product) return []
     
+    // Try to get sizes from variants first (new structure)
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.find(v => v.tierName === selectedTier && v.isActive)
+      if (variant && variant.images && variant.images.length > 0) {
+        const sizes = [...new Set(variant.images.map(img => img.size))]
+        return ['all', ...sizes]
+      }
+    }
+    
+    // Fallback to main product images
     const sizes = [...new Set(product.images?.map(img => img.size) || [])]
     return ['all', ...sizes]
   }
@@ -339,7 +369,7 @@ export default function ProductDetailPage() {
           <div className="lg:col-span-2">
             <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
               <img
-                src={getCurrentImage()}
+                src={selectedImage || getCurrentImage()}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
