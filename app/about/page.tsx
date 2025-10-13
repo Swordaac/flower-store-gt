@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MapPin, Heart, Coffee, Palette, Sparkles } from 'lucide-react';
+import { MapPin, Heart, Coffee, Palette, Sparkles, Clock, Phone, Mail, Car, Bus } from 'lucide-react';
 
 // Reusable theme object matching the landing page
 const theme = {
@@ -60,8 +60,8 @@ export default function AboutPage() {
                   <MapPin className="h-6 w-6 mt-1 flex-shrink-0" style={{ color: theme.colors.primary }} />
                   <div>
                     <p className="text-lg leading-relaxed" style={{ color: theme.colors.text.secondary }}>
-                      Located at <span className="font-semibold" style={{ color: theme.colors.text.primary }}>1208 Rue Crescent</span> in downtown Montreal, 
-                      Atelier Floral Crescent is more than just a flower shop — it's a creative space where custom floral design, 
+                      Located at <span className="font-semibold" style={{ color: theme.colors.text.primary }}>123 Flower Street</span> in Montreal, 
+                      our flower store is more than just a flower shop — it's a creative space where custom floral design, 
                       a cozy café, and a vibrant art gallery come together.
                     </p>
                   </div>
@@ -133,8 +133,8 @@ export default function AboutPage() {
                   <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: theme.colors.background }}>
                     <MapPin className="h-6 w-6" style={{ color: theme.colors.secondary }} />
                   </div>
-                  <h3 className="font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>Downtown Location</h3>
-                  <p className="text-sm" style={{ color: theme.colors.text.light }}>1208 Rue Crescent</p>
+                  <h3 className="font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>Montreal Location</h3>
+                  <p className="text-sm" style={{ color: theme.colors.text.light }}>123 Flower Street</p>
                 </div>
               </div>
             </div>
@@ -142,45 +142,124 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Visit Us Section */}
+      {/* Visit Our Store Section */}
       <section className="py-16" style={{ backgroundColor: theme.colors.background }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-light mb-4" style={{ color: theme.colors.text.primary }}>Visit Our Space</h2>
+            <h2 className="text-3xl font-light mb-4" style={{ color: theme.colors.text.primary }}>Visit Our Store</h2>
             <p className="text-lg max-w-2xl mx-auto" style={{ color: theme.colors.text.secondary }}>
-              Experience the perfect blend of nature, art, and community in our warm, inviting space
+              Come experience our beautiful space and let us help you find the perfect flowers
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: theme.colors.white }}>
-                <Heart className="h-8 w-8" style={{ color: theme.colors.secondary }} />
+          <div className="grid lg:grid-cols-2 gap-12">
+            {/* Store Information */}
+            <div className="space-y-8">
+              {/* Address */}
+              <div className="flex items-start space-x-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.colors.white }}>
+                  <MapPin className="h-6 w-6" style={{ color: theme.colors.primary }} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2" style={{ color: theme.colors.text.secondary }}>Address</h3>
+                  <p className="text-lg" style={{ color: theme.colors.text.light }}>
+                    123 Flower Street<br />
+                    Montreal, QC H3B 2Y5<br />
+                    Canada
+                  </p>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold mb-3" style={{ color: theme.colors.text.secondary }}>Handcrafted Flowers</h3>
-              <p style={{ color: theme.colors.text.light }}>
-                Each arrangement is carefully designed and personalized to capture the perfect emotion for your special moment.
-              </p>
+
+              {/* Store Hours */}
+              <div className="flex items-start space-x-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.colors.white }}>
+                  <Clock className="h-6 w-6" style={{ color: theme.colors.secondary }} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2" style={{ color: theme.colors.text.secondary }}>Store Hours</h3>
+                  <div className="space-y-1" style={{ color: theme.colors.text.light }}>
+                    <p>Monday-Friday: 9:00 AM - 7:00 PM</p>
+                    <p>Saturday: 10:00 AM - 6:00 PM</p>
+                    <p>Sunday: 11:00 AM - 5:00 PM</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.colors.white }}>
+                    <Phone className="h-6 w-6" style={{ color: theme.colors.primary }} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>Phone</h3>
+                    <p className="text-lg" style={{ color: theme.colors.text.light }}>(514) 555-0123</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.colors.white }}>
+                    <Mail className="h-6 w-6" style={{ color: theme.colors.secondary }} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>Email</h3>
+                    <p className="text-lg" style={{ color: theme.colors.text.light }}>info@flowerstore.com</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: theme.colors.white }}>
-                <Coffee className="h-8 w-8" style={{ color: theme.colors.primary }} />
+
+            {/* Additional Information */}
+            <div className="space-y-8">
+              {/* Parking Information */}
+              <div className="flex items-start space-x-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.colors.white }}>
+                  <Car className="h-6 w-6" style={{ color: theme.colors.primary }} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2" style={{ color: theme.colors.text.secondary }}>Parking Information</h3>
+                  <p style={{ color: theme.colors.text.light }}>
+                    Free parking is available for our customers in the store.
+                  </p>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold mb-3" style={{ color: theme.colors.text.secondary }}>Cozy Café Experience</h3>
-              <p style={{ color: theme.colors.text.light }}>
-                Enjoy freshly brewed coffee and light bites while surrounded by beautiful flowers and local artwork.
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: theme.colors.white }}>
-                <Palette className="h-8 w-8" style={{ color: theme.colors.primary }} />
+
+              {/* Public Transit */}
+              <div className="flex items-start space-x-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.colors.white }}>
+                  <Bus className="h-6 w-6" style={{ color: theme.colors.secondary }} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2" style={{ color: theme.colors.text.secondary }}>Public Transit</h3>
+                  <p style={{ color: theme.colors.text.light }}>
+                    Easily accessible by public transportation. Multiple bus routes and metro stations nearby.
+                  </p>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold mb-3" style={{ color: theme.colors.text.secondary }}>Art Gallery</h3>
-              <p style={{ color: theme.colors.text.light }}>
-                Discover and support local artists with rotating exhibitions that complement our floral arrangements.
-              </p>
+
+              {/* Call to Action */}
+              <div className="p-6 rounded-xl" style={{ backgroundColor: theme.colors.white, border: `1px solid ${theme.colors.border}` }}>
+                <h3 className="text-lg font-semibold mb-3" style={{ color: theme.colors.text.secondary }}>Ready to Visit?</h3>
+                <p className="mb-4" style={{ color: theme.colors.text.light }}>
+                  We can't wait to welcome you to our store! Whether you're looking for the perfect bouquet or just want to enjoy our cozy atmosphere, we're here to help.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <a 
+                    href="tel:(514) 555-0123" 
+                    className="px-6 py-3 rounded-lg text-center font-medium transition-colors"
+                    style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}
+                  >
+                    Call Us Now
+                  </a>
+                  <a 
+                    href="mailto:info@flowerstore.com" 
+                    className="px-6 py-3 rounded-lg text-center font-medium transition-colors border"
+                    style={{ color: theme.colors.primary, borderColor: theme.colors.primary }}
+                  >
+                    Send Email
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -190,8 +269,8 @@ export default function AboutPage() {
       <footer className="py-12" style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="text-2xl font-light mb-4">Atelier Floral Crescent</div>
-            <p className="mb-6" style={{ color: theme.colors.text.primary }}>1208 Rue Crescent, Montreal, QC</p>
+            <div className="text-2xl font-light mb-4">Flower Store</div>
+            <p className="mb-6" style={{ color: theme.colors.text.primary }}>123 Flower Street, Montreal, QC H3B 2Y5, Canada</p>
             <p className="text-sm" style={{ color: theme.colors.text.primary }}>
               Flowers with soul. Moments with meaning.
             </p>

@@ -367,11 +367,11 @@ export default function ProductDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Product Image - Left 2/3 */}
           <div className="lg:col-span-2">
-            <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
+            <div className="aspect-square overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center">
               <img
                 src={selectedImage || getCurrentImage()}
                 alt={product.name}
-                className="w-full h-full object-cover"
+                className="max-w-full max-h-full object-contain"
               />
             </div>
             

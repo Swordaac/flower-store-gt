@@ -224,69 +224,9 @@ export function OverviewTab({ stats, onAddProduct, userShop, isShopOwner }: {
   );
 }
 
-// Shop Tab Component
-export function ShopTab({ shop }: { shop: any }) {
-  if (!shop) {
-    return (
-      <div>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Shop</h1>
-          <p className="mt-2 text-gray-600">
-            You don't have a shop yet. Please contact an admin to create one for you.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
-  return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">My Shop</h1>
-        <p className="mt-2 text-gray-600">
-          Manage your shop information and settings
-        </p>
-      </div>
 
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Shop Information</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Shop Name</label>
-                <p className="mt-1 text-sm text-gray-900">{shop.name}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Description</label>
-                <p className="mt-1 text-sm text-gray-900">{shop.description || 'No description'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Phone</label>
-                <p className="mt-1 text-sm text-gray-900">{shop.phone || 'No phone'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <p className="mt-1 text-sm text-gray-900">{shop.email}</p>
-              </div>
-            </div>
-          </div>
 
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Address</h3>
-            <div className="space-y-2">
-              <p className="text-sm text-gray-900">{shop.address.street}</p>
-              <p className="text-sm text-gray-900">
-                {shop.address.city}, {shop.address.state} {shop.address.postal}
-              </p>
-              <p className="text-sm text-gray-900">{shop.address.country}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Products Tab Component
 interface ProductFilters {

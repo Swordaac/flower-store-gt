@@ -83,7 +83,6 @@ export default function DashboardPage() {
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: HomeIcon, show: true },
-    { id: 'shop', name: 'My Shop', icon: BuildingStorefrontIcon, show: isShopOwner && hasShop },
     { id: 'products', name: 'Products', icon: CubeIcon, show: isShopOwner && hasShop },
     { id: 'orders', name: 'Orders', icon: ShoppingCartIcon, show: isShopOwner && hasShop },
     { id: 'contact-messages', name: 'Contact Messages', icon: MailIcon, show: isShopOwner && hasShop },

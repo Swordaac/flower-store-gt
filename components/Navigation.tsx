@@ -204,6 +204,7 @@ export const Navigation: React.FC = () => {
             <CartIcon style={{ color: theme.colors.text.primary }} />
             {user ? (
               <div className="flex items-center space-x-2">
+                <Link href="/dashboard" className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>Dashboard</Link>
                 <Link href="/profile" className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>Profile</Link>
                 <button onClick={handleSignOut} className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>Sign Out</button>
               </div>
@@ -281,7 +282,11 @@ export const Navigation: React.FC = () => {
               <Link href="/about" className="block py-2" style={{ color: theme.colors.text.primary }}>About Us</Link>
               <Link href="/contact" className="block py-2" style={{ color: theme.colors.text.primary }}>Contact</Link>
               {user ? (
-                <button onClick={handleSignOut} className="block w-full text-left py-2 text-red-600">Sign Out</button>
+                <>
+                  <Link href="/dashboard" className="block py-2" style={{ color: theme.colors.text.primary }}>Dashboard</Link>
+                  <Link href="/profile" className="block py-2" style={{ color: theme.colors.text.primary }}>Profile</Link>
+                  <button onClick={handleSignOut} className="block w-full text-left py-2 text-red-600">Sign Out</button>
+                </>
               ) : (
                 <>
                   <Link href="/auth/signin" className="block py-2" style={{ color: theme.colors.text.primary }}>Sign In</Link>
