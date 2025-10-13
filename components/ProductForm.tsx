@@ -55,16 +55,6 @@ interface ProductFormData {
   isFeatured: boolean;
   isBestSeller: boolean;
   images: ProductImage[];
-  deluxeImage: {
-    publicId?: string;
-    url: string;
-    alt: string;
-  };
-  premiumImage: {
-    publicId?: string;
-    url: string;
-    alt: string;
-  };
 }
 
 interface ProductFormProps {
@@ -186,17 +176,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     isActive: true,
     isFeatured: false,
     isBestSeller: false,
-    images: [],
-    deluxeImage: {
-      publicId: '',
-      url: '',
-      alt: ''
-    },
-    premiumImage: {
-      publicId: '',
-      url: '',
-      alt: ''
-    }
+    images: []
   });
 
   const [newTag, setNewTag] = useState('');
@@ -289,12 +269,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           createDeluxeVariant(
             product.price.deluxe ? (product.price.deluxe / 100).toString() : '',
             product.stock?.toString() || '',
-            product.deluxeImage ? [convertToProductImage(product.deluxeImage)] : []
+            []
           ),
           createPremiumVariant(
             product.price.premium ? (product.price.premium / 100).toString() : '',
             product.stock?.toString() || '',
-            product.premiumImage ? [convertToProductImage(product.premiumImage)] : []
+            []
           )
         ];
       }
@@ -316,9 +296,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         isActive: product.isActive !== undefined ? product.isActive : true,
         isFeatured: product.isFeatured || false,
         isBestSeller: product.isBestSeller || false,
-        images: product.images || [],
-        deluxeImage: product.deluxeImage || { publicId: '', url: '', alt: '' },
-        premiumImage: product.premiumImage || { publicId: '', url: '', alt: '' }
+        images: product.images || []
       });
     }
   }, [product]);
@@ -373,15 +351,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }));
   };
 
-  const handleTierImageChange = (tier: 'deluxe' | 'premium', field: 'url' | 'alt', value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [`${tier}Image`]: {
-        ...prev[`${tier}Image`],
-        [field]: value
-      }
-    }));
-  };
 
   const addTag = () => {
     if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
@@ -714,7 +683,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           {/* Product Types */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Product Types * (Select at least one)
+              Product Types (Optional)
             </label>
             {loadingData ? (
               <div className="mt-2 text-sm text-gray-500">Loading product types...</div>
@@ -735,9 +704,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   </label>
                 ))}
               </div>
-            )}
-            {formData.productTypes.length === 0 && !loadingData && (
-              <p className="mt-1 text-sm text-red-600">Please select at least one product type</p>
             )}
           </div>
 
@@ -1056,84 +1022,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             )}
           </div>
 
-          {/* Tier-Specific Images */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-4">
-              Tier-Specific Images
-            </label>
-            
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              {/* Deluxe Image */}
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">
-                  Deluxe Version Image
-                </label>
-                <div className="space-y-2">
-                  <input
-                    type="url"
-                    value={formData.deluxeImage.url}
-                    onChange={(e) => handleTierImageChange('deluxe', 'url', e.target.value)}
-                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="Image URL"
-                  />
-                  <input
-                    type="text"
-                    value={formData.deluxeImage.alt}
-                    onChange={(e) => handleTierImageChange('deluxe', 'alt', e.target.value)}
-                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="Alt text"
-                  />
-                  {formData.deluxeImage.url && (
-                    <div className="mt-2">
-                      <img
-                        src={formData.deluxeImage.url}
-                        alt={formData.deluxeImage.alt}
-                        className="w-full h-32 object-cover rounded-lg"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Premium Image */}
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">
-                  Premium Version Image
-                </label>
-                <div className="space-y-2">
-                  <input
-                    type="url"
-                    value={formData.premiumImage.url}
-                    onChange={(e) => handleTierImageChange('premium', 'url', e.target.value)}
-                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="Image URL"
-                  />
-                  <input
-                    type="text"
-                    value={formData.premiumImage.alt}
-                    onChange={(e) => handleTierImageChange('premium', 'alt', e.target.value)}
-                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="Alt text"
-                  />
-                  {formData.premiumImage.url && (
-                    <div className="mt-2">
-                      <img
-                        src={formData.premiumImage.url}
-                        alt={formData.premiumImage.alt}
-                        className="w-full h-32 object-cover rounded-lg"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Status Options */}
           <div className="flex items-center space-x-6">

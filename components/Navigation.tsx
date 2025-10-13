@@ -202,6 +202,17 @@ export const Navigation: React.FC = () => {
           <div className="flex items-center space-x-4">
             <Search className="h-5 w-5" style={{ color: theme.colors.text.primary }} />
             <CartIcon style={{ color: theme.colors.text.primary }} />
+            {user ? (
+              <div className="flex items-center space-x-2">
+                <Link href="/profile" className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>Profile</Link>
+                <button onClick={handleSignOut} className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>Sign Out</button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Link href="/auth/signin" className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>Sign In</Link>
+                <Link href="/auth/signup" className="hover:opacity-80" style={{ color: theme.colors.primary }}>Sign Up</Link>
+              </div>
+            )}
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

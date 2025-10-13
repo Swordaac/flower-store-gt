@@ -1033,42 +1033,9 @@ export function SettingsTab() {
         </p>
       </div>
       
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <UserProfile />
+
         
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Business Settings</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Business Name</label>
-              <input
-                type="text"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Enter business name"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Business Email</label>
-              <input
-                type="email"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Enter business email"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-              <input
-                type="tel"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Enter phone number"
-              />
-            </div>
-            <button className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
+        
 
       {/* Notification Settings */}
       <div className="mt-6">
