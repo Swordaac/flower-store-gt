@@ -41,6 +41,13 @@ export const Navigation: React.FC = () => {
     setIsGiftDropdownOpen(false);
   };
 
+  const handleLinkClick = () => {
+    // Small delay to ensure navigation happens before closing menus
+    setTimeout(() => {
+      closeAllMenus();
+    }, 100);
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -87,13 +94,14 @@ export const Navigation: React.FC = () => {
               </button>
               {isShopDropdownOpen && (
                 <div
-                  className="absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg border"
+                  className="absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg border z-50"
                   style={{ backgroundColor: theme.colors.white, borderColor: theme.colors.border }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-4 space-y-1">
-                    <Link href="/collections/rose" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Rose</Link>
-                    <Link href="/collections/bouquet" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Bouquet</Link>
-                    <Link href="/collections/bouquet-in-vase" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Bouquet in Vase</Link>
+                    <Link href="/collections/rose" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Rose</Link>
+                    <Link href="/collections/bouquet" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Bouquet</Link>
+                    <Link href="/collections/bouquet-in-vase" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Bouquet in Vase</Link>
                   </div>
                 </div>
               )}
@@ -111,25 +119,26 @@ export const Navigation: React.FC = () => {
               </button>
               {isOccasionsDropdownOpen && (
                 <div
-                  className="absolute top-full left-0 mt-2 w-72 rounded-lg shadow-lg border"
+                  className="absolute top-full left-0 mt-2 w-72 rounded-lg shadow-lg border z-50"
                   style={{ backgroundColor: theme.colors.white, borderColor: theme.colors.border }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-4 space-y-1">
-                    <Link href="/collections/birthday" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Birthday</Link>
-                    <Link href="/collections/anniversary" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Anniversary</Link>
-                    <Link href="/collections/love-romantic" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Love & Romantic</Link>
-                    <Link href="/collections/get-well-soon" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Get Well Soon</Link>
-                    <Link href="/collections/wedding" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Wedding</Link>
-                    <Link href="/collections/prom" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Prom</Link>
-                    <Link href="/collections/congratulations" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Congratulations</Link>
-                    <Link href="/collections/new-baby" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>New Baby</Link>
-                    <Link href="/collections/grand-opening" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Grand Opening</Link>
+                    <Link href="/collections/birthday" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Birthday</Link>
+                    <Link href="/collections/anniversary" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Anniversary</Link>
+                    <Link href="/collections/love-romantic" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Love & Romantic</Link>
+                    <Link href="/collections/get-well-soon" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Get Well Soon</Link>
+                    <Link href="/collections/wedding" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Wedding</Link>
+                    <Link href="/collections/prom" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Prom</Link>
+                    <Link href="/collections/congratulations" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Congratulations</Link>
+                    <Link href="/collections/new-baby" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>New Baby</Link>
+                    <Link href="/collections/grand-opening" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Grand Opening</Link>
                     <div className="pt-2">
                       <h4 className="text-xs font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>Sympathy</h4>
                       <div className="space-y-1 pl-2">
-                        <Link href="/collections/wreaths" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Wreaths</Link>
-                        <Link href="/collections/casket-sprays" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Casket Sprays</Link>
-                        <Link href="/collections/sympathy-bouquets" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Sympathy Bouquets</Link>
+                        <Link href="/collections/wreaths" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Wreaths</Link>
+                        <Link href="/collections/casket-sprays" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Casket Sprays</Link>
+                        <Link href="/collections/sympathy-bouquets" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Sympathy Bouquets</Link>
                       </div>
                     </div>
                   </div>
@@ -149,12 +158,13 @@ export const Navigation: React.FC = () => {
               </button>
               {isPlantsDropdownOpen && (
                 <div
-                  className="absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg border"
+                  className="absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg border z-50"
                   style={{ backgroundColor: theme.colors.white, borderColor: theme.colors.border }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-4 space-y-1">
-                    <Link href="/collections/indoor-plants" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Indoor Plants</Link>
-                    <Link href="/collections/orchid" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Orchid</Link>
+                    <Link href="/collections/indoor-plants" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Indoor Plants</Link>
+                    <Link href="/collections/orchid" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Orchid</Link>
                   </div>
                 </div>
               )}
@@ -172,12 +182,13 @@ export const Navigation: React.FC = () => {
               </button>
               {isGiftDropdownOpen && (
                 <div
-                  className="absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg border"
+                  className="absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg border z-50"
                   style={{ backgroundColor: theme.colors.white, borderColor: theme.colors.border }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-4 space-y-1">
-                    <Link href="/collections/fruit-basket" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Fruit Basket</Link>
-                    <Link href="/collections/flowers-box" className="block text-sm py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Flowers Box</Link>
+                    <Link href="/collections/fruit-basket" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Fruit Basket</Link>
+                    <Link href="/collections/flowers-box" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Flowers Box</Link>
                   </div>
                 </div>
               )}
@@ -205,35 +216,35 @@ export const Navigation: React.FC = () => {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden">
+        <div className="md:hidden relative z-50">
           <div className="px-2 pt-2 pb-3 space-y-4 border-t border-gray-200" style={{ backgroundColor: theme.colors.white }}>
             <div className="px-3 py-2">
               <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Shop</h3>
               <div className="space-y-1 ml-2">
-                <Link href="/collections/rose" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Rose</Link>
-                <Link href="/collections/bouquet" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Bouquet</Link>
-                <Link href="/collections/bouquet-in-vase" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Bouquet in Vase</Link>
+                <Link href="/collections/rose" className="block py-1" style={{ color: theme.colors.text.light }}>Rose</Link>
+                <Link href="/collections/bouquet" className="block py-1" style={{ color: theme.colors.text.light }}>Bouquet</Link>
+                <Link href="/collections/bouquet-in-vase" className="block py-1" style={{ color: theme.colors.text.light }}>Bouquet in Vase</Link>
               </div>
             </div>
 
             <div className="px-3 py-2 border-t border-gray-100">
               <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Occasions</h3>
               <div className="space-y-1 ml-2">
-                <Link href="/collections/birthday" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Birthday</Link>
-                <Link href="/collections/anniversary" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Anniversary</Link>
-                <Link href="/collections/love-romantic" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Love & Romantic</Link>
-                <Link href="/collections/get-well-soon" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Get Well Soon</Link>
-                <Link href="/collections/wedding" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Wedding</Link>
-                <Link href="/collections/prom" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Prom</Link>
-                <Link href="/collections/congratulations" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Congratulations</Link>
-                <Link href="/collections/new-baby" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>New Baby</Link>
-                <Link href="/collections/grand-opening" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Grand Opening</Link>
+                <Link href="/collections/birthday" className="block py-1" style={{ color: theme.colors.text.light }}>Birthday</Link>
+                <Link href="/collections/anniversary" className="block py-1" style={{ color: theme.colors.text.light }}>Anniversary</Link>
+                <Link href="/collections/love-romantic" className="block py-1" style={{ color: theme.colors.text.light }}>Love & Romantic</Link>
+                <Link href="/collections/get-well-soon" className="block py-1" style={{ color: theme.colors.text.light }}>Get Well Soon</Link>
+                <Link href="/collections/wedding" className="block py-1" style={{ color: theme.colors.text.light }}>Wedding</Link>
+                <Link href="/collections/prom" className="block py-1" style={{ color: theme.colors.text.light }}>Prom</Link>
+                <Link href="/collections/congratulations" className="block py-1" style={{ color: theme.colors.text.light }}>Congratulations</Link>
+                <Link href="/collections/new-baby" className="block py-1" style={{ color: theme.colors.text.light }}>New Baby</Link>
+                <Link href="/collections/grand-opening" className="block py-1" style={{ color: theme.colors.text.light }}>Grand Opening</Link>
                 <div className="pt-2">
                   <h4 className="text-sm font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>Sympathy</h4>
                   <div className="space-y-1 ml-2">
-                    <Link href="/collections/wreaths" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Wreaths</Link>
-                    <Link href="/collections/casket-sprays" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Casket Sprays</Link>
-                    <Link href="/collections/sympathy-bouquets" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Sympathy Bouquets</Link>
+                    <Link href="/collections/wreaths" className="block py-1" style={{ color: theme.colors.text.light }}>Wreaths</Link>
+                    <Link href="/collections/casket-sprays" className="block py-1" style={{ color: theme.colors.text.light }}>Casket Sprays</Link>
+                    <Link href="/collections/sympathy-bouquets" className="block py-1" style={{ color: theme.colors.text.light }}>Sympathy Bouquets</Link>
                   </div>
                 </div>
               </div>
@@ -242,28 +253,28 @@ export const Navigation: React.FC = () => {
             <div className="px-3 py-2 border-t border-gray-100">
               <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Plants</h3>
               <div className="space-y-1 ml-2">
-                <Link href="/collections/indoor-plants" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Indoor Plants</Link>
-                <Link href="/collections/orchid" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Orchid</Link>
+                <Link href="/collections/indoor-plants" className="block py-1" style={{ color: theme.colors.text.light }}>Indoor Plants</Link>
+                <Link href="/collections/orchid" className="block py-1" style={{ color: theme.colors.text.light }}>Orchid</Link>
               </div>
             </div>
 
             <div className="px-3 py-2 border-t border-gray-100">
               <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Gift</h3>
               <div className="space-y-1 ml-2">
-                <Link href="/collections/fruit-basket" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Fruit Basket</Link>
-                <Link href="/collections/flowers-box" className="block py-1" style={{ color: theme.colors.text.light }} onClick={closeAllMenus}>Flowers Box</Link>
+                <Link href="/collections/fruit-basket" className="block py-1" style={{ color: theme.colors.text.light }}>Fruit Basket</Link>
+                <Link href="/collections/flowers-box" className="block py-1" style={{ color: theme.colors.text.light }}>Flowers Box</Link>
               </div>
             </div>
 
             <div className="px-3 py-2 border-t border-gray-100">
-              <Link href="/about" className="block py-2" style={{ color: theme.colors.text.primary }} onClick={closeAllMenus}>About Us</Link>
-              <Link href="/contact" className="block py-2" style={{ color: theme.colors.text.primary }} onClick={closeAllMenus}>Contact</Link>
+              <Link href="/about" className="block py-2" style={{ color: theme.colors.text.primary }}>About Us</Link>
+              <Link href="/contact" className="block py-2" style={{ color: theme.colors.text.primary }}>Contact</Link>
               {user ? (
                 <button onClick={handleSignOut} className="block w-full text-left py-2 text-red-600">Sign Out</button>
               ) : (
                 <>
-                  <Link href="/auth/signin" className="block py-2" style={{ color: theme.colors.text.primary }} onClick={closeAllMenus}>Sign In</Link>
-                  <Link href="/auth/signup" className="block py-2" style={{ color: theme.colors.primary }} onClick={closeAllMenus}>Sign Up</Link>
+                  <Link href="/auth/signin" className="block py-2" style={{ color: theme.colors.text.primary }}>Sign In</Link>
+                  <Link href="/auth/signup" className="block py-2" style={{ color: theme.colors.primary }}>Sign Up</Link>
                 </>
               )}
             </div>
