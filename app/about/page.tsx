@@ -60,7 +60,7 @@ export default function AboutPage() {
                   <MapPin className="h-6 w-6 mt-1 flex-shrink-0" style={{ color: theme.colors.primary }} />
                   <div>
                     <p className="text-lg leading-relaxed" style={{ color: theme.colors.text.secondary }}>
-                      Located at <span className="font-semibold" style={{ color: theme.colors.text.primary }}>123 Flower Street</span> in Montreal, 
+                      Located at <span className="font-semibold" style={{ color: theme.colors.text.primary }}>1208 Rue Crescent</span> in Montreal, 
                       our flower store is more than just a flower shop — it's a creative space where custom floral design, 
                       a cozy café, and a vibrant art gallery come together.
                     </p>
@@ -134,7 +134,7 @@ export default function AboutPage() {
                     <MapPin className="h-6 w-6" style={{ color: theme.colors.secondary }} />
                   </div>
                   <h3 className="font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>Montreal Location</h3>
-                  <p className="text-sm" style={{ color: theme.colors.text.light }}>123 Flower Street</p>
+                  <p className="text-sm" style={{ color: theme.colors.text.light }}>1208 Rue Crescent</p>
                 </div>
               </div>
             </div>
@@ -163,8 +163,8 @@ export default function AboutPage() {
                 <div>
                   <h3 className="text-xl font-semibold mb-2" style={{ color: theme.colors.text.secondary }}>Address</h3>
                   <p className="text-lg" style={{ color: theme.colors.text.light }}>
-                    123 Flower Street<br />
-                    Montreal, QC H3B 2Y5<br />
+                    1208 Rue Crescent<br />
+                    Montréal, QC H3G 2A9<br />
                     Canada
                   </p>
                 </div>
@@ -178,9 +178,9 @@ export default function AboutPage() {
                 <div>
                   <h3 className="text-xl font-semibold mb-2" style={{ color: theme.colors.text.secondary }}>Store Hours</h3>
                   <div className="space-y-1" style={{ color: theme.colors.text.light }}>
-                    <p>Monday-Friday: 9:00 AM - 7:00 PM</p>
-                    <p>Saturday: 10:00 AM - 6:00 PM</p>
-                    <p>Sunday: 11:00 AM - 5:00 PM</p>
+                    <p>Monday-Friday: 10:00 AM - 7:30 PM</p>
+                    <p>Saturday: 10:30 AM - 7:30 PM</p>
+                    <p>Sunday: 10:30 AM - 5:30 PM</p>
                   </div>
                 </div>
               </div>
@@ -193,7 +193,7 @@ export default function AboutPage() {
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>Phone</h3>
-                    <p className="text-lg" style={{ color: theme.colors.text.light }}>(514) 555-0123</p>
+                    <p className="text-lg" style={{ color: theme.colors.text.light }}>(438) 282-1208</p>
                   </div>
                 </div>
 
@@ -203,7 +203,7 @@ export default function AboutPage() {
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>Email</h3>
-                    <p className="text-lg" style={{ color: theme.colors.text.light }}>info@flowerstore.com</p>
+                    <p className="text-lg" style={{ color: theme.colors.text.light }}>1208crescent@gmail.com</p>
                   </div>
                 </div>
               </div>
@@ -237,29 +237,7 @@ export default function AboutPage() {
                 </div>
               </div>
 
-              {/* Call to Action */}
-              <div className="p-6 rounded-xl" style={{ backgroundColor: theme.colors.white, border: `1px solid ${theme.colors.border}` }}>
-                <h3 className="text-lg font-semibold mb-3" style={{ color: theme.colors.text.secondary }}>Ready to Visit?</h3>
-                <p className="mb-4" style={{ color: theme.colors.text.light }}>
-                  We can't wait to welcome you to our store! Whether you're looking for the perfect bouquet or just want to enjoy our cozy atmosphere, we're here to help.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <a 
-                    href="tel:(514) 555-0123" 
-                    className="px-6 py-3 rounded-lg text-center font-medium transition-colors"
-                    style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}
-                  >
-                    Call Us Now
-                  </a>
-                  <a 
-                    href="mailto:info@flowerstore.com" 
-                    className="px-6 py-3 rounded-lg text-center font-medium transition-colors border"
-                    style={{ color: theme.colors.primary, borderColor: theme.colors.primary }}
-                  >
-                    Send Email
-                  </a>
-                </div>
-              </div>
+             
             </div>
           </div>
         </div>
@@ -270,7 +248,7 @@ export default function AboutPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="text-2xl font-light mb-4">Flower Store</div>
-            <p className="mb-6" style={{ color: theme.colors.text.primary }}>123 Flower Street, Montreal, QC H3B 2Y5, Canada</p>
+            <p className="mb-6" style={{ color: theme.colors.text.primary }}>1208 Rue Crescent, Montréal, QC H3G 2A9, Canada</p>
             <p className="text-sm" style={{ color: theme.colors.text.primary }}>
               Flowers with soul. Moments with meaning.
             </p>
