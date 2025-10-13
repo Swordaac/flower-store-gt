@@ -23,7 +23,6 @@ import {
 } from '@heroicons/react/24/outline';
 import {
   OverviewTab,
-  ShopTab,
   ProductsTab,
   OrdersTab,
   CustomersTab,
@@ -328,8 +327,6 @@ export default function DashboardPage() {
     switch (activeTab) {
       case 'overview':
         return <OverviewTab stats={stats} onAddProduct={() => setShowProductForm(true)} userShop={userShop} isShopOwner={isShopOwner} />;
-      case 'shop':
-        return <ShopTab shop={userShop} />;
       case 'products':
         return (
           <ProductsTab 
