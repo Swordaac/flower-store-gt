@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { supabaseService } = require('../config/supabase');
+const { supabaseClient, supabaseService } = require('../config/supabase');
 const User = require('../models/User');
 
 /**
@@ -13,7 +13,14 @@ const authenticateToken = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
+    console.log('Auth middleware - Token received:', token ? `${token.substring(0, 20)}...` : 'No token');
+    console.log('Auth middleware - Headers:', {
+      authorization: authHeader ? `${authHeader.substring(0, 30)}...` : 'No auth header',
+      userAgent: req.headers['user-agent']
+    });
+
     if (!token) {
+      console.log('Auth middleware - No token provided');
       return res.status(401).json({
         success: false,
         error: 'Access token required'
@@ -41,17 +48,34 @@ const authenticateToken = async (req, res, next) => {
       return next();
     }
 
-    // Verify JWT token with Supabase
-    const { data: { user }, error } = await supabaseService.auth.getUser(token);
+    // Verify JWT token with Supabase using the anon client
+    console.log('Auth middleware - Verifying token with Supabase...');
+    const { data: { user }, error } = await supabaseClient.auth.getUser(token);
 
-    if (error || !user) {
-      console.error('Supabase token verification error:', error);
+    if (error) {
+      console.error('Supabase token verification error:', {
+        message: error.message,
+        status: error.status,
+        code: error.code,
+        tokenPrefix: token.substring(0, 20) + '...'
+      });
       return res.status(401).json({
         success: false,
         error: 'Invalid or expired token',
         details: error?.message || 'Token verification failed'
       });
     }
+
+    if (!user) {
+      console.error('Auth middleware - No user returned from Supabase');
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token - no user found',
+        details: 'Token verification returned no user data'
+      });
+    }
+
+    console.log('Auth middleware - Token verified successfully for user:', user.email);
 
     // Get or create user in our database
     let dbUser = await User.findOne({ supabaseUserId: user.id });

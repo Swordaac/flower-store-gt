@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useUser } from './UserContext';
+import { useAuth } from './AuthContext';
 import { apiFetch } from '@/lib/api';
 
 interface NotificationData {
@@ -38,6 +39,7 @@ interface NotificationProviderProps {
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const { currentUser, isShopOwner, isAdmin, session } = useUser();
+  const { refreshSession } = useAuth();
   const [notifications, setNotifications] = useState<NotificationData>({
     newOrders: 0,
     newMessages: 0,
@@ -49,6 +51,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [lastNotificationCount, setLastNotificationCount] = useState({ orders: 0, messages: 0 });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [lastCheckTime, setLastCheckTime] = useState<Date | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Load sound preference from localStorage
   useEffect(() => {
@@ -102,9 +105,33 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }
   }, [isSoundEnabled]);
 
+  // Check if session is valid and not expired
+  const isSessionValid = useCallback(() => {
+    if (!session?.access_token) return false;
+    
+    // Check if token is expired (if expires_at is available)
+    if (session.expires_at) {
+      const now = Math.floor(Date.now() / 1000);
+      if (now >= session.expires_at) {
+        console.log('Session expired:', { now, expiresAt: session.expires_at });
+        return false;
+      }
+    }
+    
+    return true;
+  }, [session]);
+
   // Fetch notification counts
   const fetchNotifications = useCallback(async () => {
-    if (!currentUser || (!isShopOwner && !isAdmin) || !session?.access_token) {
+    if (!currentUser || (!isShopOwner && !isAdmin) || !isSessionValid()) {
+      console.log('Skipping notification fetch:', {
+        hasCurrentUser: !!currentUser,
+        isShopOwner,
+        isAdmin,
+        hasSession: !!session,
+        hasAccessToken: !!session?.access_token,
+        isSessionValid: isSessionValid()
+      });
       return;
     }
 
@@ -114,6 +141,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
       const currentTime = new Date();
       const lastCheck = lastCheckTime || new Date(Date.now() - 24 * 60 * 60 * 1000); // Default to 24 hours ago if no previous check
+
+      console.log('Fetching notifications with token:', session.access_token.substring(0, 20) + '...');
 
       const [ordersResponse, messagesResponse] = await Promise.all([
         apiFetch('/api/orders?status=pending&limit=100', {
@@ -143,6 +172,20 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
           const orderDate = new Date(order.createdAt);
           return orderDate > lastCheck;
         }).length;
+      } else if (ordersResponse.status === 401) {
+        console.warn('Authentication failed for orders API - attempting to refresh session');
+        if (retryCount < 2) {
+          const refreshed = await refreshSession();
+          if (refreshed) {
+            console.log('Session refreshed, retrying notification fetch');
+            setRetryCount(prev => prev + 1);
+            // Retry the fetch after refresh
+            setTimeout(() => fetchNotifications(), 1000);
+            return;
+          }
+        }
+        setError('Authentication expired. Please sign in again.');
+        return;
       }
 
       if (messagesResponse.ok) {
@@ -155,6 +198,20 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
           const messageDate = new Date(message.createdAt);
           return messageDate > lastCheck;
         }).length;
+      } else if (messagesResponse.status === 401) {
+        console.warn('Authentication failed for messages API - attempting to refresh session');
+        if (retryCount < 2) {
+          const refreshed = await refreshSession();
+          if (refreshed) {
+            console.log('Session refreshed, retrying notification fetch');
+            setRetryCount(prev => prev + 1);
+            // Retry the fetch after refresh
+            setTimeout(() => fetchNotifications(), 1000);
+            return;
+          }
+        }
+        setError('Authentication expired. Please sign in again.');
+        return;
       }
 
       const newNotificationData = {
@@ -194,6 +251,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       // Update tracking variables
       setLastNotificationCount({ orders: totalOrdersCount, messages: totalMessagesCount });
       setLastCheckTime(currentTime);
+      setRetryCount(0); // Reset retry count on successful fetch
 
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -201,7 +259,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser, isShopOwner, isAdmin, session, playNotificationSound, lastCheckTime]);
+  }, [currentUser, isShopOwner, isAdmin, session, playNotificationSound, lastCheckTime, isSessionValid, refreshSession, retryCount]);
 
   // Refresh notifications manually
   const refreshNotifications = useCallback(async () => {
