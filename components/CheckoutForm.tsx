@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import StripeCheckoutButton from '@/components/StripeCheckoutButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,6 +54,7 @@ interface CheckoutFormProps {
 
 export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFormProps) {
   const { items, totalPrice, clearCart } = useCart();
+  const { t } = useLanguage();
   const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'pickup'>('delivery');
   const [formData, setFormData] = useState<FormDataType>({
     // Recipient information
@@ -116,39 +118,39 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
   const validateForm = () => {
     // Validate recipient information
     if (!formData.recipient.name?.trim()) {
-      return 'Recipient name is required';
+      return t('checkout.validation.recipientNameRequired');
     }
     if (!formData.recipient.phone?.trim()) {
-      return 'Recipient phone number is required';
+      return t('checkout.validation.recipientPhoneRequired');
     }
     if (!formData.recipient.email?.trim()) {
-      return 'Recipient email is required';
+      return t('checkout.validation.recipientEmailRequired');
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.recipient.email.trim())) {
-      return 'Please enter a valid recipient email address';
+      return t('checkout.validation.validRecipientEmail');
     }
     if (!emailRegex.test(formData.contactEmail.trim())) {
-      return 'Please enter a valid contact email address';
+      return t('checkout.validation.validContactEmail');
     }
 
     // Validate phone format (basic validation)
     const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
     if (!phoneRegex.test(formData.recipient.phone.trim())) {
-      return 'Please enter a valid recipient phone number';
+      return t('checkout.validation.validRecipientPhone');
     }
     if (!phoneRegex.test(formData.contactPhone.trim())) {
-      return 'Please enter a valid contact phone number';
+      return t('checkout.validation.validContactPhone');
     }
 
     // Validate contact information
     if (!formData.contactPhone?.trim()) {
-      return 'Contact phone is required';
+      return t('checkout.validation.contactPhoneRequired');
     }
     if (!formData.contactEmail?.trim()) {
-      return 'Contact email is required';
+      return t('checkout.validation.contactEmailRequired');
     }
 
     // Validate dates are in the future
@@ -160,50 +162,50 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
       
       // Validate address
       if (!address.street?.trim()) {
-        return 'Street address is required for delivery';
+        return t('checkout.validation.streetRequired');
       }
       if (!address.city?.trim()) {
-        return 'City is required for delivery';
+        return t('checkout.validation.cityRequired');
       }
       if (!address.province?.trim()) {
-        return 'Province is required for delivery';
+        return t('checkout.validation.provinceRequired');
       }
       if (!address.postalCode?.trim()) {
-        return 'Postal code is required for delivery';
+        return t('checkout.validation.postalCodeRequired');
       }
 
       // Validate postal code format
       const postalCodeRegex = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/;
       if (!postalCodeRegex.test(address.postalCode.trim())) {
-        return 'Please enter a valid postal code';
+        return t('checkout.validation.validPostalCode');
       }
 
       // Validate date and time
       if (!date) {
-        return 'Delivery date is required';
+        return t('checkout.validation.deliveryDateRequired');
       }
       if (!time) {
-        return 'Delivery time is required';
+        return t('checkout.validation.deliveryTimeRequired');
       }
 
       const deliveryDate = new Date(date);
       if (deliveryDate <= today) {
-        return 'Delivery date must be in the future';
+        return t('checkout.validation.deliveryDateFuture');
       }
     } else {
       const { date, time } = formData.pickup;
       
       // Validate date and time
       if (!date) {
-        return 'Pickup date is required';
+        return t('checkout.validation.pickupDateRequired');
       }
       if (!time) {
-        return 'Pickup time is required';
+        return t('checkout.validation.pickupTimeRequired');
       }
 
       const pickupDate = new Date(date);
       if (pickupDate <= today) {
-        return 'Pickup date must be in the future';
+        return t('checkout.validation.pickupDateFuture');
       }
     }
 
@@ -268,7 +270,7 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
     return (
       <Card>
         <CardContent className="p-6 text-center">
-          <p className="text-gray-600">Your cart is empty. Add some items to proceed with checkout.</p>
+          <p className="text-gray-600">{t('checkout.emptyCart')}</p>
         </CardContent>
       </Card>
     );
@@ -282,18 +284,18 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
       {/* Delivery Method Selection */}
       <Card>
         <CardHeader>
-          <CardTitle>Delivery Method</CardTitle>
-          <CardDescription>Choose how you'd like to receive your order</CardDescription>
+          <CardTitle>{t('checkout.deliveryMethod')}</CardTitle>
+          <CardDescription>{t('checkout.deliveryMethodDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <RadioGroup value={deliveryOption} onValueChange={(value) => setDeliveryOption(value as 'delivery' | 'pickup')}>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="delivery" id="delivery" />
-              <Label htmlFor="delivery">Home Delivery</Label>
+              <Label htmlFor="delivery">{t('checkout.homeDelivery')}</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="pickup" id="pickup" />
-              <Label htmlFor="pickup">Store Pickup</Label>
+              <Label htmlFor="pickup">{t('checkout.storePickup')}</Label>
             </div>
           </RadioGroup>
         </CardContent>
@@ -302,12 +304,12 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
       {/* Recipient Information */}
       <Card>
         <CardHeader>
-          <CardTitle>Recipient Information</CardTitle>
-          <CardDescription>Who will receive this order?</CardDescription>
+          <CardTitle>{t('checkout.recipientInfo')}</CardTitle>
+          <CardDescription>{t('checkout.recipientInfoDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="recipientName">Recipient Name *</Label>
+            <Label htmlFor="recipientName">{t('checkout.recipientName')} *</Label>
             <Input
               id="recipientName"
               value={formData.recipient.name}
@@ -318,7 +320,7 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="recipientPhone">Recipient Phone *</Label>
+              <Label htmlFor="recipientPhone">{t('checkout.recipientPhone')} *</Label>
               <Input
                 id="recipientPhone"
                 type="tel"
@@ -329,7 +331,7 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
               />
             </div>
             <div>
-              <Label htmlFor="recipientEmail">Recipient Email *</Label>
+              <Label htmlFor="recipientEmail">{t('checkout.recipientEmail')} *</Label>
               <Input
                 id="recipientEmail"
                 type="email"
@@ -346,35 +348,35 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
       {/* Occasion and Card Message */}
       <Card>
         <CardHeader>
-          <CardTitle>Occasion & Card Message</CardTitle>
-          <CardDescription>Add a personal touch to your order</CardDescription>
+          <CardTitle>{t('checkout.occasionCard')}</CardTitle>
+          <CardDescription>{t('checkout.occasionCardDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="occasion">Occasion</Label>
+            <Label htmlFor="occasion">{t('checkout.occasion')}</Label>
             <Select value={formData.occasion} onValueChange={(value) => handleInputChange('occasion', value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select an occasion" />
+                <SelectValue placeholder={t('checkout.selectOccasion')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="birthday">Birthday</SelectItem>
-                <SelectItem value="anniversary">Anniversary</SelectItem>
-                <SelectItem value="wedding">Wedding</SelectItem>
-                <SelectItem value="sympathy">Sympathy</SelectItem>
-                <SelectItem value="congratulations">Congratulations</SelectItem>
-                <SelectItem value="get-well">Get Well</SelectItem>
-                <SelectItem value="thank-you">Thank You</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="birthday">{t('checkout.birthday')}</SelectItem>
+                <SelectItem value="anniversary">{t('checkout.anniversary')}</SelectItem>
+                <SelectItem value="wedding">{t('checkout.wedding')}</SelectItem>
+                <SelectItem value="sympathy">{t('checkout.sympathy')}</SelectItem>
+                <SelectItem value="congratulations">{t('checkout.congratulations')}</SelectItem>
+                <SelectItem value="get-well">{t('checkout.getWell')}</SelectItem>
+                <SelectItem value="thank-you">{t('checkout.thankYou')}</SelectItem>
+                <SelectItem value="other">{t('checkout.other')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label htmlFor="cardMessage">Card Message</Label>
+            <Label htmlFor="cardMessage">{t('checkout.cardMessage')}</Label>
             <Textarea
               id="cardMessage"
               value={formData.cardMessage}
               onChange={(e) => handleInputChange('cardMessage', e.target.value)}
-              placeholder="Enter your card message here..."
+              placeholder={t('checkout.cardMessagePlaceholder')}
               rows={3}
             />
           </div>
@@ -384,13 +386,13 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
       {/* Contact Information */}
       <Card>
         <CardHeader>
-          <CardTitle>Your Contact Information</CardTitle>
-          <CardDescription>We'll use this to contact you about the order</CardDescription>
+          <CardTitle>{t('checkout.contactInfo')}</CardTitle>
+          <CardDescription>{t('checkout.contactInfoDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="contactPhone">Your Phone Number *</Label>
+              <Label htmlFor="contactPhone">{t('checkout.yourPhone')} *</Label>
               <Input
                 id="contactPhone"
                 type="tel"
@@ -401,7 +403,7 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
               />
             </div>
             <div>
-              <Label htmlFor="contactEmail">Your Email Address *</Label>
+              <Label htmlFor="contactEmail">{t('checkout.yourEmail')} *</Label>
               <Input
                 id="contactEmail"
                 type="email"
@@ -419,80 +421,68 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
       {deliveryOption === 'delivery' && (
         <Card>
           <CardHeader>
-            <CardTitle>Delivery Address</CardTitle>
-            <CardDescription>Where should we deliver your order?</CardDescription>
+            <CardTitle>{t('checkout.deliveryAddress')}</CardTitle>
+            <CardDescription>{t('checkout.deliveryAddressDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="company">Company/Business Name (Optional)</Label>
+              <Label htmlFor="company">{t('checkout.company')}</Label>
               <Input
                 id="company"
                 value={formData.delivery.address.company}
                 onChange={(e) => handleInputChange('delivery.address.company', e.target.value)}
-                placeholder="Company Name"
+                placeholder={t('checkout.companyPlaceholder')}
               />
             </div>
             <div>
-              <Label htmlFor="street">Street Address *</Label>
+              <Label htmlFor="street">{t('checkout.street')} *</Label>
               <Input
                 id="street"
                 value={formData.delivery.address.street}
                 onChange={(e) => handleInputChange('delivery.address.street', e.target.value)}
-                placeholder="123 Main Street"
+                placeholder={t('checkout.streetPlaceholder')}
                 required
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="city">City *</Label>
+                <Label htmlFor="city">{t('checkout.city')} *</Label>
                 <Input
                   id="city"
                   value={formData.delivery.address.city}
                   onChange={(e) => handleInputChange('delivery.address.city', e.target.value)}
-                  placeholder="Montreal"
+                  placeholder={t('checkout.cityPlaceholder')}
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="province">Province *</Label>
+                <Label htmlFor="province">{t('checkout.province')} *</Label>
                 <Select 
                   value={formData.delivery.address.province} 
                   onValueChange={(value) => handleInputChange('delivery.address.province', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Province" />
+                    <SelectValue placeholder={t('checkout.selectProvince')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="QC">Quebec</SelectItem>
-                    <SelectItem value="ON">Ontario</SelectItem>
-                    <SelectItem value="BC">British Columbia</SelectItem>
-                    <SelectItem value="AB">Alberta</SelectItem>
-                    <SelectItem value="MB">Manitoba</SelectItem>
-                    <SelectItem value="SK">Saskatchewan</SelectItem>
-                    <SelectItem value="NS">Nova Scotia</SelectItem>
-                    <SelectItem value="NB">New Brunswick</SelectItem>
-                    <SelectItem value="NL">Newfoundland and Labrador</SelectItem>
-                    <SelectItem value="PE">Prince Edward Island</SelectItem>
-                    <SelectItem value="YT">Yukon</SelectItem>
-                    <SelectItem value="NT">Northwest Territories</SelectItem>
-                    <SelectItem value="NU">Nunavut</SelectItem>
+                    <SelectItem value="QC">{t('checkout.quebec')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="postalCode">Postal Code *</Label>
+                <Label htmlFor="postalCode">{t('checkout.postalCode')} *</Label>
                 <Input
                   id="postalCode"
                   value={formData.delivery.address.postalCode}
                   onChange={(e) => handleInputChange('delivery.address.postalCode', e.target.value)}
-                  placeholder="H4P 1G6"
+                  placeholder={t('checkout.postalCodePlaceholder')}
                   required
                 />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="deliveryDate">Delivery Date *</Label>
+                <Label htmlFor="deliveryDate">{t('checkout.deliveryDate')} *</Label>
                 <Input
                   id="deliveryDate"
                   type="date"
@@ -502,46 +492,46 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
                 />
               </div>
               <div>
-                <Label htmlFor="deliveryTime">Delivery Time *</Label>
+                <Label htmlFor="deliveryTime">{t('checkout.deliveryTime')} *</Label>
                 <Select 
                   value={formData.delivery.time} 
                   onValueChange={(value) => handleInputChange('delivery.time', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select delivery time" />
+                    <SelectValue placeholder={t('checkout.selectDeliveryTime')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="09:00">9:00 AM</SelectItem>
-                    <SelectItem value="10:00">10:00 AM</SelectItem>
-                    <SelectItem value="11:00">11:00 AM</SelectItem>
-                    <SelectItem value="12:00">12:00 PM</SelectItem>
-                    <SelectItem value="13:00">1:00 PM</SelectItem>
-                    <SelectItem value="14:00">2:00 PM</SelectItem>
-                    <SelectItem value="15:00">3:00 PM</SelectItem>
-                    <SelectItem value="16:00">4:00 PM</SelectItem>
-                    <SelectItem value="17:00">5:00 PM</SelectItem>
-                    <SelectItem value="18:00">6:00 PM</SelectItem>
+                    <SelectItem value="09:00">{t('checkout.timeSlots.09:00')}</SelectItem>
+                    <SelectItem value="10:00">{t('checkout.timeSlots.10:00')}</SelectItem>
+                    <SelectItem value="11:00">{t('checkout.timeSlots.11:00')}</SelectItem>
+                    <SelectItem value="12:00">{t('checkout.timeSlots.12:00')}</SelectItem>
+                    <SelectItem value="13:00">{t('checkout.timeSlots.13:00')}</SelectItem>
+                    <SelectItem value="14:00">{t('checkout.timeSlots.14:00')}</SelectItem>
+                    <SelectItem value="15:00">{t('checkout.timeSlots.15:00')}</SelectItem>
+                    <SelectItem value="16:00">{t('checkout.timeSlots.16:00')}</SelectItem>
+                    <SelectItem value="17:00">{t('checkout.timeSlots.17:00')}</SelectItem>
+                    <SelectItem value="18:00">{t('checkout.timeSlots.18:00')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div>
-              <Label htmlFor="deliveryInstructions">Delivery Instructions</Label>
+              <Label htmlFor="deliveryInstructions">{t('checkout.deliveryInstructions')}</Label>
               <Textarea
                 id="deliveryInstructions"
                 value={formData.delivery.instructions}
                 onChange={(e) => handleInputChange('delivery.instructions', e.target.value)}
-                placeholder="Any special delivery instructions..."
+                placeholder={t('checkout.deliveryInstructionsPlaceholder')}
                 rows={2}
               />
             </div>
             <div>
-              <Label htmlFor="buzzerCode">Buzzer/Entry Code</Label>
+              <Label htmlFor="buzzerCode">{t('checkout.buzzerCode')}</Label>
               <Input
                 id="buzzerCode"
                 value={formData.delivery.buzzerCode}
                 onChange={(e) => handleInputChange('delivery.buzzerCode', e.target.value)}
-                placeholder="Enter buzzer or entry code if needed"
+                placeholder={t('checkout.buzzerCodePlaceholder')}
               />
             </div>
           </CardContent>
@@ -552,20 +542,20 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
       {deliveryOption === 'pickup' && (
         <Card>
           <CardHeader>
-            <CardTitle>Pickup Information</CardTitle>
-            <CardDescription>When would you like to pick up your order?</CardDescription>
+            <CardTitle>{t('checkout.pickupInfo')}</CardTitle>
+            <CardDescription>{t('checkout.pickupInfoDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Pickup Location</Label>
+              <Label>{t('checkout.pickupLocation')}</Label>
               <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                <p className="text-sm font-medium text-gray-900">Main Store</p>
+                <p className="text-sm font-medium text-gray-900">{t('checkout.mainStore')}</p>
                 <p className="text-sm text-gray-600">{formData.pickup.storeAddress}</p>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="pickupDate">Pickup Date *</Label>
+                <Label htmlFor="pickupDate">{t('checkout.pickupDate')} *</Label>
                 <Input
                   id="pickupDate"
                   type="date"
@@ -575,25 +565,25 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
                 />
               </div>
               <div>
-                <Label htmlFor="pickupTime">Pickup Time *</Label>
+                <Label htmlFor="pickupTime">{t('checkout.pickupTime')} *</Label>
                 <Select 
                   value={formData.pickup.time} 
                   onValueChange={(value) => handleInputChange('pickup.time', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select pickup time" />
+                    <SelectValue placeholder={t('checkout.selectPickupTime')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="09:00">9:00 AM</SelectItem>
-                    <SelectItem value="10:00">10:00 AM</SelectItem>
-                    <SelectItem value="11:00">11:00 AM</SelectItem>
-                    <SelectItem value="12:00">12:00 PM</SelectItem>
-                    <SelectItem value="13:00">1:00 PM</SelectItem>
-                    <SelectItem value="14:00">2:00 PM</SelectItem>
-                    <SelectItem value="15:00">3:00 PM</SelectItem>
-                    <SelectItem value="16:00">4:00 PM</SelectItem>
-                    <SelectItem value="17:00">5:00 PM</SelectItem>
-                    <SelectItem value="18:00">6:00 PM</SelectItem>
+                    <SelectItem value="09:00">{t('checkout.timeSlots.09:00')}</SelectItem>
+                    <SelectItem value="10:00">{t('checkout.timeSlots.10:00')}</SelectItem>
+                    <SelectItem value="11:00">{t('checkout.timeSlots.11:00')}</SelectItem>
+                    <SelectItem value="12:00">{t('checkout.timeSlots.12:00')}</SelectItem>
+                    <SelectItem value="13:00">{t('checkout.timeSlots.13:00')}</SelectItem>
+                    <SelectItem value="14:00">{t('checkout.timeSlots.14:00')}</SelectItem>
+                    <SelectItem value="15:00">{t('checkout.timeSlots.15:00')}</SelectItem>
+                    <SelectItem value="16:00">{t('checkout.timeSlots.16:00')}</SelectItem>
+                    <SelectItem value="17:00">{t('checkout.timeSlots.17:00')}</SelectItem>
+                    <SelectItem value="18:00">{t('checkout.timeSlots.18:00')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -605,14 +595,14 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
       {/* Special Instructions */}
       <Card>
         <CardHeader>
-          <CardTitle>Special Instructions</CardTitle>
-          <CardDescription>Any special requests or notes for your order?</CardDescription>
+          <CardTitle>{t('checkout.specialInstructions')}</CardTitle>
+          <CardDescription>{t('checkout.specialInstructionsDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Textarea
             value={formData.specialInstructions}
             onChange={(e) => handleInputChange('specialInstructions', e.target.value)}
-            placeholder="Please leave at front door, ring doorbell, etc."
+            placeholder={t('checkout.specialInstructionsPlaceholder')}
             rows={3}
           />
         </CardContent>
@@ -621,7 +611,7 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
       {/* Order Summary and Checkout */}
       <Card>
         <CardHeader>
-          <CardTitle>Order Summary</CardTitle>
+          <CardTitle>{t('checkout.orderSummary')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -641,7 +631,7 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
           </div>
           <hr />
           <div className="flex justify-between text-lg font-semibold">
-            <span>Total</span>
+            <span>{t('checkout.total')}</span>
             <span>${(totalPrice / 100).toFixed(2)} CAD</span>
           </div>
           
@@ -685,7 +675,7 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
             }}
             className="w-full"
           >
-            Pay with Stripe - ${(totalPrice / 100).toFixed(2)} CAD
+            {t('checkout.payWithStripe')} - ${(totalPrice / 100).toFixed(2)} CAD
           </StripeCheckoutButton>
           
           <DebugCheckoutData

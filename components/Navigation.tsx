@@ -97,7 +97,7 @@ export const Navigation: React.FC = () => {
               </button>
               {isShopDropdownOpen && (
                 <div
-                  className="fixed top-16 left-4 mt-2 w-64 rounded-lg shadow-lg border"
+                  className="absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg border"
                   style={{ backgroundColor: theme.colors.white, borderColor: theme.colors.border, zIndex: 999999 }}
                   onClick={(e) => e.stopPropagation()}
                 >
