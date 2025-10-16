@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CartIcon } from '@/components/CartIcon';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
-import { AfterHydration } from '@/components/AfterHydration';
 
 const theme = {
   colors: {
@@ -30,6 +29,28 @@ export const Navigation: React.FC = () => {
   const router = useRouter();
   const { user, signOut, loading } = useAuth();
   const { t, language } = useLanguage();
+
+  // Focused i18n debug for production when NEXT_PUBLIC_I18N_DEBUG=1
+  const I18N_DEBUG = process.env.NEXT_PUBLIC_I18N_DEBUG === '1';
+  if (I18N_DEBUG) {
+    // eslint-disable-next-line no-console
+    console.log('[i18n][Navigation] language:', language, {
+      shop: t('nav.shop'),
+      occasions: t('nav.occasions'),
+      plants: t('nav.plants'),
+      gift: t('nav.gift'),
+      about: t('nav.about'),
+      contact: t('nav.contact'),
+      orders: t('nav.orders'),
+      profile: t('nav.profile'),
+      signOut: t('nav.signOut'),
+      homeTitle: t('home.title'),
+      homeSubtitle: t('home.subtitle'),
+      homeShopNow: t('home.shopNow'),
+      homeTimeLeft: t('home.timeLeftForNext'),
+      homeDayDelivery: t('home.dayDelivery'),
+    });
+  }
 
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -84,14 +105,6 @@ export const Navigation: React.FC = () => {
               <div className="text-xs tracking-widest ml-1" style={{ color: theme.colors.text.primary }}>FLORIST</div>
             </Link>
           </div>
-
-          <AfterHydration fallback={
-            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
-              <div className="animate-pulse h-6 w-20 rounded" style={{ backgroundColor: theme.colors.hover }} />
-              <div className="animate-pulse h-6 w-20 rounded" style={{ backgroundColor: theme.colors.hover }} />
-              <div className="animate-pulse h-6 w-20 rounded" style={{ backgroundColor: theme.colors.hover }} />
-            </div>
-          }>
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center space-x-8">
@@ -239,25 +252,12 @@ export const Navigation: React.FC = () => {
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
-          </AfterHydration>
         </div>
       </div>
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden relative" style={{ zIndex: 999999 }}>
-          <AfterHydration fallback={
-            <div className="px-2 pt-2 pb-3 space-y-4 border-t border-gray-200" style={{ backgroundColor: theme.colors.white }}>
-              <div className="px-3 py-2">
-                <div className="animate-pulse h-4 w-20 rounded mb-2" style={{ backgroundColor: theme.colors.hover }} />
-                <div className="space-y-1 ml-2">
-                  <div className="animate-pulse h-4 w-16 rounded" style={{ backgroundColor: theme.colors.hover }} />
-                  <div className="animate-pulse h-4 w-20 rounded" style={{ backgroundColor: theme.colors.hover }} />
-                  <div className="animate-pulse h-4 w-24 rounded" style={{ backgroundColor: theme.colors.hover }} />
-                </div>
-              </div>
-            </div>
-          }>
           <div className="px-2 pt-2 pb-3 space-y-4 border-t border-gray-200" style={{ backgroundColor: theme.colors.white }}>
             <div className="px-3 py-2">
               <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>{t('nav.shop')}</h3>
@@ -328,7 +328,6 @@ export const Navigation: React.FC = () => {
               )}
             </div>
           </div>
-          </AfterHydration>
         </div>
       )}
 

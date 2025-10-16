@@ -2,13 +2,22 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+// Debug logging toggle for i18n. Enable by setting NEXT_PUBLIC_I18N_DEBUG=1
+const I18N_DEBUG = process.env.NEXT_PUBLIC_I18N_DEBUG === '1';
+const logI18n = (...args: any[]) => {
+  if (I18N_DEBUG) {
+    // eslint-disable-next-line no-console
+    console.log('[i18n]', ...args);
+  }
+};
+
 export type Language = 'en' | 'fr';
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
-  isHydrated: boolean;
+  mounted: boolean;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -749,50 +758,78 @@ const translations = {
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<Language>('en');
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Handle hydration
+  // Handle mounting
   useEffect(() => {
-    setIsHydrated(true);
+    setMounted(true);
     
-    // Load language from localStorage after hydration
-    const savedLanguage = localStorage.getItem('language') as Language;
-    if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'fr')) {
-      setLanguage(savedLanguage);
+    // Load language from localStorage after mounting
+    if (typeof window !== 'undefined') {
+      const savedLanguage = localStorage.getItem('language') as Language;
+      if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'fr')) {
+        setLanguage(savedLanguage);
+        logI18n('Loaded saved language from localStorage:', savedLanguage);
+      } else {
+        logI18n('No saved language in localStorage, defaulting to', 'en');
+      }
     }
   }, []);
 
-  // Save language to localStorage when it changes (only after hydration)
+  // Save language to localStorage when it changes (only after mounting)
   useEffect(() => {
-    if (isHydrated) {
+    if (mounted && typeof window !== 'undefined') {
       localStorage.setItem('language', language);
+      logI18n('Persisted language to localStorage:', language);
     }
-  }, [language, isHydrated]);
+  }, [language, mounted]);
 
   const t = (key: string): string => {
-    const keys = key.split('.');
-    let value: any = translations[language];
-    
-    for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
-        value = value[k];
+    // During SSR or before mounting, always use English
+    const currentLanguage = mounted ? language : 'en';
+    logI18n('t()', { key, mounted, language, currentLanguage });
+
+    const langDict: any = translations[currentLanguage];
+    if (!langDict || typeof langDict !== 'object') {
+      if (I18N_DEBUG || process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.warn('[i18n] Missing language dictionary', { currentLanguage });
+      }
+      return key;
+    }
+
+    // 1) Try direct flat-key lookup (supports 'nav.shop' stored as a single key)
+    if (key in langDict && typeof langDict[key] === 'string') {
+      const direct = langDict[key] as string;
+      logI18n('t() direct hit', { key, result: direct });
+      return direct;
+    }
+
+    // 2) Fall back to deep traversal for nested objects (e.g., orders.status.pending)
+    const parts = key.split('.');
+    let value: any = langDict;
+    for (const part of parts) {
+      if (value && typeof value === 'object' && part in value) {
+        value = value[part];
       } else {
-        // Only log missing keys in development
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(`Translation key not found: ${key} (language: ${language})`);
+        if (I18N_DEBUG || process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.warn('[i18n] Missing translation key', { key, failedAt: part, currentLanguage });
         }
         return key;
       }
     }
-    
-    return typeof value === 'string' ? value : key;
+
+    const result = typeof value === 'string' ? value : key;
+    logI18n('t() result', { key, result });
+    return result;
   };
 
   const value = {
     language,
     setLanguage,
     t,
-    isHydrated,
+    mounted,
   };
 
   return (
@@ -811,7 +848,7 @@ export const useLanguage = () => {
       language: 'en' as Language,
       setLanguage: () => {},
       t: (key: string) => key,
-      isHydrated: false
+      mounted: false
     };
   }
   return context;

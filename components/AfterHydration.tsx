@@ -15,9 +15,9 @@ export const AfterHydration: React.FC<AfterHydrationProps> = ({
   children, 
   fallback = null 
 }) => {
-  const { isHydrated } = useLanguage();
+  const { mounted } = useLanguage();
 
-  if (!isHydrated) {
+  if (!mounted) {
     return <>{fallback}</>;
   }
 
