@@ -8,6 +8,7 @@ interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
+  isHydrated: boolean;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -748,28 +749,27 @@ const translations = {
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<Language>('en');
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Load language from localStorage on mount
+  // Handle hydration
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedLanguage = localStorage.getItem('language') as Language;
-      if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'fr')) {
-        setLanguage(savedLanguage);
-      }
+    setIsHydrated(true);
+    
+    // Load language from localStorage after hydration
+    const savedLanguage = localStorage.getItem('language') as Language;
+    if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'fr')) {
+      setLanguage(savedLanguage);
     }
-    setIsLoaded(true);
   }, []);
 
-  // Save language to localStorage when it changes
+  // Save language to localStorage when it changes (only after hydration)
   useEffect(() => {
-    if (typeof window !== 'undefined' && isLoaded) {
+    if (isHydrated) {
       localStorage.setItem('language', language);
     }
-  }, [language, isLoaded]);
+  }, [language, isHydrated]);
 
   const t = (key: string): string => {
-    console.log(`Translating key: ${key}, language: ${language}`);
     const keys = key.split('.');
     let value: any = translations[language];
     
@@ -777,12 +777,14 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (value && typeof value === 'object' && k in value) {
         value = value[k];
       } else {
-        console.log(`Key not found: ${k} in ${JSON.stringify(value)}`);
+        // Only log missing keys in development
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Translation key not found: ${key} (language: ${language})`);
+        }
         return key;
       }
     }
     
-    console.log(`Translation result: ${value}`);
     return typeof value === 'string' ? value : key;
   };
 
@@ -790,6 +792,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     language,
     setLanguage,
     t,
+    isHydrated,
   };
 
   return (
@@ -802,7 +805,14 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (context === undefined) {
-    throw new Error('useLanguage must be used within a LanguageProvider');
+    console.error('useLanguage must be used within a LanguageProvider');
+    // Return a fallback function that returns the key
+    return {
+      language: 'en' as Language,
+      setLanguage: () => {},
+      t: (key: string) => key,
+      isHydrated: false
+    };
   }
   return context;
 };
