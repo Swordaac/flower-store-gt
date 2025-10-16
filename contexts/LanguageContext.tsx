@@ -748,21 +748,28 @@ const translations = {
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<Language>('en');
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load language from localStorage on mount
   useEffect(() => {
-    const savedLanguage = localStorage.getItem('language') as Language;
-    if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'fr')) {
-      setLanguage(savedLanguage);
+    if (typeof window !== 'undefined') {
+      const savedLanguage = localStorage.getItem('language') as Language;
+      if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'fr')) {
+        setLanguage(savedLanguage);
+      }
     }
+    setIsLoaded(true);
   }, []);
 
   // Save language to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem('language', language);
-  }, [language]);
+    if (typeof window !== 'undefined' && isLoaded) {
+      localStorage.setItem('language', language);
+    }
+  }, [language, isLoaded]);
 
   const t = (key: string): string => {
+    console.log(`Translating key: ${key}, language: ${language}`);
     const keys = key.split('.');
     let value: any = translations[language];
     
@@ -770,10 +777,12 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (value && typeof value === 'object' && k in value) {
         value = value[k];
       } else {
+        console.log(`Key not found: ${k} in ${JSON.stringify(value)}`);
         return key;
       }
     }
     
+    console.log(`Translation result: ${value}`);
     return typeof value === 'string' ? value : key;
   };
 
