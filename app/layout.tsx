@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Navigation } from '@/components/Navigation';
 
@@ -29,16 +30,18 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            <UserProvider>
-              <CartProvider>
-                <NotificationProvider>
-                  <Navigation />
-                  {children}
-                </NotificationProvider>
-              </CartProvider>
-            </UserProvider>
-          </AuthProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <UserProvider>
+                <CartProvider>
+                  <NotificationProvider>
+                    <Navigation />
+                    {children}
+                  </NotificationProvider>
+                </CartProvider>
+              </UserProvider>
+            </AuthProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

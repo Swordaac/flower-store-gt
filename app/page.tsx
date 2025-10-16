@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ChevronDown, Filter, Search, User } from "lucide-react"
 import { CartIcon } from "@/components/CartIcon"
 import { useCart } from "@/contexts/CartContext"
+import { useLanguage } from "@/contexts/LanguageContext"
 import FilterComponent, { FilterState, FilterOption } from "@/components/FilterComponent"
 
 // Reusable theme object
@@ -136,6 +137,7 @@ const ProductCard = ({ product, theme, getPrimaryImage, formatPrice }: ProductCa
 export default function BestSellersPage() {
   const searchParams = useSearchParams()
   const { clearCart } = useCart()
+  const { t } = useLanguage()
   const [timeLeft, setTimeLeft] = useState({
     hours: 8,
     minutes: 36,
@@ -731,13 +733,13 @@ export default function BestSellersPage() {
           <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
             <div className="text-center text-white max-w-4xl px-4">
               <h1 className="text-4xl md:text-6xl font-light mb-4">
-                Welcome to FLORIST
+                {t('home.title')}
               </h1>
               <p className="text-xl md:text-2xl font-light mb-8">
-                Discover our beautiful collection of fresh flowers and arrangements
+                {t('home.subtitle')}
               </p>
               <Button size="lg" style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }} className="hover:bg-gray-100">
-                Shop Now
+                {t('home.shopNow')}
               </Button>
             </div>
           </div>
@@ -750,23 +752,23 @@ export default function BestSellersPage() {
           {/* Countdown Banner */}
           <div className="rounded-lg py-10 px-8 md:py-12 md:px-10 mb-8 flex items-center justify-between" style={{ backgroundColor: theme.colors.countdown.background, color: theme.colors.countdown.text }}>
             <div>
-              <p className="text-xl md:text-2xl font-medium mb-2">Time left for next</p>
-              <p className="text-lg md:text-xl opacity-90 font-light">day delivery</p>
+              <p className="text-xl md:text-2xl font-medium mb-2">{t('home.timeLeftForNext')}</p>
+              <p className="text-lg md:text-xl opacity-90 font-light">{t('home.dayDelivery')}</p>
             </div>
             <div className="flex items-center space-x-8 md:space-x-10">
               <div className="text-center">
                 <div className="text-3xl md:text-4xl font-bold mb-1">{String(timeLeft.hours).padStart(2, "0")}</div>
-                <div className="text-sm md:text-base opacity-75 tracking-wider">HOURS</div>
+                <div className="text-sm md:text-base opacity-75 tracking-wider">{t('home.hours')}</div>
               </div>
               <div className="text-3xl md:text-4xl">:</div>
               <div className="text-center">
                 <div className="text-3xl md:text-4xl font-bold mb-1">{String(timeLeft.minutes).padStart(2, "0")}</div>
-                <div className="text-sm md:text-base opacity-75 tracking-wider">MINUTES</div>
+                <div className="text-sm md:text-base opacity-75 tracking-wider">{t('home.minutes')}</div>
               </div>
               <div className="text-3xl md:text-4xl">:</div>
               <div className="text-center">
                 <div className="text-3xl md:text-4xl font-bold mb-1">{String(timeLeft.seconds).padStart(2, "0")}</div>
-                <div className="text-sm md:text-base opacity-75 tracking-wider">SECONDS</div>
+                <div className="text-sm md:text-base opacity-75 tracking-wider">{t('home.seconds')}</div>
               </div>
             </div>
           </div>
@@ -799,7 +801,7 @@ export default function BestSellersPage() {
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: theme.colors.primary }}></div>
-              <span className="ml-3" style={{ color: theme.colors.text.primary }}>Loading products...</span>
+              <span className="ml-3" style={{ color: theme.colors.text.primary }}>{t('home.loadingProducts')}</span>
             </div>
           ) : error ? (
             <div className="text-center py-12">
@@ -808,15 +810,15 @@ export default function BestSellersPage() {
                 onClick={() => window.location.reload()} 
                 style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}
               >
-                Retry
+                {t('home.retry')}
               </Button>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-12">
               <p style={{ color: theme.colors.text.primary }}>
                 {products.length === 0 
-                  ? "No products found for this shop." 
-                  : "No products match your current filters. Try adjusting your filter criteria."
+                  ? t('home.noProductsFound')
+                  : t('home.noProductsMatch')
                 }
               </p>
               {products.length > 0 && (
@@ -825,7 +827,7 @@ export default function BestSellersPage() {
                   className="mt-4"
                   style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}
                 >
-                  Clear Filters
+                  {t('home.clearFilters')}
                 </Button>
               )}
             </div>
@@ -853,17 +855,17 @@ export default function BestSellersPage() {
                   </div>
                   <div className="relative z-10 p-8 md:p-12">
                     <h2 className="text-3xl md:text-4xl font-light mb-4 text-white">
-                      Best Sellers Collection
+                      {t('home.bestSellers')}
                     </h2>
                     <p className="text-lg mb-6 text-white/90 max-w-xl">
-                      Explore our most loved arrangements, handpicked favorites that bring joy to every occasion.
+                      {t('home.bestSellersDescription')}
                     </p>
                     <a href="/collections/best-sellers">
                       <Button 
                         className="hover:scale-105 transform transition-transform"
                         style={{ backgroundColor: theme.colors.white, color: theme.colors.primary }}
                       >
-                        View Best Sellers
+                        {t('home.viewBestSellers')}
                       </Button>
                     </a>
                   </div>
@@ -897,17 +899,17 @@ export default function BestSellersPage() {
                   </div>
                   <div className="relative z-10 p-8 md:p-12">
                     <h2 className="text-3xl md:text-4xl font-light mb-4 text-white">
-                      Our Story
+                      {t('home.ourStory')}
                     </h2>
                     <p className="text-lg mb-6 text-white/90 max-w-xl">
-                      Discover the passion and craftsmanship behind every bouquet we create. Family-owned, locally loved.
+                      {t('home.ourStoryDescription')}
                     </p>
                     <a href="/about">
                       <Button 
                         className="hover:scale-105 transform transition-transform"
                         style={{ backgroundColor: theme.colors.white, color: theme.colors.secondary }}
                       >
-                        About Us
+                        {t('home.aboutUs')}
                       </Button>
                     </a>
                   </div>
@@ -933,7 +935,7 @@ export default function BestSellersPage() {
                       opacity: currentPage === 1 ? 0.5 : 1
                     }}
                   >
-                    Previous
+                    {t('home.previous')}
                   </Button>
                   <div className="flex items-center gap-2 mx-4">
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
@@ -960,7 +962,7 @@ export default function BestSellersPage() {
                       opacity: currentPage === totalPages ? 0.5 : 1
                     }}
                   >
-                    Next
+                    {t('home.next')}
                   </Button>
                 </div>
               )}

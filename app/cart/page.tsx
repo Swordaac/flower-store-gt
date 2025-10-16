@@ -2,6 +2,7 @@
 
 import { useCart } from "@/contexts/CartContext"
 import { useUser } from "@/contexts/UserContext"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
@@ -37,6 +38,7 @@ export default function CartPage() {
   } = useCart()
   
   const { currentUser, loading: userLoading, session: userSession } = useUser()
+  const { t } = useLanguage()
   const [showCheckout, setShowCheckout] = useState(false)
   const [selectedShopId, setSelectedShopId] = useState('68c34f45ee89e0fd81c8aa4d') // Default shop ID
 
@@ -56,12 +58,12 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     if (items.length === 0) {
-      alert('Your cart is empty!')
+      alert(t('cart.emptyAlert'))
       return
     }
     
     if (!currentUser) {
-      alert('Please sign in to proceed with checkout!')
+      alert(t('cart.signInRequired'))
       window.location.href = '/auth/signin'
       return
     }
@@ -87,10 +89,10 @@ export default function CartPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-light mb-2" style={{ color: theme.colors.text.primary }}>
-            Shopping Cart
+            {t('cart.title')}
           </h1>
           <p style={{ color: theme.colors.text.primary }}>
-            {totalItems} {totalItems === 1 ? 'item' : 'items'} in your cart
+            {totalItems} {totalItems === 1 ? t('cart.itemInCart') : t('cart.itemsInCart')}
           </p>
         </div>
 
@@ -98,16 +100,16 @@ export default function CartPage() {
           <div className="text-center py-12">
             <ShoppingBag className="h-24 w-24 mx-auto mb-4" style={{ color: theme.colors.text.light }} />
             <h2 className="text-2xl font-light mb-4" style={{ color: theme.colors.text.primary }}>
-              Your cart is empty
+              {t('cart.empty')}
             </h2>
             <p className="mb-8" style={{ color: theme.colors.text.light }}>
-              Looks like you haven't added any items to your cart yet.
+              {t('cart.emptyDescription')}
             </p>
             <Button 
               onClick={() => window.location.href = '/'}
               style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}
             >
-              Continue Shopping
+              {t('cart.continueShopping')}
             </Button>
           </div>
         ) : showCheckout ? (
@@ -118,10 +120,10 @@ export default function CartPage() {
                 variant="outline"
                 className="mb-4"
               >
-                ← Back to Cart
+                {t('cart.backToCart')}
               </Button>
               <h2 className="text-2xl font-light" style={{ color: theme.colors.text.primary }}>
-                Checkout
+                {t('cart.checkout')}
               </h2>
             </div>
             
@@ -129,7 +131,7 @@ export default function CartPage() {
             {currentUser && (
               <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-sm text-green-800">
-                  Signed in as: <strong>{currentUser.name}</strong> ({currentUser.email})
+                  {t('cart.signedInAs')} <strong>{currentUser.name}</strong> ({currentUser.email})
                 </p>
               </div>
             )}
@@ -165,11 +167,11 @@ export default function CartPage() {
                             {item.name}
                           </h3>
                           <p className="text-sm mb-2" style={{ color: theme.colors.text.light }}>
-                            {formatPrice(itemPrice)} each
+                            {formatPrice(itemPrice)} {t('cart.each')}
                           </p>
                           {item.selectedSize && (
                             <p className="text-xs" style={{ color: theme.colors.text.light }}>
-                              Size: {formatPrice(item.selectedSize)}
+                              {t('cart.size')} {formatPrice(item.selectedSize)}
                             </p>
                           )}
                         </div>
@@ -222,7 +224,7 @@ export default function CartPage() {
                   variant="outline"
                   className="text-red-600 border-red-300 hover:bg-red-50"
                 >
-                  Clear Cart
+                  {t('cart.clearCart')}
                 </Button>
               </div>
             </div>
@@ -232,27 +234,27 @@ export default function CartPage() {
               <Card className="border-0 shadow-sm sticky top-8">
                 <CardContent className="p-6">
                   <h2 className="text-xl font-medium mb-4" style={{ color: theme.colors.text.secondary }}>
-                    Order Summary
+                    {t('cart.orderSummary')}
                   </h2>
                   
                   <div className="space-y-3 mb-6">
                     <div className="flex justify-between">
-                      <span style={{ color: theme.colors.text.light }}>Items ({totalItems})</span>
+                      <span style={{ color: theme.colors.text.light }}>{t('cart.items')} ({totalItems})</span>
                       <span style={{ color: theme.colors.text.secondary }}>
                         {formatPrice(totalPrice)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span style={{ color: theme.colors.text.light }}>Shipping</span>
-                      <span style={{ color: theme.colors.text.secondary }}>Calculated at checkout</span>
+                      <span style={{ color: theme.colors.text.light }}>{t('cart.shipping')}</span>
+                      <span style={{ color: theme.colors.text.secondary }}>{t('cart.shippingCalculated')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span style={{ color: theme.colors.text.light }}>Tax</span>
-                      <span style={{ color: theme.colors.text.secondary }}>Calculated at checkout</span>
+                      <span style={{ color: theme.colors.text.light }}>{t('cart.tax')}</span>
+                      <span style={{ color: theme.colors.text.secondary }}>{t('cart.taxCalculated')}</span>
                     </div>
                     <hr className="border-gray-200" />
                     <div className="flex justify-between text-lg font-medium">
-                      <span style={{ color: theme.colors.text.secondary }}>Total</span>
+                      <span style={{ color: theme.colors.text.secondary }}>{t('cart.total')}</span>
                       <span style={{ color: theme.colors.text.secondary }}>
                         {formatPrice(totalPrice)}
                       </span>
@@ -264,11 +266,11 @@ export default function CartPage() {
                     className="w-full py-3 text-lg font-medium"
                     style={{ backgroundColor: theme.colors.text.secondary, color: theme.colors.white }}
                   >
-                    Proceed to Checkout
+                    {t('cart.proceedToCheckout')}
                   </Button>
 
                   <p className="text-xs text-center mt-4" style={{ color: theme.colors.text.light }}>
-                    Secure checkout powered by our payment partners
+                    {t('cart.secureCheckout')}
                   </p>
                 </CardContent>
               </Card>

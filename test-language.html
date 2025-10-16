@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Switch Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #F0E7F2;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .language-switch {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .lang-btn {
+            padding: 8px 16px;
+            border: 1px solid #664b39;
+            background: white;
+            color: #664b39;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .lang-btn.active {
+            background: #664b39;
+            color: white;
+        }
+        .content {
+            margin-top: 20px;
+        }
+        .nav-example {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Language Switch Test</h1>
+        <p>This is a simple test to verify the language switching functionality works correctly.</p>
+        
+        <div class="language-switch">
+            <button class="lang-btn active" onclick="switchLanguage('en')">English</button>
+            <button class="lang-btn" onclick="switchLanguage('fr')">Français</button>
+        </div>
+
+        <div class="content">
+            <h2>Navigation Example</h2>
+            <div class="nav-example">
+                <span id="nav-shop">Shop</span>
+                <span id="nav-occasions">Occasions</span>
+                <span id="nav-plants">Plants</span>
+                <span id="nav-gift">Gift</span>
+                <span id="nav-about">About Us</span>
+                <span id="nav-contact">Contact</span>
+            </div>
+
+            <h2>Common Text</h2>
+            <p><strong>Welcome:</strong> <span id="welcome">Welcome to</span> FLORIST</p>
+            <p><strong>Description:</strong> <span id="description">Discover our beautiful collection of fresh flowers and arrangements</span></p>
+            <p><strong>Shop Now:</strong> <span id="shop-now">Shop Now</span></p>
+        </div>
+    </div>
+
+    <script>
+        const translations = {
+            en: {
+                'nav.shop': 'Shop',
+                'nav.occasions': 'Occasions',
+                'nav.plants': 'Plants',
+                'nav.gift': 'Gift',
+                'nav.about': 'About Us',
+                'nav.contact': 'Contact',
+                'common.welcome': 'Welcome to',
+                'common.discoverCollection': 'Discover our beautiful collection of fresh flowers and arrangements',
+                'common.shopNow': 'Shop Now'
+            },
+            fr: {
+                'nav.shop': 'Boutique',
+                'nav.occasions': 'Occasions',
+                'nav.plants': 'Plantes',
+                'nav.gift': 'Cadeau',
+                'nav.about': 'À Propos',
+                'nav.contact': 'Contact',
+                'common.welcome': 'Bienvenue chez',
+                'common.discoverCollection': 'Découvrez notre belle collection de fleurs fraîches et d\'arrangements',
+                'common.shopNow': 'Acheter Maintenant'
+            }
+        };
+
+        function switchLanguage(lang) {
+            // Update button states
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update text content
+            const t = translations[lang];
+            document.getElementById('nav-shop').textContent = t['nav.shop'];
+            document.getElementById('nav-occasions').textContent = t['nav.occasions'];
+            document.getElementById('nav-plants').textContent = t['nav.plants'];
+            document.getElementById('nav-gift').textContent = t['nav.gift'];
+            document.getElementById('nav-about').textContent = t['nav.about'];
+            document.getElementById('nav-contact').textContent = t['nav.contact'];
+            document.getElementById('welcome').textContent = t['common.welcome'];
+            document.getElementById('description').textContent = t['common.discoverCollection'];
+            document.getElementById('shop-now').textContent = t['common.shopNow'];
+        }
+    </script>
+</body>
+</html>

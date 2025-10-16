@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, Menu, X, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { CartIcon } from '@/components/CartIcon';
+import { LanguageSwitch } from '@/components/LanguageSwitch';
 
 const theme = {
   colors: {
@@ -26,6 +28,7 @@ const theme = {
 export const Navigation: React.FC = () => {
   const router = useRouter();
   const { user, signOut, loading } = useAuth();
+  const { t } = useLanguage();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
@@ -89,19 +92,19 @@ export const Navigation: React.FC = () => {
                 style={{ color: theme.colors.text.primary }}
                 onClick={() => setIsShopDropdownOpen(!isShopDropdownOpen)}
               >
-                <span>Shop</span>
+                <span>{t('nav.shop')}</span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isShopDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               {isShopDropdownOpen && (
                 <div
-                  className="absolute top-full left-0 mt-2 w-64 rounded-lg shadow-lg border"
+                  className="fixed top-16 left-4 mt-2 w-64 rounded-lg shadow-lg border"
                   style={{ backgroundColor: theme.colors.white, borderColor: theme.colors.border, zIndex: 999999 }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-4 space-y-1">
-                    <Link href="/collections/rose" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Rose</Link>
-                    <Link href="/collections/bouquet" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Bouquet</Link>
-                    <Link href="/collections/bouquet-in-vase" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Bouquet in Vase</Link>
+                    <Link href="/collections/rose" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('shop.rose')}</Link>
+                    <Link href="/collections/bouquet" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('shop.bouquet')}</Link>
+                    <Link href="/collections/bouquet-in-vase" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('shop.bouquetInVase')}</Link>
                   </div>
                 </div>
               )}
@@ -114,7 +117,7 @@ export const Navigation: React.FC = () => {
                 style={{ color: theme.colors.text.primary }}
                 onClick={() => setIsOccasionsDropdownOpen(!isOccasionsDropdownOpen)}
               >
-                <span>Occasions</span>
+                <span>{t('nav.occasions')}</span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isOccasionsDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               {isOccasionsDropdownOpen && (
@@ -124,21 +127,21 @@ export const Navigation: React.FC = () => {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-4 space-y-1">
-                    <Link href="/collections/birthday" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Birthday</Link>
-                    <Link href="/collections/anniversary" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Anniversary</Link>
-                    <Link href="/collections/love-romantic" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Love & Romantic</Link>
-                    <Link href="/collections/get-well-soon" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Get Well Soon</Link>
-                    <Link href="/collections/wedding" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Wedding</Link>
-                    <Link href="/collections/prom" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Prom</Link>
-                    <Link href="/collections/congratulations" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Congratulations</Link>
-                    <Link href="/collections/new-baby" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>New Baby</Link>
-                    <Link href="/collections/grand-opening" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Grand Opening</Link>
+                    <Link href="/collections/birthday" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('occasions.birthday')}</Link>
+                    <Link href="/collections/anniversary" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('occasions.anniversary')}</Link>
+                    <Link href="/collections/love-romantic" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('occasions.loveRomantic')}</Link>
+                    <Link href="/collections/get-well-soon" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('occasions.getWellSoon')}</Link>
+                    <Link href="/collections/wedding" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('occasions.wedding')}</Link>
+                    <Link href="/collections/prom" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('occasions.prom')}</Link>
+                    <Link href="/collections/congratulations" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('occasions.congratulations')}</Link>
+                    <Link href="/collections/new-baby" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('occasions.newBaby')}</Link>
+                    <Link href="/collections/grand-opening" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('occasions.grandOpening')}</Link>
                     <div className="pt-2">
-                      <h4 className="text-xs font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>Sympathy</h4>
+                      <h4 className="text-xs font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>{t('occasions.sympathy')}</h4>
                       <div className="space-y-1 pl-2">
-                        <Link href="/collections/wreaths" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Wreaths</Link>
-                        <Link href="/collections/casket-sprays" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Casket Sprays</Link>
-                        <Link href="/collections/sympathy-bouquets" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Sympathy Bouquets</Link>
+                        <Link href="/collections/wreaths" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('occasions.wreaths')}</Link>
+                        <Link href="/collections/casket-sprays" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('occasions.casketSprays')}</Link>
+                        <Link href="/collections/sympathy-bouquets" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('occasions.sympathyBouquets')}</Link>
                       </div>
                     </div>
                   </div>
@@ -153,7 +156,7 @@ export const Navigation: React.FC = () => {
                 style={{ color: theme.colors.text.primary }}
                 onClick={() => setIsPlantsDropdownOpen(!isPlantsDropdownOpen)}
               >
-                <span>Plants</span>
+                <span>{t('nav.plants')}</span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isPlantsDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               {isPlantsDropdownOpen && (
@@ -163,8 +166,8 @@ export const Navigation: React.FC = () => {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-4 space-y-1">
-                    <Link href="/collections/indoor-plants" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Indoor Plants</Link>
-                    <Link href="/collections/orchid" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Orchid</Link>
+                    <Link href="/collections/indoor-plants" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('shop.indoorPlants')}</Link>
+                    <Link href="/collections/orchid" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('shop.orchid')}</Link>
                   </div>
                 </div>
               )}
@@ -177,7 +180,7 @@ export const Navigation: React.FC = () => {
                 style={{ color: theme.colors.text.primary }}
                 onClick={() => setIsGiftDropdownOpen(!isGiftDropdownOpen)}
               >
-                <span>Gift</span>
+                <span>{t('nav.gift')}</span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isGiftDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               {isGiftDropdownOpen && (
@@ -187,33 +190,33 @@ export const Navigation: React.FC = () => {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-4 space-y-1">
-                    <Link href="/collections/fruit-basket" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Fruit Basket</Link>
-                    <Link href="/collections/flowers-box" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>Flowers Box</Link>
+                    <Link href="/collections/fruit-basket" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('shop.fruitBasket')}</Link>
+                    <Link href="/collections/flowers-box" className="block text-sm py-1" style={{ color: theme.colors.text.light }}>{t('shop.flowersBox')}</Link>
                   </div>
                 </div>
               )}
             </div>
 
-            <Link href="/about" className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>About Us</Link>
-            <Link href="/contact" className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>Contact</Link>
+            <Link href="/about" className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>{t('nav.about')}</Link>
+            <Link href="/contact" className="hover:opacity-80" style={{ color: theme.colors.text.primary }}>{t('nav.contact')}</Link>
           </nav>
 
           {/* Right icons */}
           <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
             <Search className="h-5 w-5 flex-shrink-0" style={{ color: theme.colors.text.primary }} />
             <CartIcon style={{ color: theme.colors.text.primary }} />
+            <LanguageSwitch />
             <div className="hidden md:flex items-center space-x-2">
               {user ? (
                 <>
-                  <Link href="/dashboard" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>Dashboard</Link>
-                  <Link href="/orders" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>Orders</Link>
-                  <Link href="/profile" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>Profile</Link>
-                  <button onClick={handleSignOut} className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>Sign Out</button>
+                  <Link href="/orders" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>{t('nav.orders')}</Link>
+                  <Link href="/profile" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>{t('nav.profile')}</Link>
+                  <button onClick={handleSignOut} className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>{t('nav.signOut')}</button>
                 </>
               ) : (
                 <>
-                  <Link href="/auth/signin" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>Sign In</Link>
-                  <Link href="/auth/signup" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.primary }}>Sign Up</Link>
+                  <Link href="/auth/signin" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>{t('nav.signIn')}</Link>
+                  <Link href="/auth/signup" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.primary }}>{t('nav.signUp')}</Link>
                 </>
               )}
             </div>
@@ -234,67 +237,70 @@ export const Navigation: React.FC = () => {
         <div className="md:hidden relative" style={{ zIndex: 999999 }}>
           <div className="px-2 pt-2 pb-3 space-y-4 border-t border-gray-200" style={{ backgroundColor: theme.colors.white }}>
             <div className="px-3 py-2">
-              <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Shop</h3>
+              <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>{t('nav.shop')}</h3>
               <div className="space-y-1 ml-2">
-                <Link href="/collections/rose" className="block py-1" style={{ color: theme.colors.text.light }}>Rose</Link>
-                <Link href="/collections/bouquet" className="block py-1" style={{ color: theme.colors.text.light }}>Bouquet</Link>
-                <Link href="/collections/bouquet-in-vase" className="block py-1" style={{ color: theme.colors.text.light }}>Bouquet in Vase</Link>
+                <Link href="/collections/rose" className="block py-1" style={{ color: theme.colors.text.light }}>{t('shop.rose')}</Link>
+                <Link href="/collections/bouquet" className="block py-1" style={{ color: theme.colors.text.light }}>{t('shop.bouquet')}</Link>
+                <Link href="/collections/bouquet-in-vase" className="block py-1" style={{ color: theme.colors.text.light }}>{t('shop.bouquetInVase')}</Link>
               </div>
             </div>
 
             <div className="px-3 py-2 border-t border-gray-100">
-              <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Occasions</h3>
+              <h3 className='font-semibold mb-2' style={{ color: theme.colors.text.primary }}>{t('nav.occasions')}</h3>
               <div className="space-y-1 ml-2">
-                <Link href="/collections/birthday" className="block py-1" style={{ color: theme.colors.text.light }}>Birthday</Link>
-                <Link href="/collections/anniversary" className="block py-1" style={{ color: theme.colors.text.light }}>Anniversary</Link>
-                <Link href="/collections/love-romantic" className="block py-1" style={{ color: theme.colors.text.light }}>Love & Romantic</Link>
-                <Link href="/collections/get-well-soon" className="block py-1" style={{ color: theme.colors.text.light }}>Get Well Soon</Link>
-                <Link href="/collections/wedding" className="block py-1" style={{ color: theme.colors.text.light }}>Wedding</Link>
-                <Link href="/collections/prom" className="block py-1" style={{ color: theme.colors.text.light }}>Prom</Link>
-                <Link href="/collections/congratulations" className="block py-1" style={{ color: theme.colors.text.light }}>Congratulations</Link>
-                <Link href="/collections/new-baby" className="block py-1" style={{ color: theme.colors.text.light }}>New Baby</Link>
-                <Link href="/collections/grand-opening" className="block py-1" style={{ color: theme.colors.text.light }}>Grand Opening</Link>
+                <Link href="/collections/birthday" className="block py-1" style={{ color: theme.colors.text.light }}>{t('occasions.birthday')}</Link>
+                <Link href="/collections/anniversary" className="block py-1" style={{ color: theme.colors.text.light }}>{t('occasions.anniversary')}</Link>
+                <Link href="/collections/love-romantic" className="block py-1" style={{ color: theme.colors.text.light }}>{t('occasions.loveRomantic')}</Link>
+                <Link href="/collections/get-well-soon" className="block py-1" style={{ color: theme.colors.text.light }}>{t('occasions.getWellSoon')}</Link>
+                <Link href="/collections/wedding" className="block py-1" style={{ color: theme.colors.text.light }}>{t('occasions.wedding')}</Link>
+                <Link href="/collections/prom" className="block py-1" style={{ color: theme.colors.text.light }}>{t('occasions.prom')}</Link>
+                <Link href="/collections/congratulations" className="block py-1" style={{ color: theme.colors.text.light }}>{t('occasions.congratulations')}</Link>
+                <Link href="/collections/new-baby" className="block py-1" style={{ color: theme.colors.text.light }}>{t('occasions.newBaby')}</Link>
+                <Link href="/collections/grand-opening" className="block py-1" style={{ color: theme.colors.text.light }}>{t('occasions.grandOpening')}</Link>
                 <div className="pt-2">
-                  <h4 className="text-sm font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>Sympathy</h4>
+                  <h4 className="text-sm font-semibold mb-1" style={{ color: theme.colors.text.secondary }}>{t('occasions.sympathy')}</h4>
                   <div className="space-y-1 ml-2">
-                    <Link href="/collections/wreaths" className="block py-1" style={{ color: theme.colors.text.light }}>Wreaths</Link>
-                    <Link href="/collections/casket-sprays" className="block py-1" style={{ color: theme.colors.text.light }}>Casket Sprays</Link>
-                    <Link href="/collections/sympathy-bouquets" className="block py-1" style={{ color: theme.colors.text.light }}>Sympathy Bouquets</Link>
+                    <Link href="/collections/wreaths" className="block py-1" style={{ color: theme.colors.text.light }}>{t('occasions.wreaths')}</Link>
+                    <Link href="/collections/casket-sprays" className="block py-1" style={{ color: theme.colors.text.light }}>{t('occasions.casketSprays')}</Link>
+                    <Link href="/collections/sympathy-bouquets" className="block py-1" style={{ color: theme.colors.text.light }}>{t('occasions.sympathyBouquets')}</Link>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="px-3 py-2 border-t border-gray-100">
-              <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Plants</h3>
+              <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>{t('nav.plants')}</h3>
               <div className="space-y-1 ml-2">
-                <Link href="/collections/indoor-plants" className="block py-1" style={{ color: theme.colors.text.light }}>Indoor Plants</Link>
-                <Link href="/collections/orchid" className="block py-1" style={{ color: theme.colors.text.light }}>Orchid</Link>
+                <Link href="/collections/indoor-plants" className="block py-1" style={{ color: theme.colors.text.light }}>{t('shop.indoorPlants')}</Link>
+                <Link href="/collections/orchid" className="block py-1" style={{ color: theme.colors.text.light }}>{t('shop.orchid')}</Link>
               </div>
             </div>
 
             <div className="px-3 py-2 border-t border-gray-100">
-              <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>Gift</h3>
+              <h3 className="font-semibold mb-2" style={{ color: theme.colors.text.primary }}>{t('nav.gift')}</h3>
               <div className="space-y-1 ml-2">
-                <Link href="/collections/fruit-basket" className="block py-1" style={{ color: theme.colors.text.light }}>Fruit Basket</Link>
-                <Link href="/collections/flowers-box" className="block py-1" style={{ color: theme.colors.text.light }}>Flowers Box</Link>
+                <Link href="/collections/fruit-basket" className="block py-1" style={{ color: theme.colors.text.light }}>{t('shop.fruitBasket')}</Link>
+                <Link href="/collections/flowers-box" className="block py-1" style={{ color: theme.colors.text.light }}>{t('shop.flowersBox')}</Link>
               </div>
             </div>
 
             <div className="px-3 py-2 border-t border-gray-100">
-              <Link href="/about" className="block py-2" style={{ color: theme.colors.text.primary }}>About Us</Link>
-              <Link href="/contact" className="block py-2" style={{ color: theme.colors.text.primary }}>Contact</Link>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>{t('language.switch')}</span>
+                <LanguageSwitch />
+              </div>
+              <Link href="/about" className="block py-2" style={{ color: theme.colors.text.primary }}>{t('nav.about')}</Link>
+              <Link href="/contact" className="block py-2" style={{ color: theme.colors.text.primary }}>{t('nav.contact')}</Link>
               {user ? (
                 <>
-                  <Link href="/dashboard" className="block py-2" style={{ color: theme.colors.text.primary }}>Dashboard</Link>
-                  <Link href="/orders" className="block py-2" style={{ color: theme.colors.text.primary }}>Orders</Link>
-                  <Link href="/profile" className="block py-2" style={{ color: theme.colors.text.primary }}>Profile</Link>
-                  <button onClick={handleSignOut} className="block w-full text-left py-2 text-red-600">Sign Out</button>
+                  <Link href="/orders" className="block py-2" style={{ color: theme.colors.text.primary }}>{t('nav.orders')}</Link>
+                  <Link href="/profile" className="block py-2" style={{ color: theme.colors.text.primary }}>{t('nav.profile')}</Link>
+                  <button onClick={handleSignOut} className="block w-full text-left py-2 text-red-600">{t('nav.signOut')}</button>
                 </>
               ) : (
                 <>
-                  <Link href="/auth/signin" className="block py-2" style={{ color: theme.colors.text.primary }}>Sign In</Link>
-                  <Link href="/auth/signup" className="block py-2" style={{ color: theme.colors.primary }}>Sign Up</Link>
+                  <Link href="/auth/signin" className="block py-2" style={{ color: theme.colors.text.primary }}>{t('nav.signIn')}</Link>
+                  <Link href="/auth/signup" className="block py-2" style={{ color: theme.colors.primary }}>{t('nav.signUp')}</Link>
                 </>
               )}
             </div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ChevronDown, Filter, Search, ShoppingCart, User, Minus, Plus, MapPin, Clock, Truck, Store } from "lucide-react"
 import { useCart } from "@/contexts/CartContext"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { CartIcon } from "@/components/CartIcon"
 
 // Reusable theme object
@@ -89,6 +90,7 @@ export default function ProductDetailPage() {
   const params = useParams()
   const productId = params.id as string
   const { addToCart, getItemQuantity, isInCart, submitOrder } = useCart()
+  const { t } = useLanguage()
   
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
@@ -319,7 +321,7 @@ export default function ProductDetailPage() {
 
       if (success) {
         // Show success message
-        alert('Product added to cart!');
+        alert(t('product.addToCart') + '!');
       } else {
         setAddToCartError('Failed to add product to cart. Please try again.');
       }
@@ -337,7 +339,7 @@ export default function ProductDetailPage() {
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: theme.colors.background }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: theme.colors.primary }}></div>
-          <p style={{ color: theme.colors.text.primary }}>Loading product...</p>
+          <p style={{ color: theme.colors.text.primary }}>{t('product.loading')}</p>
         </div>
       </div>
     )
@@ -352,7 +354,7 @@ export default function ProductDetailPage() {
             onClick={() => window.history.back()} 
             style={{ backgroundColor: theme.colors.primary, color: theme.colors.text.white }}
           >
-            Go Back
+            {t('product.goBack')}
           </Button>
         </div>
       </div>
@@ -381,7 +383,7 @@ export default function ProductDetailPage() {
                 {/* Size Filter */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Filter by Size:
+                    {t('product.filterBySize')}
                   </label>
                   <div className="flex flex-wrap gap-2">
                     {getAvailableSizes().map(size => (
@@ -394,7 +396,7 @@ export default function ProductDetailPage() {
                             : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
                         }`}
                       >
-                        {size === 'all' ? 'All Sizes' : size.toUpperCase()}
+                        {size === 'all' ? t('product.allSizes') : size.toUpperCase()}
                       </button>
                     ))}
                   </div>
@@ -442,7 +444,7 @@ export default function ProductDetailPage() {
 
               {/* Color */}
               <p className="text-sm mb-4" style={{ color: theme.colors.text.light }}>
-                Color: <span className="capitalize font-medium">{product.color}</span>
+                {t('product.color')} <span className="capitalize font-medium">{product.color}</span>
               </p>
 
               {/* Price */}
@@ -452,13 +454,13 @@ export default function ProductDetailPage() {
 
               {/* Description */}
               <p className="text-sm mb-8 leading-relaxed" style={{ color: theme.colors.text.light }}>
-                {product.description || "Let one of our skilled designers create a one of a kind masterpiece for you. It will arrive arranged in a simple container, gift wrapped with attention."}
+                {product.description || t('product.defaultDescription')}
               </p>
 
               {/* Tier Options */}
               <div className="mb-6">
                 <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text.secondary }}>
-                  Select Tier: {formatPrice(getCurrentPrice())}
+                  {t('product.selectTier')} {formatPrice(getCurrentPrice())}
                 </label>
                 <div className="grid grid-cols-1 gap-3">
                   {tierOptions.map((option) => (
@@ -482,8 +484,8 @@ export default function ProductDetailPage() {
                         </div>
                         <div className="mt-1 text-sm" style={{ color: theme.colors.text.light }}>
                           {isTierAvailable(option.key) 
-                            ? 'In stock' 
-                            : 'Not available'}
+                            ? t('product.inStock')
+                            : t('product.notAvailable')}
                         </div>
                       </button>
                     </div>
@@ -494,7 +496,7 @@ export default function ProductDetailPage() {
               {/* Quantity Selector */}
               <div className="mb-6">
                 <label className="block text-sm font-medium mb-3" style={{ color: theme.colors.text.secondary }}>
-                  Quantity
+                  {t('product.quantity')}
                 </label>
                 <div className="flex items-center space-x-3">
                   <button
@@ -544,9 +546,9 @@ export default function ProductDetailPage() {
                   {addingToCart ? (
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                      Adding...
+                      {t('product.adding')}
                     </div>
-                  ) : isTierAvailable(selectedTier) ? 'Add to cart' : 'Not available'}
+                  ) : isTierAvailable(selectedTier) ? t('product.addToCart') : t('product.notAvailable')}
                 </Button>
                 {addToCartError && (
                   <p className="mt-2 text-sm text-red-600">{addToCartError}</p>
@@ -561,7 +563,7 @@ export default function ProductDetailPage() {
                     onClick={() => toggleSection('delivery')}
                     className="w-full flex items-center justify-between py-3 text-left"
                   >
-                    <span className="font-medium" style={{ color: theme.colors.text.secondary }}>Delivery</span>
+                    <span className="font-medium" style={{ color: theme.colors.text.secondary }}>{t('product.delivery')}</span>
                     <ChevronDown 
                       className={`h-4 w-4 transition-transform ${expandedSections.delivery ? 'rotate-180' : ''}`}
                       style={{ color: theme.colors.text.secondary }}
@@ -570,10 +572,10 @@ export default function ProductDetailPage() {
                   {expandedSections.delivery && (
                     <div className="pb-4">
                       <p className="text-sm mb-2" style={{ color: theme.colors.text.light }}>
-                        Click here to find out if we deliver to you!
+                        {t('product.deliveryDescription')}
                       </p>
                       <p className="text-sm" style={{ color: theme.colors.text.light }}>
-                        Want to learn more about how your delivery will be handled? Visit our FAQ.
+                        {t('product.deliveryFAQ')}
                       </p>
                     </div>
                   )}
@@ -585,7 +587,7 @@ export default function ProductDetailPage() {
                     onClick={() => toggleSection('substitution')}
                     className="w-full flex items-center justify-between py-3 text-left"
                   >
-                    <span className="font-medium" style={{ color: theme.colors.text.secondary }}>Substitution policy</span>
+                    <span className="font-medium" style={{ color: theme.colors.text.secondary }}>{t('product.substitutionPolicy')}</span>
                     <ChevronDown 
                       className={`h-4 w-4 transition-transform ${expandedSections.substitution ? 'rotate-180' : ''}`}
                       style={{ color: theme.colors.text.secondary }}
@@ -594,7 +596,7 @@ export default function ProductDetailPage() {
                   {expandedSections.substitution && (
                     <div className="pb-4">
                       <p className="text-sm" style={{ color: theme.colors.text.light }}>
-                        We reserve the right to substitute flowers of equal or greater value if the requested flowers are not available.
+                        {t('product.substitutionDescription')}
                       </p>
                     </div>
                   )}
@@ -606,7 +608,7 @@ export default function ProductDetailPage() {
                     onClick={() => toggleSection('returns')}
                     className="w-full flex items-center justify-between py-3 text-left"
                   >
-                    <span className="font-medium" style={{ color: theme.colors.text.secondary }}>Returns & refunds</span>
+                    <span className="font-medium" style={{ color: theme.colors.text.secondary }}>{t('product.returnsRefunds')}</span>
                     <ChevronDown 
                       className={`h-4 w-4 transition-transform ${expandedSections.returns ? 'rotate-180' : ''}`}
                       style={{ color: theme.colors.text.secondary }}
@@ -615,7 +617,7 @@ export default function ProductDetailPage() {
                   {expandedSections.returns && (
                     <div className="pb-4">
                       <p className="text-sm" style={{ color: theme.colors.text.light }}>
-                        We offer a 100% satisfaction guarantee. If you're not completely satisfied, contact us within 24 hours.
+                        {t('product.returnsDescription')}
                       </p>
                     </div>
                   )}
@@ -627,7 +629,7 @@ export default function ProductDetailPage() {
                     onClick={() => toggleSection('details')}
                     className="w-full flex items-center justify-between py-3 text-left"
                   >
-                    <span className="font-medium" style={{ color: theme.colors.text.secondary }}>Details & care</span>
+                    <span className="font-medium" style={{ color: theme.colors.text.secondary }}>{t('product.detailsCare')}</span>
                     <ChevronDown 
                       className={`h-4 w-4 transition-transform ${expandedSections.details ? 'rotate-180' : ''}`}
                       style={{ color: theme.colors.text.secondary }}
@@ -636,18 +638,18 @@ export default function ProductDetailPage() {
                   {expandedSections.details && (
                     <div className="pb-4">
                       <p className="text-sm mb-2" style={{ color: theme.colors.text.light }}>
-                        Categories: {product.category.join(', ')}
+                        {t('product.categories')} {product.category.join(', ')}
                       </p>
                       <p className="text-sm mb-2" style={{ color: theme.colors.text.light }}>
-                        Color: <span className="capitalize">{product.color}</span>
+                        {t('product.color')} <span className="capitalize">{product.color}</span>
                       </p>
                       <p className="text-sm mb-2" style={{ color: theme.colors.text.light }}>
-                        Stock: In stock
+                        {t('product.stock')} {t('product.inStock')}
                       </p>
                       {product.tags.length > 0 && (
                         <div className="mt-3">
                           <p className="text-sm mb-2" style={{ color: theme.colors.text.light }}>
-                            Tags:
+                            {t('product.tags')}
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {product.tags.map((tag, index) => (

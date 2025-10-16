@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import Image from 'next/image';
-import { Phone, Mail, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, Facebook, Instagram, Twitter } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const theme = {
   colors: {
@@ -19,6 +20,7 @@ const theme = {
 };
 
 const ContactPage = () => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -60,13 +62,13 @@ const ContactPage = () => {
           subject: '',
           message: ''
         });
-        alert('Thank you for your message. We will get back to you soon!');
+        alert(t('contact.thankYou'));
       } else {
         throw new Error(data.error || 'Failed to submit form');
       }
     } catch (error) {
       console.error('Error submitting form:', error);
-      alert('Failed to submit form. Please try again later.');
+      alert(t('contact.error'));
     }
   };
 
@@ -82,10 +84,10 @@ const ContactPage = () => {
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
           <div className="text-center text-white max-w-4xl px-4">
             <h1 className="text-4xl md:text-6xl font-light mb-4">
-              About <span style={{ color: theme.colors.text.primary }}>Atelier Floral</span>
+              {t('contact.title')}
             </h1>
             <p className="text-xl md:text-2xl font-light mb-8">
-              Where flowers meet art, coffee, and community in the heart of Montreal
+              {t('contact.subtitle')}
             </p>
           </div>
         </div>
@@ -96,7 +98,7 @@ const ContactPage = () => {
           {/* Contact Information */}
           <div>
             <h2 className="text-2xl font-serif mb-6" style={{ color: theme.colors.text.primary }}>
-              Get in Touch
+              {t('contact.getInTouch')}
             </h2>
             
             <div className="space-y-6 mb-8">
@@ -104,9 +106,9 @@ const ContactPage = () => {
                 <Phone className="w-6 h-6 mt-1" style={{ color: theme.colors.primary }} />
                 <div>
                   <h3 className="font-medium" style={{ color: theme.colors.text.secondary }}>
-                    Phone
+                    {t('contact.phone')}
                   </h3>
-                  <p className="text-gray-600">(514) 555-0123</p>
+                  <p className="text-gray-600">{t('contact.phoneNumber')}</p>
                 </div>
               </div>
 
@@ -114,9 +116,9 @@ const ContactPage = () => {
                 <Mail className="w-6 h-6 mt-1" style={{ color: theme.colors.primary }} />
                 <div>
                   <h3 className="font-medium" style={{ color: theme.colors.text.secondary }}>
-                    Email
+                    {t('contact.email')}
                   </h3>
-                  <p className="text-gray-600">info@flowerstore.com</p>
+                  <p className="text-gray-600">{t('contact.emailAddress')}</p>
                 </div>
               </div>
 
@@ -124,13 +126,33 @@ const ContactPage = () => {
                 <MapPin className="w-6 h-6 mt-1" style={{ color: theme.colors.primary }} />
                 <div>
                   <h3 className="font-medium" style={{ color: theme.colors.text.secondary }}>
-                    Address
+                    {t('contact.address')}
                   </h3>
                   <p className="text-gray-600">
-                    123 Flower Street<br />
-                    Montreal, QC H3B 2Y5<br />
-                    Canada
+                    {t('contact.addressText').split('\n').map((line, index) => (
+                      <React.Fragment key={index}>
+                        {line}
+                        {index < t('contact.addressText').split('\n').length - 1 && <br />}
+                      </React.Fragment>
+                    ))}
                   </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Store Hours */}
+            <div className="mb-8">
+              <div className="flex items-start space-x-4">
+                <Clock className="w-6 h-6 mt-1" style={{ color: theme.colors.primary }} />
+                <div>
+                  <h3 className="font-medium" style={{ color: theme.colors.text.secondary }}>
+                    {t('contact.storeHours')}
+                  </h3>
+                  <div className="space-y-1 text-gray-600">
+                    <p>{t('contact.mondayFriday')}</p>
+                    <p>{t('contact.saturday')}</p>
+                    <p>{t('contact.sunday')}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -138,7 +160,7 @@ const ContactPage = () => {
             {/* Social Media Links */}
             <div>
               <h3 className="text-xl font-serif mb-4" style={{ color: theme.colors.text.primary }}>
-                Follow Us
+                {t('contact.followUs')}
               </h3>
               <div className="flex space-x-4">
                 <a
@@ -175,13 +197,13 @@ const ContactPage = () => {
           {/* Contact Form */}
           <div>
             <h2 className="text-2xl font-serif mb-6" style={{ color: theme.colors.text.primary }}>
-              Send Us a Message
+              {t('contact.sendMessage')}
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text.secondary }}>
-                  Name *
+                  {t('contact.nameRequired')}
                 </label>
                 <input
                   type="text"
@@ -195,7 +217,7 @@ const ContactPage = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text.secondary }}>
-                  Email *
+                  {t('contact.emailRequired')}
                 </label>
                 <input
                   type="email"
@@ -209,7 +231,7 @@ const ContactPage = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text.secondary }}>
-                  Phone
+                  {t('contact.phoneOptional')}
                 </label>
                 <input
                   type="tel"
@@ -222,7 +244,7 @@ const ContactPage = () => {
 
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text.secondary }}>
-                  Subject *
+                  {t('contact.subjectRequired')}
                 </label>
                 <select
                   name="subject"
@@ -231,18 +253,18 @@ const ContactPage = () => {
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
-                  <option value="">Select a subject</option>
-                  <option value="general">General Inquiry</option>
-                  <option value="order">Order Status</option>
-                  <option value="product">Product Information</option>
-                  <option value="feedback">Feedback</option>
-                  <option value="other">Other</option>
+                  <option value="">{t('contact.selectSubject')}</option>
+                  <option value="general">{t('contact.generalInquiry')}</option>
+                  <option value="order">{t('contact.orderStatus')}</option>
+                  <option value="product">{t('contact.productInformation')}</option>
+                  <option value="feedback">{t('contact.feedback')}</option>
+                  <option value="other">{t('contact.other')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: theme.colors.text.secondary }}>
-                  Message *
+                  {t('contact.messageRequired')}
                 </label>
                 <textarea
                   name="message"
@@ -258,7 +280,7 @@ const ContactPage = () => {
                 type="submit"
                 className="w-full px-6 py-3 text-white rounded-md transition-colors bg-primary hover:bg-[#7d5b46]"
               >
-                Send Message
+                {t('contact.sendMessageButton')}
               </button>
             </form>
           </div>

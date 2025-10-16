@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useRouter } from 'next/navigation';
 
 type AuthMode = 'signin' | 'signup';
@@ -24,6 +25,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   const [showPassword, setShowPassword] = useState(false);
 
   const { signIn, signUp } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,7 +45,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           // For signup, show success message and switch to signin mode
           setError('');
           setMode('signin');
-          setError('Account created successfully! Please check your email and sign in.');
+          setError(t('auth.accountCreatedSuccess'));
         }
       } else {
         result = await signIn(email, password);
@@ -56,7 +58,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         }
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      setError(t('auth.unexpectedError'));
       console.error('Auth error:', err);
     } finally {
       setIsLoading(false);
@@ -79,16 +81,16 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {isSignUp ? 'Create your account' : 'Sign in to your account'}
+            {isSignUp ? t('auth.createAccount') : t('auth.signInToAccount')}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+            {isSignUp ? t('auth.alreadyHaveAccount') : t('auth.dontHaveAccount')}{' '}
             <button
               type="button"
               onClick={toggleMode}
               className="font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              {isSignUp ? 'Sign in' : 'Sign up'}
+              {isSignUp ? t('auth.signIn') : t('auth.signUp')}
             </button>
           </p>
         </div>
@@ -98,7 +100,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             {isSignUp && (
               <div>
                 <label htmlFor="fullName" className="sr-only">
-                  Full Name
+                  {t('auth.fullName')}
                 </label>
                 <input
                   id="fullName"
@@ -108,14 +110,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Full Name"
+                  placeholder={t('auth.fullName')}
                 />
               </div>
             )}
             
             <div>
               <label htmlFor="email" className="sr-only">
-                Email address
+                {t('auth.emailAddress')}
               </label>
               <input
                 id="email"
@@ -128,13 +130,13 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 className={`appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 ${
                   isSignUp ? '' : 'rounded-t-md'
                 } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
-                placeholder="Email address"
+                placeholder={t('auth.emailAddress')}
               />
             </div>
             
             <div className="relative">
               <label htmlFor="password" className="sr-only">
-                Password
+                {t('auth.password')}
               </label>
               <input
                 id="password"
@@ -145,7 +147,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm pr-10"
-                placeholder="Password"
+                placeholder={t('auth.password')}
               />
               <button
                 type="button"
@@ -195,20 +197,20 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               ) : null}
-              {isLoading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
+              {isLoading ? t('auth.processing') : (isSignUp ? t('auth.createAccountButton') : t('auth.signInButton'))}
             </button>
           </div>
 
           {isSignUp && (
             <div className="text-center">
               <p className="text-xs text-gray-500">
-                By signing up, you agree to our{' '}
+                {t('auth.bySigningUp')}{' '}
                 <a href="#" className="text-indigo-600 hover:text-indigo-500">
-                  Terms of Service
+                  {t('auth.termsOfService')}
                 </a>{' '}
-                and{' '}
+                {t('auth.and')}{' '}
                 <a href="#" className="text-indigo-600 hover:text-indigo-500">
-                  Privacy Policy
+                  {t('auth.privacyPolicy')}
                 </a>
               </p>
             </div>
