@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, Menu, X, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@/contexts/UserContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { CartIcon } from '@/components/CartIcon';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
@@ -28,6 +29,7 @@ const theme = {
 export const Navigation: React.FC = () => {
   const router = useRouter();
   const { user, signOut, loading } = useAuth();
+  const { currentUser } = useUser();
   const { t, language } = useLanguage();
 
   // Focused i18n debug for production when NEXT_PUBLIC_I18N_DEBUG=1
@@ -232,6 +234,9 @@ export const Navigation: React.FC = () => {
             <div className="hidden md:flex items-center space-x-2">
               {user ? (
                 <>
+                  {currentUser?.role === 'shop_owner' || currentUser?.role === 'admin' ? (
+                    <Link href="/dashboard" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>{t('nav.dashboard')}</Link>
+                  ) : null}
                   <Link href="/orders" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>{t('nav.orders')}</Link>
                   <Link href="/profile" className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>{t('nav.profile')}</Link>
                   <button onClick={handleSignOut} className="hover:opacity-80 whitespace-nowrap" style={{ color: theme.colors.text.primary }}>{t('nav.signOut')}</button>
@@ -316,6 +321,9 @@ export const Navigation: React.FC = () => {
               <Link href="/contact" className="block py-2" style={{ color: theme.colors.text.primary }}>{t('nav.contact')}</Link>
               {user ? (
                 <>
+                  {currentUser?.role === 'shop_owner' || currentUser?.role === 'admin' ? (
+                    <Link href="/dashboard" className="block py-2" style={{ color: theme.colors.text.primary }}>{t('nav.dashboard')}</Link>
+                  ) : null}
                   <Link href="/orders" className="block py-2" style={{ color: theme.colors.text.primary }}>{t('nav.orders')}</Link>
                   <Link href="/profile" className="block py-2" style={{ color: theme.colors.text.primary }}>{t('nav.profile')}</Link>
                   <button onClick={handleSignOut} className="block w-full text-left py-2 text-red-600">{t('nav.signOut')}</button>
