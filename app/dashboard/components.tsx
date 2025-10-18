@@ -16,7 +16,9 @@ import {
   XCircleIcon,
   BuildingStorefrontIcon,
   PencilIcon,
-  TrashIcon
+  TrashIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
 interface DashboardStats {
@@ -228,6 +230,136 @@ export function OverviewTab({ stats, onAddProduct, userShop, isShopOwner }: {
 
 
 
+// Pagination Component
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (limit: number) => void;
+}
+
+export function Pagination({ 
+  currentPage, 
+  totalPages, 
+  totalItems, 
+  itemsPerPage, 
+  onPageChange, 
+  onItemsPerPageChange 
+}: PaginationProps) {
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  const getVisiblePages = () => {
+    const delta = 2;
+    const range = [];
+    const rangeWithDots = [];
+
+    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+      range.push(i);
+    }
+
+    if (currentPage - delta > 2) {
+      rangeWithDots.push(1, '...');
+    } else {
+      rangeWithDots.push(1);
+    }
+
+    rangeWithDots.push(...range);
+
+    if (currentPage + delta < totalPages - 1) {
+      rangeWithDots.push('...', totalPages);
+    } else if (totalPages > 1) {
+      rangeWithDots.push(totalPages);
+    }
+
+    return rangeWithDots;
+  };
+
+  return (
+    <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+      <div className="flex-1 flex justify-between sm:hidden">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Previous
+        </button>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+      <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm text-gray-700">
+            Showing <span className="font-medium">{startItem}</span> to{' '}
+            <span className="font-medium">{endItem}</span> of{' '}
+            <span className="font-medium">{totalItems}</span> results
+          </p>
+        </div>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center">
+            <label htmlFor="items-per-page" className="text-sm text-gray-700 mr-2">
+              Show:
+            </label>
+            <select
+              id="items-per-page"
+              value={itemsPerPage}
+              onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+              className="block w-20 pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+          <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+            <button
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="sr-only">Previous</span>
+              <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+            </button>
+            {getVisiblePages().map((page, index) => (
+              <button
+                key={index}
+                onClick={() => typeof page === 'number' && onPageChange(page)}
+                disabled={page === '...'}
+                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                  page === currentPage
+                    ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                    : page === '...'
+                    ? 'border-gray-300 bg-white text-gray-700 cursor-default'
+                    : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="sr-only">Next</span>
+              <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Products Tab Component
 interface ProductFilters {
   occasions: string[];
@@ -244,53 +376,28 @@ export function ProductsTab({
   loading, 
   onAddProduct, 
   onEditProduct, 
-  onDeleteProduct 
+  onDeleteProduct,
+  currentPage,
+  totalPages,
+  totalProducts,
+  itemsPerPage,
+  onPageChange,
+  onItemsPerPageChange
 }: { 
   products: Product[];
   loading: boolean;
   onAddProduct: () => void;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
+  currentPage: number;
+  totalPages: number;
+  totalProducts: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (limit: number) => void;
 }) {
-  const [filters, setFilters] = useState<ProductFilters>({
-    occasions: [],
-    productTypes: [],
-    colors: [],
-    bestSeller: false,
-    minPrice: null,
-    maxPrice: null,
-    priceTier: 'all'
-  });
-
-  const filteredProducts = useMemo(() => {
-    return products.filter(product => {
-      if (filters.occasions.length > 0 && !product.occasions?.some(o => filters.occasions.includes(o._id))) {
-        return false;
-      }
-      if (filters.productTypes.length > 0 && !product.productTypes?.some(t => filters.productTypes.includes(t._id))) {
-        return false;
-      }
-      if (filters.colors.length > 0 && !filters.colors.includes(product.color)) {
-        return false;
-      }
-      if (filters.bestSeller && !product.isBestSeller) {
-        return false;
-      }
-      if (filters.minPrice !== null) {
-        const minPrice = product.variants[0]?.price || product.price.standard;
-        if (minPrice < filters.minPrice) return false;
-      }
-      if (filters.maxPrice !== null) {
-        const maxPrice = product.variants[product.variants.length - 1]?.price || product.price.premium;
-        if (maxPrice > filters.maxPrice) return false;
-      }
-      if (filters.priceTier !== 'all') {
-        const variant = product.variants.find(v => v.tierName === filters.priceTier);
-        if (!variant || !variant.isActive) return false;
-      }
-      return true;
-    });
-  }, [products, filters]);
+  // Note: Client-side filtering removed since we're using server-side pagination
+  // All filtering should be done on the server side through API parameters
 
   return (
     <div>
@@ -349,14 +456,14 @@ export function ProductsTab({
                     Loading products...
                   </td>
                 </tr>
-              ) : filteredProducts.length === 0 ? (
+              ) : products.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                     No products found.
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map((product) => {
+                products.map((product) => {
                   const primaryImage = product.images.find(img => img.isPrimary) || product.images[0];
                   const minPrice = Math.min(...product.variants.map(v => v.price));
                   const maxPrice = Math.max(...product.variants.map(v => v.price));
@@ -444,6 +551,18 @@ export function ProductsTab({
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalProducts}
+            itemsPerPage={itemsPerPage}
+            onPageChange={onPageChange}
+            onItemsPerPageChange={onItemsPerPageChange}
+          />
+        )}
       </div>
     </div>
   );

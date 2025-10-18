@@ -79,6 +79,12 @@ export default function DashboardPage() {
   const [allShops, setAllShops] = useState<Shop[]>([]);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [shopsLoading, setShopsLoading] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: HomeIcon, show: true },
@@ -126,13 +132,13 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (page = currentPage, limit = itemsPerPage) => {
     try {
       const shopId = searchParams.get('shop') || userShop?._id;
       
-      let url = '/api/products';
+      let url = `/api/products?page=${page}&limit=${limit}`;
       if (isShopOwner && shopId) {
-        url = `/api/products/shop/${shopId}`;
+        url = `/api/products/shop/${shopId}?page=${page}&limit=${limit}`;
       }
       
       const response = await apiFetch(url, {
@@ -144,6 +150,12 @@ export default function DashboardPage() {
       if (response.ok) {
         const data = await response.json();
         setProducts(data.data || []);
+        
+        // Update pagination state
+        if (data.pagination) {
+          setTotalProducts(data.pagination.total);
+          setTotalPages(data.pagination.pages);
+        }
       }
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -197,13 +209,12 @@ export default function DashboardPage() {
   };
 
   const calculateStats = () => {
-    const totalProducts = products.length;
     const totalOrders = orders.length;
     const pendingOrders = orders.filter(order => order.status === 'pending').length;
     const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
 
     setStats({
-      totalProducts,
+      totalProducts, // Use the total from pagination instead of products.length
       totalOrders,
       pendingOrders,
       totalRevenue
@@ -212,6 +223,7 @@ export default function DashboardPage() {
 
   const handleShopSelect = (shop: Shop) => {
     setSelectedShop(shop);
+    setCurrentPage(1); // Reset to first page when switching shops
     const url = new URL(window.location.href);
     url.searchParams.set('shop', shop._id);
     window.history.pushState({}, '', url.toString());
@@ -219,6 +231,7 @@ export default function DashboardPage() {
 
   const handleViewAllShops = () => {
     setSelectedShop(null);
+    setCurrentPage(1); // Reset to first page when viewing all shops
     const url = new URL(window.location.href);
     url.searchParams.delete('shop');
     window.history.pushState({}, '', url.toString());
@@ -335,6 +348,19 @@ export default function DashboardPage() {
             onAddProduct={() => setShowProductForm(true)}
             onEditProduct={handleProductEdit}
             onDeleteProduct={handleProductDelete}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalProducts={totalProducts}
+            itemsPerPage={itemsPerPage}
+            onPageChange={(page) => {
+              setCurrentPage(page);
+              fetchProducts(page, itemsPerPage);
+            }}
+            onItemsPerPageChange={(newLimit) => {
+              setItemsPerPage(newLimit);
+              setCurrentPage(1);
+              fetchProducts(1, newLimit);
+            }}
           />
         );
       case 'orders':
