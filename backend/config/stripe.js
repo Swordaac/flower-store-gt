@@ -117,15 +117,27 @@ const retrievePaymentIntent = async (paymentIntentId) => {
 
 // Helper function to construct webhook event
 const constructWebhookEvent = (payload, signature) => {
-  if (!STRIPE_CONFIG.webhookSecret) {
-    throw new Error('STRIPE_WEBHOOK_SECRET is not defined in environment variables');
+  // Support multiple secrets to handle test vs. live webhooks
+  const candidateSecrets = [
+    process.env.STRIPE_WEBHOOK_SECRET,
+    process.env.STRIPE_WEBHOOK_SECRET_TEST,
+    process.env.STRIPE_WEBHOOK_SECRET_LIVE
+  ].filter(Boolean);
+
+  if (candidateSecrets.length === 0) {
+    throw new Error('No STRIPE_WEBHOOK_SECRET configured');
   }
-  
-  return stripe.webhooks.constructEvent(
-    payload,
-    signature,
-    STRIPE_CONFIG.webhookSecret
-  );
+
+  const errors = [];
+  for (const secret of candidateSecrets) {
+    try {
+      return stripe.webhooks.constructEvent(payload, signature, secret);
+    } catch (err) {
+      errors.push(err.message);
+    }
+  }
+
+  throw new Error(`Webhook signature verification failed for all configured secrets: ${errors.join(' | ')}`);
 };
 
 module.exports = {
