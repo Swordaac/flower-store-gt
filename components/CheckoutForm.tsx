@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import StripeCheckoutButton from '@/components/StripeCheckoutButton';
+import { apiFetch } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -50,12 +51,14 @@ interface CheckoutFormProps {
   shopId: string;
   onSuccess?: (orderId: string) => void;
   onError?: (error: string) => void;
+  deliveryOption?: 'delivery' | 'pickup';
+  postalCode?: string;
 }
 
-export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFormProps) {
+export default function CheckoutForm({ shopId, onSuccess, onError, deliveryOption: initialDeliveryOption, postalCode: initialPostalCode }: CheckoutFormProps) {
   const { items, totalPrice, clearCart } = useCart();
   const { t } = useLanguage();
-  const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'pickup'>('delivery');
+  const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'pickup'>(initialDeliveryOption || 'delivery');
   const [formData, setFormData] = useState<FormDataType>({
     // Recipient information
     recipient: {
@@ -93,6 +96,80 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
     }
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Tax and delivery fee calculation state
+  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [taxAmount, setTaxAmount] = useState(0);
+  const [finalTotal, setFinalTotal] = useState(0);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  // Helper function to format price
+  const formatPrice = (priceInCents: number) => {
+    return `$${(priceInCents / 100).toFixed(2)} CAD`;
+  };
+
+  // Calculate delivery fee based on postal code
+  const calculateDeliveryFee = async (postalCode: string) => {
+    if (!postalCode || deliveryOption === 'pickup') {
+      setDeliveryFee(0);
+      return 0;
+    }
+
+    try {
+      setIsCalculating(true);
+      const response = await apiFetch('/api/delivery/calculate-fee', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ postalCode })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Convert dollars to cents to match the rest of the system
+        const fee = Math.round(result.data.fee * 100);
+        setDeliveryFee(fee);
+        return fee;
+      } else {
+        console.warn('Delivery fee calculation failed:', result.error);
+        setDeliveryFee(0);
+        return 0;
+      }
+    } catch (error) {
+      console.error('Error calculating delivery fee:', error);
+      setDeliveryFee(0);
+      return 0;
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  // Calculate tax and final total
+  const calculateTotals = (subtotal: number, deliveryFee: number) => {
+    const QUEBEC_TAX_RATE = 0.14975; // Combined GST (5%) + QST (9.975%)
+    const taxableAmount = subtotal + deliveryFee;
+    const tax = Math.round(taxableAmount * QUEBEC_TAX_RATE);
+    const total = taxableAmount + tax;
+    
+    setTaxAmount(tax);
+    setFinalTotal(total);
+  };
+
+  // Update calculations when cart or delivery options change
+  useEffect(() => {
+    if (deliveryOption === 'pickup') {
+      setDeliveryFee(0);
+      calculateTotals(totalPrice, 0);
+    } else if (formData.delivery.address.postalCode) {
+      calculateDeliveryFee(formData.delivery.address.postalCode).then(fee => {
+        calculateTotals(totalPrice, fee);
+      });
+    } else {
+      calculateTotals(totalPrice, 0);
+    }
+  }, [totalPrice, deliveryOption, formData.delivery.address.postalCode]);
 
   type NestedKeyOf<ObjectType extends object> = {
     [Key in keyof ObjectType & (string | number)]: ObjectType[Key] extends object
@@ -633,6 +710,44 @@ export default function CheckoutForm({ shopId, onSuccess, onError }: CheckoutFor
           <div className="flex justify-between text-lg font-semibold">
             <span>{t('checkout.total')}</span>
             <span>${(totalPrice / 100).toFixed(2)} CAD</span>
+          </div>
+          
+          {/* Tax and Delivery Fee Breakdown */}
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <h3 className="text-lg font-medium mb-3">{t('checkout.orderSummary')}</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">{t('checkout.subtotal')}</span>
+                <span>{formatPrice(totalPrice)}</span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-gray-600">
+                  {deliveryOption === 'delivery' ? t('checkout.deliveryFee') : t('checkout.pickupFee')}
+                </span>
+                <span>
+                  {deliveryOption === 'pickup' ? t('checkout.free') : formatPrice(deliveryFee)}
+                </span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-gray-600">{t('checkout.tax')} (14.975%)</span>
+                <span>{formatPrice(taxAmount)}</span>
+              </div>
+              
+              <hr className="border-gray-300" />
+              
+              <div className="flex justify-between text-lg font-semibold">
+                <span>{t('checkout.finalTotal')}</span>
+                <span>{formatPrice(finalTotal)}</span>
+              </div>
+              
+              {isCalculating && (
+                <p className="text-sm text-gray-500 text-center">
+                  {t('checkout.calculatingFees')}...
+                </p>
+              )}
+            </div>
           </div>
           
           <StripeCheckoutButton

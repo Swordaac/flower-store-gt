@@ -174,6 +174,26 @@ const translations = {
     'cart.secureCheckout': 'Secure checkout powered by our payment partners',
     'cart.emptyAlert': 'Your cart is empty!',
     'cart.signInRequired': 'Please sign in to proceed with checkout!',
+    'cart.deliveryOptions': 'Delivery Options',
+    'cart.delivery': 'Delivery',
+    'cart.pickup': 'Pickup',
+    'cart.postalCode': 'Postal Code',
+    'cart.calculatingDelivery': 'Calculating delivery fee',
+    'cart.pickupAddress': '1208 Crescent St, Montreal, Quebec H3G 2A9',
+    'cart.deliveryFee': 'Delivery Fee',
+    'cart.pickupFee': 'Pickup Fee',
+    'cart.free': 'Free',
+    'cart.enterPostalCodeForDelivery': 'Please enter a postal code to calculate delivery fee',
+    
+    // Checkout form
+    'checkout.orderSummary': 'Order Summary',
+    'checkout.subtotal': 'Subtotal',
+    'checkout.deliveryFee': 'Delivery Fee',
+    'checkout.pickupFee': 'Pickup Fee',
+    'checkout.free': 'Free',
+    'checkout.tax': 'Tax',
+    'checkout.finalTotal': 'Final Total',
+    'checkout.calculatingFees': 'Calculating fees',
     
     // Orders page
     'orders.title': 'My Orders',
@@ -267,7 +287,6 @@ const translations = {
     'checkout.specialInstructions': 'Special Instructions',
     'checkout.specialInstructionsDesc': 'Any special requests or notes for your order?',
     'checkout.specialInstructionsPlaceholder': 'Please leave at front door, ring doorbell, etc.',
-    'checkout.orderSummary': 'Order Summary',
     'checkout.total': 'Total',
     'checkout.payWithStripe': 'Pay with Stripe',
     'checkout.timeSlots': {

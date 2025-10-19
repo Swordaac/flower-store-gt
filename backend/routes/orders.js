@@ -4,6 +4,7 @@ const { authenticateToken, requireRole, requireShopOwnership } = require('../mid
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Shop = require('../models/Shop');
+const { calculateDeliveryFee } = require('../utils/deliveryFeeCalculator');
 // Use cloud-optimized print service for production
 const printService = process.env.NODE_ENV === 'production' || process.env.RENDER 
   ? require('../services/printServiceCloud')
@@ -277,10 +278,24 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
       });
     }
     
-    // Calculate totals
-    const taxAmount = Math.round(subtotal * shop.taxRate);
-    const deliveryFee = delivery.method === 'delivery' ? shop.deliveryOptions.deliveryFee : 0;
-    const total = subtotal + taxAmount + deliveryFee;
+    // Calculate delivery fee using postal code-based calculator
+    let computedDeliveryFee = 0;
+    if (delivery.method === 'delivery' && delivery.address && delivery.address.postalCode) {
+      const deliveryResult = calculateDeliveryFee(delivery.address.postalCode);
+      if (deliveryResult.success) {
+        computedDeliveryFee = deliveryResult.fee;
+      } else {
+        // Fallback to shop's default delivery fee if postal code not found
+        computedDeliveryFee = shop.deliveryOptions.deliveryFee || 0;
+        console.warn(`Postal code ${delivery.address.postalCode} not found in delivery area, using shop default fee: ${computedDeliveryFee}`);
+      }
+    }
+    
+    // Calculate totals with Québec tax (14.975% on products + delivery)
+    const QUEBEC_TAX_RATE = 0.14975; // Combined GST (5%) + QST (9.975%)
+    const taxableAmount = subtotal + computedDeliveryFee;
+    const taxAmount = Math.round(taxableAmount * QUEBEC_TAX_RATE);
+    const total = taxableAmount + taxAmount;
     
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -298,7 +313,7 @@ router.post('/', authenticateToken, requireRole('customer'), async (req, res) =>
       items: processedItems,
       subtotal,
       taxAmount,
-      deliveryFee,
+      deliveryFee: computedDeliveryFee,
       total,
       delivery,
       notes,

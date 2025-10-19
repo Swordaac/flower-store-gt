@@ -6,6 +6,9 @@ import { useLanguage } from "@/contexts/LanguageContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import CheckoutForm from "@/components/CheckoutForm"
 import { useState } from "react"
 
@@ -41,10 +44,19 @@ export default function CartPage() {
   const { t } = useLanguage()
   const [showCheckout, setShowCheckout] = useState(false)
   const [selectedShopId, setSelectedShopId] = useState('68c34f45ee89e0fd81c8aa4d') // Default shop ID
+  
+  // Delivery option state
+  const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'pickup'>('delivery')
+  const [postalCode, setPostalCode] = useState('')
 
   // Helper function to format price
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)} CAD`
+  }
+
+  // Handle postal code change
+  const handlePostalCodeChange = (value: string) => {
+    setPostalCode(value)
   }
 
   const handleQuantityChange = (productId: string, currentQuantity: number, change: number, selectedSize?: number) => {
@@ -140,10 +152,14 @@ export default function CartPage() {
               shopId={selectedShopId}
               onSuccess={handleCheckoutSuccess}
               onError={handleCheckoutError}
+              deliveryOption={deliveryOption}
+              postalCode={postalCode}
             />
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               {items.map((item) => {

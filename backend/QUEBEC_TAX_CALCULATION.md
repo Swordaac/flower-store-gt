@@ -45,6 +45,8 @@ Combined rate: 14.975%
 
 The tax calculation is implemented in:
 - `backend/routes/stripe.js` - For Stripe checkout session creation
+- `backend/routes/orders.js` - For direct order creation
+- Both routes use the same Québec tax rate (14.975%) and calculation logic
 - Tax is calculated on the combined total of products and delivery fee
 - All calculations are done in cents to avoid floating-point issues
 - Rounding is applied after tax calculation
