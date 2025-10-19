@@ -184,6 +184,9 @@ const translations = {
     'cart.pickupFee': 'Pickup Fee',
     'cart.free': 'Free',
     'cart.enterPostalCodeForDelivery': 'Please enter a postal code to calculate delivery fee',
+    'cart.removeItem': 'Remove item',
+    'cart.confirmRemove': 'Remove Item',
+    'cart.confirmRemoveMessage': 'Are you sure you want to remove this item from your cart?',
     
     // Checkout form
     'checkout.orderSummary': 'Order Summary',
@@ -523,6 +526,9 @@ const translations = {
     'cart.secureCheckout': 'Commande sécurisée alimentée par nos partenaires de paiement',
     'cart.emptyAlert': 'Votre panier est vide !',
     'cart.signInRequired': 'Veuillez vous connecter pour procéder à la commande !',
+    'cart.removeItem': 'Supprimer l\'article',
+    'cart.confirmRemove': 'Supprimer l\'Article',
+    'cart.confirmRemoveMessage': 'Êtes-vous sûr de vouloir supprimer cet article de votre panier ?',
     
     // Orders page
     'orders.title': 'Mes Commandes',

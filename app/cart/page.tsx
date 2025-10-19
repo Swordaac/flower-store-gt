@@ -48,6 +48,10 @@ export default function CartPage() {
   // Delivery option state
   const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'pickup'>('delivery')
   const [postalCode, setPostalCode] = useState('')
+  
+  // Quantity input state
+  const [quantityInputs, setQuantityInputs] = useState<{[key: string]: string}>({})
+  
 
   // Helper function to format price
   const formatPrice = (priceInCents: number) => {
@@ -59,13 +63,70 @@ export default function CartPage() {
     setPostalCode(value)
   }
 
-  const handleQuantityChange = (productId: string, currentQuantity: number, change: number, selectedSize?: number) => {
+  const handleQuantityChange = (
+    productId: string,
+    currentQuantity: number,
+    change: number,
+    selectedSize?: number,
+    selectedTier?: 'standard' | 'deluxe' | 'premium'
+  ) => {
     const newQuantity = currentQuantity + change
-    updateQuantity(productId, newQuantity, selectedSize)
+    if (newQuantity <= 0) {
+      removeFromCart(productId, selectedSize, selectedTier)
+    } else {
+      updateQuantity(productId, newQuantity, selectedSize, selectedTier)
+    }
   }
 
-  const handleRemoveItem = (productId: string, selectedSize?: number) => {
-    removeFromCart(productId, selectedSize)
+  const handleQuantityInputChange = (
+    productId: string,
+    value: string,
+    selectedSize?: number,
+    selectedTier?: 'standard' | 'deluxe' | 'premium'
+  ) => {
+    const key = `${productId}-${selectedSize || 'default'}-${selectedTier || 'none'}`
+    setQuantityInputs(prev => ({ ...prev, [key]: value }))
+  }
+
+  const handleQuantityInputBlur = (
+    productId: string,
+    selectedSize?: number,
+    selectedTier?: 'standard' | 'deluxe' | 'premium'
+  ) => {
+    const key = `${productId}-${selectedSize || 'default'}-${selectedTier || 'none'}`
+    const inputValue = quantityInputs[key]
+    
+    if (inputValue !== undefined) {
+      const newQuantity = parseInt(inputValue) || 1
+      const validQuantity = Math.max(1, Math.min(999, newQuantity)) // Cap at 999 for reasonable limits
+      updateQuantity(productId, validQuantity, selectedSize, selectedTier)
+      
+      // Clear the input state
+      setQuantityInputs(prev => {
+        const updated = { ...prev }
+        delete updated[key]
+        return updated
+      })
+    }
+  }
+
+  const handleQuantityInputKeyPress = (
+    e: React.KeyboardEvent,
+    productId: string,
+    selectedSize?: number,
+    selectedTier?: 'standard' | 'deluxe' | 'premium'
+  ) => {
+    if (e.key === 'Enter') {
+      handleQuantityInputBlur(productId, selectedSize, selectedTier)
+    }
+  }
+
+  const handleRemoveItem = (
+    productId: string,
+    selectedSize?: number,
+    selectedTier?: 'standard' | 'deluxe' | 'premium'
+  ) => {
+    removeFromCart(productId, selectedSize, selectedTier)
   }
 
   const handleCheckout = () => {
@@ -165,7 +226,7 @@ export default function CartPage() {
               {items.map((item) => {
                 const itemPrice = item.selectedSize || item.price
                 return (
-                  <Card key={`${item.productId}-${item.selectedSize || 'default'}`} className="border-0 shadow-sm">
+                  <Card key={`${item.productId}-${item.selectedSize || 'default'}-${item.selectedTier || 'none'}`} className="border-0 shadow-sm">
                     <CardContent className="p-6">
                       <div className="flex items-center space-x-4">
                         {/* Product Image */}
@@ -193,19 +254,31 @@ export default function CartPage() {
                         </div>
 
                         {/* Quantity Controls */}
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => handleQuantityChange(item.productId, item.quantity, -1, item.selectedSize)}
+                            type="button"
+                            onClick={() => handleQuantityChange(item.productId, item.quantity, -1, item.selectedSize, item.selectedTier)}
                             className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50"
                             style={{ color: theme.colors.text.secondary }}
                           >
                             <Minus className="h-4 w-4" />
                           </button>
-                          <span className="w-8 text-center" style={{ color: theme.colors.text.secondary }}>
-                            {item.quantity}
-                          </span>
+                          
+                          <Input
+                            type="number"
+                            min="1"
+                            max="999"
+                            value={quantityInputs[`${item.productId}-${item.selectedSize || 'default'}-${item.selectedTier || 'none'}`] ?? item.quantity}
+                            onChange={(e) => handleQuantityInputChange(item.productId, e.target.value, item.selectedSize, item.selectedTier)}
+                            onBlur={() => handleQuantityInputBlur(item.productId, item.selectedSize, item.selectedTier)}
+                            onKeyPress={(e) => handleQuantityInputKeyPress(e, item.productId, item.selectedSize, item.selectedTier)}
+                            className="w-16 h-8 text-center text-sm border-gray-300 focus:border-gray-400 focus:ring-1 focus:ring-gray-400"
+                            style={{ color: theme.colors.text.secondary }}
+                          />
+                          
                           <button
-                            onClick={() => handleQuantityChange(item.productId, item.quantity, 1, item.selectedSize)}
+                            type="button"
+                            onClick={() => handleQuantityChange(item.productId, item.quantity, 1, item.selectedSize, item.selectedTier)}
                             className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50"
                             style={{ color: theme.colors.text.secondary }}
                           >
@@ -222,8 +295,10 @@ export default function CartPage() {
 
                         {/* Remove Button */}
                         <button
-                          onClick={() => handleRemoveItem(item.productId, item.selectedSize)}
-                          className="text-red-500 hover:text-red-700 p-2"
+                          type="button"
+                          onClick={() => handleRemoveItem(item.productId, item.selectedSize, item.selectedTier)}
+                          className="text-red-500 hover:text-red-700 p-2 transition-colors duration-200"
+                          title={t('cart.removeItem')}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -293,6 +368,7 @@ export default function CartPage() {
             </div>
           </div>
         )}
+
       </main>
     </div>
   )
